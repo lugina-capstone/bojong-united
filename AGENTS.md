@@ -18,4 +18,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Setiap halaman wajib responsif. Frame 1440 px adalah acuan desktop, jadi tulis class mobile-first, jangan menyalin lebar piksel tetap, dan cek di lebar 375, 768, 1366, 1440, dan 1920 px. Lihat "Aturan responsif" di README.
 - Ikon memakai `lucide-react`.
 - Setiap page, Server Action, dan Route Handler yang butuh login memanggil `requireUser`/`requirePermission` dari `@/lib/session` (atau `hasPermission` dari `@/lib/rbac` di Route Handler). Jangan mengandalkan `src/proxy.ts` atau pengecekan di UI untuk otorisasi. Lihat "Autentikasi dan RBAC" di README.
+- Upload dan download file memakai `@/lib/storage` dengan URL sementara; bucket tidak pernah publik. Lihat "Upload file" di README.
+- Setiap Route Handler di `src/app/api/v1` dibungkus `withApiClient(scope, handler)` dari `@/lib/api/client` dan didaftarkan di `@/lib/api/openapi`. Lihat "API integrasi" di README.
 - Alias `@/*` mengarah ke `src/*`.
