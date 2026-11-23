@@ -11,8 +11,11 @@ const optional = z
 // Secret contoh dari .env.example diketahui publik; siapa pun bisa memalsukan token verifikasi email dengannya.
 const EXAMPLE_AUTH_SECRET = "dev-only-secret-ganti-di-production-0000";
 
-const isLocalUrl = (url: string) =>
-  ["localhost", "127.0.0.1"].includes(new URL(url).hostname);
+// URL yang tidak valid dilaporkan oleh validasi BETTER_AUTH_URL sendiri.
+const isLocalUrl = (url: string) => {
+  const hostname = URL.parse(url)?.hostname;
+  return !hostname || ["localhost", "127.0.0.1"].includes(hostname);
+};
 
 const schema = z
   .object({
