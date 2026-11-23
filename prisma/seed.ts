@@ -4,16 +4,25 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { hashPassword } from "better-auth/crypto";
 
 import { PrismaClient } from "../src/generated/prisma/client";
+import { signUpSchema } from "../src/lib/validations/auth";
 
-const name = process.env["ADMIN_NAME"]?.trim() || "Administrator";
-const email = process.env["ADMIN_EMAIL"]?.trim().toLowerCase() ?? "";
-const password = process.env["ADMIN_PASSWORD"] ?? "";
+const admin = signUpSchema.safeParse({
+  name: process.env["ADMIN_NAME"] || "Administrator",
+  email: process.env["ADMIN_EMAIL"] ?? "",
+  password: process.env["ADMIN_PASSWORD"] ?? "",
+});
 
-if (!email || password.length < 8) {
-  throw new Error(
-    "Isi ADMIN_EMAIL dan ADMIN_PASSWORD (minimal 8 karakter) di .env sebelum menjalankan seed.",
-  );
+if (!admin.success) {
+  const issues = admin.error.issues
+    .map(
+      (issue) =>
+        `- ADMIN_${String(issue.path[0]).toUpperCase()}: ${issue.message}`,
+    )
+    .join("\n");
+  throw new Error(`Isi akun Administrator di .env dengan benar:\n${issues}`);
 }
+
+const { name, email, password } = admin.data;
 
 const db = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env["DATABASE_URL"] }),
