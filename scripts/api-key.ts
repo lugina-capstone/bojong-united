@@ -18,8 +18,8 @@ const { positionals, values } = parseArgs({
   allowPositionals: true,
   options: {
     name: { type: "string" },
-    scopes: { type: "string", default: "health:read" },
-    "rate-limit": { type: "string", default: "60" },
+    scopes: { type: "string" },
+    "rate-limit": { type: "string" },
     rotate: { type: "boolean", default: false },
   },
 });
@@ -30,14 +30,15 @@ const input = z
     name: z.string().trim().min(1, { error: "--name wajib diisi" }),
     scopes: z
       .array(z.string().refine(isApiScope, { error: "Scope tidak dikenal" }))
-      .min(1),
-    rateLimit: z.coerce.number().int().positive(),
+      .min(1)
+      .optional(),
+    rateLimit: z.coerce.number().int().positive().optional(),
   })
   .safeParse({
     command: positionals[0],
     name: values.name ?? "",
     scopes: values.scopes
-      .split(",")
+      ?.split(",")
       .map((scope) => scope.trim())
       .filter(Boolean),
     rateLimit: values["rate-limit"],
@@ -70,12 +71,16 @@ async function main() {
         );
       }
 
+      // Saat rotasi, scope dan batas lama dipertahankan kecuali diisi ulang.
+      const settings = {
+        scopes: scopes ?? existing?.scopes ?? ["health:read"],
+        rateLimit: rateLimit ?? existing?.rateLimit ?? 60,
+      };
       const { key, prefix, hash } = generateApiKey();
       const data = {
         keyPrefix: prefix,
         keyHash: hash,
-        scopes,
-        rateLimit,
+        ...settings,
         revokedAt: null,
       };
       await db.apiClient.upsert({
@@ -84,11 +89,15 @@ async function main() {
         update: data,
       });
 
-      console.log(`API key untuk ${name} (scope: ${scopes.join(", ")}, ${rateLimit} request/menit):
-
-    ${key}
-
-  Key ini hanya ditampilkan sekali. Kirim ke tim ${name} lewat saluran yang aman.`);
+      console.log(
+        [
+          `API key untuk ${name} (scope: ${settings.scopes.join(", ")}, ${settings.rateLimit} request/menit):`,
+          "",
+          `  ${key}`,
+          "",
+          `Key ini hanya ditampilkan sekali. Kirim ke tim ${name} lewat saluran yang aman.`,
+        ].join("\n"),
+      );
     }
   } finally {
     await db.$disconnect();
