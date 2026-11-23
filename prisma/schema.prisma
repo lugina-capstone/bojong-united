@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrganizationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DISABLED
+}
+
+/// Peran di dalam organisasi. Guru dan Asesor memiliki akses yang sama, tetapi labelnya berbeda.
+/// User tanpa membership adalah Peserta.
+enum MemberRole {
+  GURU
+  ASESOR
+  TRAINER
+  ADMIN_ORGANISASI
+}
+
+model User {
+  id              String      @id @default(cuid())
+  /// Wajib huruf kecil (CHECK users_email_lowercase). Satu email untuk satu akun.
+  email           String      @unique
+  name            String
+  emailVerified   DateTime?
+  image           String?
+  /// Administrator platform (global), bukan peran organisasi.
+  isAdministrator Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  membership      Membership?
+
+  @@map("users")
+}
+
+model Organization {
+  id        String             @id @default(cuid())
+  name      String
+  /// Kode untuk bergabung ke organisasi.
+  code      String             @unique
+  status    OrganizationStatus @default(PENDING)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  members   Membership[]
+
+  @@map("organizations")
+}
+
+/// Satu user hanya bisa menjadi anggota satu organisasi.
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String       @unique
+  organizationId String
+  role           MemberRole
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("memberships")
+}

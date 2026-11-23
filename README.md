@@ -37,16 +37,27 @@ src/
     page.tsx             # Halaman awal
   components/
     ui/                  # Komponen shadcn/ui Base UI dengan preset Nova
+  generated/prisma/      # Prisma Client hasil generate (diabaikan git)
   lib/
+    db.ts                # Prisma Client bersama (server-only)
+    env.ts               # Validasi environment variable dengan Zod
     utils.ts             # Ekspor helper cn
+prisma/
+  schema.prisma          # Model database
+  migrations/            # Migrasi SQL
+docker/
+  seaweedfs/s3.json      # Kredensial S3 lokal
 docs/
   frontend-verification.md
 .github/
-  workflows/ci.yml       # CI: lint, format, typecheck, build
+  workflows/ci.yml       # CI: prisma validate, lint, format, typecheck, build
   pull_request_template.md
 .husky/                  # Git hook pre-commit dan commit-msg
 AGENTS.md                # Panduan agen dari Next.js dan konvensi proyek
 CONTRIBUTING.md          # Alur branch, commit, dan PR
+compose.yaml             # PostgreSQL, SeaweedFS, dan Mailpit lokal
+.env.example             # Contoh environment variable
+prisma.config.ts         # Konfigurasi Prisma CLI
 components.json          # Konfigurasi shadcn dan alias
 .nvmrc                   # Versi Node.js
 .prettierrc.json         # Konfigurasi Prettier
@@ -71,9 +82,38 @@ Gunakan Node.js **22.22.1 atau lebih baru** yang memenuhi kebutuhan dependency p
 git clone https://github.com/lugina-capstone/bojong-united.git
 cd bojong-united
 npm ci
+cp .env.example .env
+npm run db:up
+npm run db:migrate
 ```
 
-Fondasi ini tidak memerlukan file `.env`, database, atau layanan eksternal. Build awal membutuhkan koneksi internet untuk pengambilan font oleh `next/font/google`; browser menerima font dari aset aplikasi sendiri.
+`npm ci` juga menjalankan `prisma generate`. Build awal membutuhkan koneksi internet untuk pengambilan font oleh `next/font/google`; browser menerima font dari aset aplikasi sendiri.
+
+## Database dan layanan lokal
+
+Layanan lokal berjalan lewat Docker Compose (`compose.yaml`). Nilai di `.env.example` sudah cocok dengan layanan ini.
+
+| Layanan                   | Alamat                                               | Kegunaan                                                        |
+| ------------------------- | ---------------------------------------------------- | --------------------------------------------------------------- |
+| PostgreSQL 17             | `localhost:5432`                                     | Database utama                                                  |
+| SeaweedFS (S3-compatible) | `http://localhost:8333`, bucket `bojong-united`      | Upload materi, tugas, sertifikat. Production memakai R2 atau S3 |
+| Mailpit                   | SMTP `localhost:1025`, inbox `http://localhost:8025` | Menangkap email verifikasi dan undangan                         |
+
+| Script                      | Fungsi                                                               |
+| --------------------------- | -------------------------------------------------------------------- |
+| `npm run db:up` / `db:down` | Menyalakan atau mematikan layanan lokal                              |
+| `npm run db:migrate`        | Membuat dan menerapkan migrasi dari perubahan `prisma/schema.prisma` |
+| `npm run db:deploy`         | Menerapkan migrasi yang sudah ada (staging/production)               |
+| `npm run db:studio`         | Membuka Prisma Studio                                                |
+| `npm run db:generate`       | Membuat ulang Prisma Client                                          |
+
+Gunakan `db` dari `@/lib/db` untuk query, dan `env` dari `@/lib/env` untuk environment variable. Keduanya hanya bisa diimpor di kode server. App langsung error dengan daftar variable yang kurang jika `.env` tidak lengkap.
+
+Model awal:
+
+- `User`: email unik, disimpan dalam huruf kecil. `isAdministrator` menandai Administrator platform.
+- `Organization`: `code` unik untuk bergabung, `status` `PENDING`, `APPROVED`, `REJECTED`, atau `DISABLED`.
+- `Membership`: peran `GURU`, `ASESOR`, `TRAINER`, atau `ADMIN_ORGANISASI`. Satu user hanya bisa menjadi anggota satu organisasi. User tanpa membership adalah Peserta. Guru dan Asesor memiliki akses yang sama, tetapi labelnya berbeda.
 
 ## Development server
 
@@ -155,7 +195,7 @@ Frame Figma 1440 px adalah acuan desktop, bukan lebar tetap.
 
 ## Status dan tahap berikutnya
 
-Halaman awal menampilkan identitas Bojong United, SMK Lugina Rancaekek, deskripsi sistem, dan status pengembangan. Frontend ini belum menyediakan login, navigasi Guru–Siswa, dashboard, atau assessment. Backend, database, autentikasi, dan deployment berada di luar cakupan tahap ini.
+Halaman awal menampilkan identitas Bojong United, SMK Lugina Rancaekek, deskripsi sistem, dan status pengembangan. Frontend ini belum menyediakan login, navigasi Guru–Siswa, dashboard, atau assessment. Database dan layanan lokal sudah tersedia. Autentikasi, RBAC, API integrasi, dan deployment dikerjakan pada tahap berikutnya.
 
 Rencana frontend berikutnya, setelah kebutuhan serta cakupannya disetujui:
 

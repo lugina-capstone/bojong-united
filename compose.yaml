@@ -1,0 +1,52 @@
+name: bojong-united
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: bojong
+      POSTGRES_PASSWORD: bojong
+      POSTGRES_DB: bojong_united
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bojong -d bojong_united"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  storage:
+    image: chrislusf/seaweedfs:4.54
+    command: server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json
+    ports:
+      - "127.0.0.1:8333:8333"
+    volumes:
+      - storage-data:/data
+      - ./docker/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9333/cluster/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  storage-init:
+    image: chrislusf/seaweedfs:4.54
+    depends_on:
+      storage:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - echo "s3.bucket.create -name bojong-united" | weed shell -master=storage:9333
+    restart: "no"
+
+  mailpit:
+    image: axllent/mailpit:v1.34
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
+volumes:
+  postgres-data:
+  storage-data:
