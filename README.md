@@ -36,6 +36,8 @@ src/
     layout.tsx           # Metadata, bahasa, dan font global
     page.tsx             # Halaman awal
     api/auth/[...all]/   # Endpoint Better Auth
+    api/files/           # Upload dan download file
+    api/v1/              # API integrasi FOMO dan COMMIT (API key)
   components/
     ui/                  # Komponen shadcn/ui Base UI dengan preset Nova
   generated/prisma/      # Prisma Client hasil generate (diabaikan git)
@@ -45,6 +47,8 @@ src/
     session.ts           # getCurrentUser, requireUser, requirePermission
     rbac.ts              # Peran, label, dan peta izin
     email.ts             # Pengirim email SMTP (server-only)
+    storage.ts           # Object storage S3: URL upload/download sementara (server-only)
+    api/                 # API key, rate limit, withApiClient, dan OpenAPI untuk /api/v1
     db.ts                # Prisma Client bersama (server-only)
     env.ts               # Validasi environment variable dengan Zod
     validations/         # Skema Zod untuk form
@@ -54,6 +58,8 @@ prisma/
   schema.prisma          # Model database
   migrations/            # Migrasi SQL
   seed.ts                # Membuat akun Administrator pertama
+scripts/
+  api-key.ts             # Membuat, mengganti, dan mencabut API key
 docker/
   seaweedfs/s3.json      # Kredensial S3 lokal
 docs/
@@ -127,6 +133,8 @@ Model awal:
 - `Membership`: peran `GURU`, `ASESOR`, `TRAINER`, atau `ADMIN_ORGANISASI`. Satu user hanya bisa menjadi anggota satu organisasi. User tanpa membership adalah Peserta. Guru dan Asesor memiliki akses yang sama, tetapi labelnya berbeda.
 
 - `Session`, `Account`, dan `Verification`: tabel Better Auth untuk sesi, metode login (`credential` atau `google`), serta token verifikasi email dan reset password.
+- `File`: metadata file di object storage (key, nama asli, tipe, ukuran, pemilik, status `PENDING`/`UPLOADED`).
+- `ApiClient` dan `ApiRateLimit`: aplikasi integrasi (FOMO, COMMIT), hash API key, scope, batas request per menit, dan hitungan request per menit.
 
 ## Autentikasi dan RBAC
 
@@ -159,6 +167,41 @@ Peran efektif (`role`) ditentukan oleh `resolveRole` di `@/lib/rbac`:
 | Peserta          | Tanpa membership, atau organisasinya belum disetujui atau dinonaktifkan | `event:join`, `material:enroll`, `organization:create`, `organization:join` |
 
 Label untuk UI tersedia di `roleLabels`. Tambahkan izin baru di `@/lib/rbac` bersama fiturnya, beserta unit test di `src/lib/rbac.test.ts`.
+
+## Upload file
+
+File disimpan di object storage (bucket privat), bukan di PostgreSQL. Browser mengirim file langsung ke storage memakai URL sementara (5 menit):
+
+1. `POST /api/files` dengan `{ name, contentType, size }`. Server mengecek login, tipe, dan ukuran, lalu membalas `file.id` dan `upload` (`method`, `url`, `headers`).
+2. Browser mengirim `PUT` ke `upload.url` dengan body file dan header `Content-Type` yang sama.
+3. `POST /api/files/{id}/complete`. Server mengecek file di storage; jika ukuran atau tipenya berbeda, file dihapus dan dibalas 400.
+4. `GET /api/files/{id}` mengarahkan (302) ke URL download sementara. Saat ini hanya pemilik dan Administrator yang boleh mengunduh; akses lain ditambahkan bersama fitur materi, tugas, dan sertifikat.
+
+Tipe yang diterima: PDF, JPG, PNG, DOCX, PPTX, dan XLSX, maksimal 10 MB (`@/lib/validations/file`). Video dan file besar memakai link YouTube/Google Drive. Ekstensi nama file harus cocok dengan tipenya.
+
+Di kode server, pakai `@/lib/storage` (`createUploadUrl`, `createDownloadUrl`, `getObjectInfo`, `deleteObject`), jangan membuat klien S3 sendiri. SeaweedFS lokal sudah mengizinkan CORS; untuk R2/S3 di production, atur CORS bucket agar origin aplikasi boleh `PUT` dan `GET`. Record `PENDING` yang tidak pernah diselesaikan akan dibersihkan oleh job terjadwal di tahap berikutnya.
+
+## API integrasi (`/api/v1`)
+
+Endpoint untuk tim FOMO dan COMMIT. Dokumentasi OpenAPI ada di `/api/v1/openapi.json`.
+
+- **Autentikasi:** header `Authorization: Bearer <API key>`. Key berawalan `bu_`; database hanya menyimpan hash SHA-256 dan 11 karakter awalnya.
+- **Scope:** setiap endpoint membutuhkan satu scope (`apiScopes` di `@/lib/api/api-key`). Saat ini hanya `health:read`.
+- **Rate limit:** default 60 request per menit per API key, bisa diubah per key. Setiap respons memuat `X-RateLimit-Limit`, `X-RateLimit-Remaining`, dan `X-RateLimit-Reset`; jika terlampaui, dibalas 429 dengan `Retry-After`.
+- **Error:** semua error berbentuk `{ "error": { "code", "message" } }`.
+
+| Endpoint                   | Scope         | Fungsi                       |
+| -------------------------- | ------------- | ---------------------------- |
+| `GET /api/v1/health`       | `health:read` | Cek koneksi dan API key      |
+| `GET /api/v1/openapi.json` | -             | Dokumentasi OpenAPI (publik) |
+
+| Script                                           | Fungsi                                                               |
+| ------------------------------------------------ | -------------------------------------------------------------------- |
+| `npm run api-key:create -- --name FOMO`          | Membuat API key (opsi `--scopes`, `--rate-limit`). Key tampil sekali |
+| `npm run api-key:create -- --name FOMO --rotate` | Mengganti key lama dengan key baru                                   |
+| `npm run api-key:revoke -- --name FOMO`          | Mencabut API key                                                     |
+
+Endpoint baru dibuat di `src/app/api/v1/**/route.ts` dengan `withApiClient(scope, handler)` dari `@/lib/api/client`, scope baru ditambahkan ke `apiScopes`, dan endpoint-nya didaftarkan di `@/lib/api/openapi`.
 
 ## Development server
 
@@ -241,7 +284,7 @@ Frame Figma 1440 px adalah acuan desktop, bukan lebar tetap.
 
 ## Status dan tahap berikutnya
 
-Halaman awal menampilkan identitas Bojong United, SMK Lugina Rancaekek, deskripsi sistem, dan status pengembangan. Frontend ini belum menyediakan login, navigasi Guru–Siswa, dashboard, atau assessment. Database, layanan lokal, autentikasi (API), dan RBAC sudah tersedia; halaman login dan daftar dibuat saat slicing UI. Layanan storage, API integrasi FOMO dan COMMIT, serta deployment dikerjakan pada tahap berikutnya.
+Halaman awal menampilkan identitas Bojong United, SMK Lugina Rancaekek, deskripsi sistem, dan status pengembangan. Frontend ini belum menyediakan login, navigasi Guru–Siswa, dashboard, atau assessment. Database, layanan lokal, autentikasi (API), RBAC, upload file, dan kerangka API integrasi FOMO dan COMMIT sudah tersedia; halaman login dan daftar dibuat saat slicing UI. Endpoint data untuk FOMO dan COMMIT dibuat bersama fiturnya, dan deployment dikerjakan pada tahap berikutnya.
 
 Rencana frontend berikutnya, setelah kebutuhan serta cakupannya disetujui:
 

@@ -37,6 +37,7 @@ model User {
   membership      Membership?
   sessions        Session[]
   accounts        Account[]
+  files           File[]
 
   @@map("users")
 }
@@ -120,4 +121,62 @@ model Verification {
 
   @@index([identifier])
   @@map("verifications")
+}
+
+enum FileStatus {
+  /// URL upload sudah dibuat, file belum dikonfirmasi ada di storage.
+  PENDING
+  UPLOADED
+}
+
+/// Metadata file di object storage. Isi file tidak pernah disimpan di PostgreSQL.
+model File {
+  id          String     @id @default(cuid())
+  /// Key objek di bucket.
+  key         String     @unique
+  /// Nama file asli dari user, hanya untuk ditampilkan dan saat diunduh.
+  name        String
+  contentType String
+  /// Ukuran dalam byte (maks 10 MB).
+  size        Int
+  status      FileStatus @default(PENDING)
+  ownerId     String
+  uploadedAt  DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  owner       User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@map("files")
+}
+
+/// Aplikasi lain (FOMO, COMMIT) yang mengakses /api/v1 dengan API key.
+model ApiClient {
+  id         String         @id @default(cuid())
+  name       String         @unique
+  /// Awal API key (mis. "bu_AbCd1234") untuk mengenali key tanpa menyimpan key aslinya.
+  keyPrefix  String
+  /// SHA-256 dari API key.
+  keyHash    String         @unique
+  scopes     String[]
+  /// Batas request per menit.
+  rateLimit  Int            @default(60)
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  rateLimits ApiRateLimit[]
+
+  @@map("api_clients")
+}
+
+/// Jumlah request per API client per jendela satu menit.
+model ApiRateLimit {
+  clientId    String
+  windowStart DateTime
+  count       Int       @default(0)
+  client      ApiClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@id([clientId, windowStart])
+  @@map("api_rate_limits")
 }
