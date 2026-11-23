@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: bojong
       POSTGRES_DB: bojong_united
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -21,7 +21,7 @@ services:
     image: chrislusf/seaweedfs:4.54
     command: server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json
     ports:
-      - "8333:8333"
+      - "127.0.0.1:8333:8333"
     volumes:
       - storage-data:/data
       - ./docker/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
@@ -44,8 +44,8 @@ services:
   mailpit:
     image: axllent/mailpit:v1.34
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
 
 volumes:
   postgres-data:
