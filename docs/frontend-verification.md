@@ -15,15 +15,15 @@ Tanggal pemeriksaan: 23 November 2026.
 
 ## Hasil perintah
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| `npm ci` | Berhasil; 537 package terpasang, 538 diaudit. Ada peringatan deprecation ESLint dan hasil audit di bawah. |
-| `npm run lint` | Berhasil, tanpa error atau warning ESLint. |
-| `npx tsc --noEmit` | Berhasil, tanpa TypeScript error. |
-| `npm run build` | Berhasil menggunakan Turbopack; halaman `/` dan ikon diprerender statis. |
-| `npm run dev -- --hostname 127.0.0.1 --port 3000` | Berhasil; halaman awal mengembalikan HTTP 200. |
-| `npm ls --all --json` | Tidak ada dependency `invalid` atau `missing`; React, React DOM, Base UI, dan Tailwind menggunakan versi yang konsisten. |
-| `npm audit` | Dijalankan; menemukan 4 moderate, 0 high, 0 critical. Bukan hasil audit bersih. |
+| Pemeriksaan                                       | Hasil                                                                                                                    |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `npm ci`                                          | Berhasil; 537 package terpasang, 538 diaudit. Ada peringatan deprecation ESLint dan hasil audit di bawah.                |
+| `npm run lint`                                    | Berhasil, tanpa error atau warning ESLint.                                                                               |
+| `npx tsc --noEmit`                                | Berhasil, tanpa TypeScript error.                                                                                        |
+| `npm run build`                                   | Berhasil menggunakan Turbopack; halaman `/` dan ikon diprerender statis.                                                 |
+| `npm run dev -- --hostname 127.0.0.1 --port 3000` | Berhasil; halaman awal mengembalikan HTTP 200.                                                                           |
+| `npm ls --all --json`                             | Tidak ada dependency `invalid` atau `missing`; React, React DOM, Base UI, dan Tailwind menggunakan versi yang konsisten. |
+| `npm audit`                                       | Dijalankan; menemukan 4 moderate, 0 high, 0 critical. Bukan hasil audit bersih.                                          |
 
 `npm ls` menandai `@img/sharp-wasm32@0.35.5` dan `@emnapi/runtime@1.11.3` sebagai `extraneous`, termasuk setelah `npm ci`. Keduanya tercatat sebagai dependency opsional di lockfile; tidak ada konflik peer dependency. Tidak ada library UI kedua seperti Radix. Versi `cn` internal CLI shadcn berbeda dari versi aplikasi, tetapi seluruh komponen aplikasi mengimpor `cn@0.5.2` yang sama.
 
@@ -33,12 +33,12 @@ Saat instalasi, npm menampilkan deprecation untuk ESLint 9.39.5. Versi ESLint da
 
 Pengujian dijalankan menggunakan Chromium headless melalui Playwright 1.65.0 yang sudah tersedia pada mesin, tanpa menambah dependency proyek. Screenshot desktop dan mobile diperiksa secara visual. Script serta hasil mentah berada di direktori sementara mesin dan tidak menjadi bagian source aplikasi.
 
-| Viewport CSS | HTTP | Overflow horizontal | Console/page error | Request gagal |
-| --- | --- | --- | --- | --- |
-| Desktop 1440 × 900 | 200 | Tidak ada | Tidak ada | Tidak ada |
-| Tablet 768 × 1024 | 200 | Tidak ada | Tidak ada | Tidak ada |
-| Mobile 390 × 844 | 200 | Tidak ada | Tidak ada | Tidak ada |
-| Mobile kecil 320 × 700 | 200 | Tidak ada | Tidak ada | Tidak ada |
+| Viewport CSS           | HTTP | Overflow horizontal | Console/page error | Request gagal |
+| ---------------------- | ---- | ------------------- | ------------------ | ------------- |
+| Desktop 1440 × 900     | 200  | Tidak ada           | Tidak ada          | Tidak ada     |
+| Tablet 768 × 1024      | 200  | Tidak ada           | Tidak ada          | Tidak ada     |
+| Mobile 390 × 844       | 200  | Tidak ada           | Tidak ada          | Tidak ada     |
+| Mobile kecil 320 × 700 | 200  | Tidak ada           | Tidak ada          | Tidak ada     |
 
 Pemeriksaan pada masing-masing viewport:
 
