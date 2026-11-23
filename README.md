@@ -35,22 +35,31 @@ src/
     icon.svg             # Ikon aplikasi
     layout.tsx           # Metadata, bahasa, dan font global
     page.tsx             # Halaman awal
+    api/auth/[...all]/   # Endpoint Better Auth
   components/
     ui/                  # Komponen shadcn/ui Base UI dengan preset Nova
   generated/prisma/      # Prisma Client hasil generate (diabaikan git)
   lib/
+    auth.ts              # Konfigurasi Better Auth (server-only)
+    auth-client.ts       # Klien Better Auth untuk komponen client
+    session.ts           # getCurrentUser, requireUser, requirePermission
+    rbac.ts              # Peran, label, dan peta izin
+    email.ts             # Pengirim email SMTP (server-only)
     db.ts                # Prisma Client bersama (server-only)
     env.ts               # Validasi environment variable dengan Zod
+    validations/         # Skema Zod untuk form
     utils.ts             # Ekspor helper cn
+  proxy.ts               # Redirect ke /masuk untuk pengunjung tanpa sesi
 prisma/
   schema.prisma          # Model database
   migrations/            # Migrasi SQL
+  seed.ts                # Membuat akun Administrator pertama
 docker/
   seaweedfs/s3.json      # Kredensial S3 lokal
 docs/
   frontend-verification.md
 .github/
-  workflows/ci.yml       # CI: prisma validate, lint, format, typecheck, build
+  workflows/ci.yml       # CI: prisma validate, lint, format, typecheck, test, build
   pull_request_template.md
 .husky/                  # Git hook pre-commit dan commit-msg
 AGENTS.md                # Panduan agen dari Next.js dan konvensi proyek
@@ -58,6 +67,7 @@ CONTRIBUTING.md          # Alur branch, commit, dan PR
 compose.yaml             # PostgreSQL, SeaweedFS, dan Mailpit lokal
 .env.example             # Contoh environment variable
 prisma.config.ts         # Konfigurasi Prisma CLI
+vitest.config.mts        # Konfigurasi unit test
 components.json          # Konfigurasi shadcn dan alias
 .nvmrc                   # Versi Node.js
 .prettierrc.json         # Konfigurasi Prettier
@@ -104,6 +114,7 @@ Layanan lokal berjalan lewat Docker Compose (`compose.yaml`). Nilai di `.env.exa
 | `npm run db:up` / `db:down` | Menyalakan atau mematikan layanan lokal                              |
 | `npm run db:migrate`        | Membuat dan menerapkan migrasi dari perubahan `prisma/schema.prisma` |
 | `npm run db:deploy`         | Menerapkan migrasi yang sudah ada (staging/production)               |
+| `npm run db:seed`           | Membuat atau memperbarui akun Administrator dari `ADMIN_*` di `.env` |
 | `npm run db:studio`         | Membuka Prisma Studio                                                |
 | `npm run db:generate`       | Membuat ulang Prisma Client                                          |
 
@@ -111,9 +122,43 @@ Gunakan `db` dari `@/lib/db` untuk query, dan `env` dari `@/lib/env` untuk envir
 
 Model awal:
 
-- `User`: email unik, disimpan dalam huruf kecil. `isAdministrator` menandai Administrator platform.
+- `User`: email unik dan wajib huruf kecil (dijaga constraint database). `isAdministrator` menandai Administrator platform.
 - `Organization`: `code` unik untuk bergabung, `status` `PENDING`, `APPROVED`, `REJECTED`, atau `DISABLED`.
 - `Membership`: peran `GURU`, `ASESOR`, `TRAINER`, atau `ADMIN_ORGANISASI`. Satu user hanya bisa menjadi anggota satu organisasi. User tanpa membership adalah Peserta. Guru dan Asesor memiliki akses yang sama, tetapi labelnya berbeda.
+
+- `Session`, `Account`, dan `Verification`: tabel Better Auth untuk sesi, metode login (`credential` atau `google`), serta token verifikasi email dan reset password.
+
+## Autentikasi dan RBAC
+
+Autentikasi memakai [Better Auth](https://www.better-auth.com) dengan sesi di database. Endpoint-nya ada di `/api/auth/*`.
+
+- **Email + password:** password di-hash dengan scrypt, minimal 8 karakter. Email wajib diverifikasi sebelum bisa login. Email verifikasi dan reset password dikirim lewat SMTP; di lokal, buka inbox Mailpit di `http://localhost:8025`.
+- **Google:** aktif jika `GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_SECRET` diisi. Redirect URI: `<BETTER_AUTH_URL>/api/auth/callback/google`. Akun Google dengan email yang sama otomatis ditautkan ke akun yang emailnya sudah terverifikasi.
+- **Administrator pertama:** isi `ADMIN_EMAIL` dan `ADMIN_PASSWORD` di `.env`, lalu jalankan `npm run db:seed`.
+
+Di komponen client, gunakan `authClient` dari `@/lib/auth-client` (`signIn.email`, `signIn.social`, `signUp.email`, `signOut`, `requestPasswordReset`, `resetPassword`). Skema form ada di `@/lib/validations/auth`.
+
+Di server, gunakan helper dari `@/lib/session`:
+
+| Helper                          | Fungsi                                                                     |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| `getCurrentUser()`              | User yang login beserta `role` efektif dan membership-nya, atau `null`     |
+| `requireUser()`                 | Sama, tetapi redirect ke `/masuk` jika belum login                         |
+| `requirePermission(permission)` | Seperti `requireUser`, lalu menampilkan 404 jika peran tidak memiliki izin |
+
+Helper ini membaca header request, jadi komponen yang memanggilnya harus berada di dalam `<Suspense>` (Cache Components aktif). Peran dan membership dibaca ulang dari database di setiap request, sehingga perubahan peran atau anggota yang dikeluarkan langsung berlaku. Route Handler memakai `hasPermission(user.role, permission)` dari `@/lib/rbac` dan membalas 401/403 sendiri. `src/proxy.ts` hanya mengecek ada atau tidaknya cookie sesi, bukan pengganti pengecekan izin.
+
+Peran efektif (`role`) ditentukan oleh `resolveRole` di `@/lib/rbac`:
+
+| Peran            | Kondisi                                                                 | Izin                                                                        |
+| ---------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Administrator    | `isAdministrator = true`                                                | `organization:review`, `organization:manage`, `user:manage`                 |
+| Admin Organisasi | Membership `ADMIN_ORGANISASI` di organisasi `APPROVED`                  | `member:manage`, `organization:update`                                      |
+| Trainer          | Membership `TRAINER` di organisasi `APPROVED`                           | Izin Guru ditambah `material:manage`                                        |
+| Guru / Asesor    | Membership `GURU` atau `ASESOR` di organisasi `APPROVED`                | `event:manage`, `assessment:manage`                                         |
+| Peserta          | Tanpa membership, atau organisasinya belum disetujui atau dinonaktifkan | `event:join`, `material:enroll`, `organization:create`, `organization:join` |
+
+Label untuk UI tersedia di `roleLabels`. Tambahkan izin baru di `@/lib/rbac` bersama fiturnya, beserta unit test di `src/lib/rbac.test.ts`.
 
 ## Development server
 
@@ -131,9 +176,10 @@ Jalankan lint, format, dan pemeriksaan tipe:
 npm run lint
 npm run format:check
 npm run typecheck
+npm test
 ```
 
-`typecheck` menjalankan `next typegen` sebelum `tsc --noEmit`, sehingga tipe route seperti `LayoutProps` tersedia pada clone baru. Gunakan `npm run format` untuk merapikan file dengan Prettier.
+`npm test` menjalankan unit test Vitest (`src/**/*.test.ts`). `typecheck` menjalankan `next typegen` sebelum `tsc --noEmit`, sehingga tipe route seperti `LayoutProps` tersedia pada clone baru. Gunakan `npm run format` untuk merapikan file dengan Prettier.
 
 Bangun aplikasi untuk produksi:
 
@@ -157,7 +203,7 @@ Hasil verifikasi 23 November 2026: instalasi, ESLint, TypeScript, build, dan smo
 - Versi Node.js dikunci di `.nvmrc` (22) dan `engines` (`>=22.22.1`, minimum lint-staged) di `package.json`.
 - Prettier (dengan `prettier-plugin-tailwindcss`) merapikan kode dan mengurutkan class Tailwind; `eslint-config-prettier` mencegah bentrok dengan ESLint.
 - `npm ci` memasang git hook Husky: `pre-commit` menjalankan lint-staged (ESLint + Prettier pada file yang di-stage) dan `commit-msg` menjalankan Commitlint (Conventional Commits).
-- GitHub Actions menjalankan lint, format check, typecheck, dan build pada setiap pull request.
+- GitHub Actions menjalankan lint, format check, typecheck, unit test, dan build pada setiap pull request.
 - Alur branch, commit, dan PR dijelaskan di [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Komponen UI
@@ -195,7 +241,7 @@ Frame Figma 1440 px adalah acuan desktop, bukan lebar tetap.
 
 ## Status dan tahap berikutnya
 
-Halaman awal menampilkan identitas Bojong United, SMK Lugina Rancaekek, deskripsi sistem, dan status pengembangan. Frontend ini belum menyediakan login, navigasi Guru–Siswa, dashboard, atau assessment. Database dan layanan lokal sudah tersedia. Autentikasi, RBAC, API integrasi, dan deployment dikerjakan pada tahap berikutnya.
+Halaman awal menampilkan identitas Bojong United, SMK Lugina Rancaekek, deskripsi sistem, dan status pengembangan. Frontend ini belum menyediakan login, navigasi Guru–Siswa, dashboard, atau assessment. Database, layanan lokal, autentikasi (API), dan RBAC sudah tersedia; halaman login dan daftar dibuat saat slicing UI. Layanan storage, API integrasi FOMO dan COMMIT, serta deployment dikerjakan pada tahap berikutnya.
 
 Rencana frontend berikutnya, setelah kebutuhan serta cakupannya disetujui:
 

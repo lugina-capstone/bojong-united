@@ -11,10 +11,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Konvensi proyek
 
 - Gunakan npm dan pertahankan `package-lock.json`.
-- Sebelum selesai, jalankan `npm run lint`, `npm run format:check`, `npm run typecheck`, dan `npm run build`.
+- Sebelum selesai, jalankan `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm test`, dan `npm run build`.
 - Commit mengikuti Conventional Commits; lihat `CONTRIBUTING.md`.
 - UI memakai komponen `src/components/ui` (shadcn/ui, Base UI) dan token tema di `src/app/globals.css`. Jangan hardcode warna, radius, atau font.
 - Slicing mengikuti Figma `redesign` (page Final dan Komponen) dan memakai token di bagian "Design token dan slicing" README: `text-body`, `text-h2`, `bg-tone-sage-bg`, dan seterusnya.
 - Setiap halaman wajib responsif. Frame 1440 px adalah acuan desktop, jadi tulis class mobile-first, jangan menyalin lebar piksel tetap, dan cek di lebar 375, 768, 1366, 1440, dan 1920 px. Lihat "Aturan responsif" di README.
 - Ikon memakai `lucide-react`.
+- Setiap page, Server Action, dan Route Handler yang butuh login memanggil `requireUser`/`requirePermission` dari `@/lib/session` (atau `hasPermission` dari `@/lib/rbac` di Route Handler). Jangan mengandalkan `src/proxy.ts` atau pengecekan di UI untuk otorisasi. Lihat "Autentikasi dan RBAC" di README.
 - Alias `@/*` mengarah ke `src/*`.
