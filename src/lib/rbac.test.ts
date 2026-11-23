@@ -15,6 +15,12 @@ describe("rolePermissions", () => {
     expect(hasPermission("GURU", "material:manage")).toBe(false);
   });
 
+  it("Admin Organisasi punya semua izin Trainer (termasuk Guru/Asesor)", () => {
+    for (const permission of rolePermissions.TRAINER) {
+      expect(hasPermission("ADMIN_ORGANISASI", permission)).toBe(true);
+    }
+  });
+
   it("hanya Admin Organisasi yang mengelola anggota", () => {
     expect(hasPermission("ADMIN_ORGANISASI", "member:manage")).toBe(true);
     expect(hasPermission("TRAINER", "member:manage")).toBe(false);

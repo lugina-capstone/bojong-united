@@ -153,7 +153,7 @@ Peran efektif (`role`) ditentukan oleh `resolveRole` di `@/lib/rbac`:
 | Peran            | Kondisi                                                                 | Izin                                                                        |
 | ---------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | Administrator    | `isAdministrator = true`                                                | `organization:review`, `organization:manage`, `user:manage`                 |
-| Admin Organisasi | Membership `ADMIN_ORGANISASI` di organisasi `APPROVED`                  | `member:manage`, `organization:update`                                      |
+| Admin Organisasi | Membership `ADMIN_ORGANISASI` di organisasi `APPROVED`                  | Semua izin Trainer, `member:manage`, `organization:update`                  |
 | Trainer          | Membership `TRAINER` di organisasi `APPROVED`                           | Izin Guru ditambah `material:manage`                                        |
 | Guru / Asesor    | Membership `GURU` atau `ASESOR` di organisasi `APPROVED`                | `event:manage`, `assessment:manage`                                         |
 | Peserta          | Tanpa membership, atau organisasinya belum disetujui atau dinonaktifkan | `event:join`, `material:enroll`, `organization:create`, `organization:join` |

@@ -24,6 +24,7 @@ const pengajarPermissions = ["event:manage", "assessment:manage"] as const;
 const trainerPermissions = [...pengajarPermissions, "material:manage"] as const;
 
 const adminOrganisasiPermissions = [
+  ...trainerPermissions,
   "member:manage",
   "organization:update",
 ] as const;
