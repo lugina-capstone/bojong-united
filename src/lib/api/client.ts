@@ -43,7 +43,10 @@ export function withApiClient<Context = unknown>(
     context: Context,
   ) => Promise<Response>,
 ) {
-  return async (request: Request, context: Context) => {
+  const handle = async (
+    request: Request,
+    context: Context,
+  ): Promise<Response> => {
     const key = parseBearerToken(request.headers.get("authorization"));
     if (!key) {
       return apiError(
@@ -101,17 +104,21 @@ export function withApiClient<Context = unknown>(
         `API key tidak memiliki scope ${scope}`,
       );
     } else {
-      try {
-        response = await handler(request, client, context);
-      } catch (error) {
-        console.error(`[api/v1] ${request.method} ${request.url}`, error);
-        response = apiError(500, "internal_error", "Terjadi kesalahan server");
-      }
+      response = await handler(request, client, context);
     }
 
     for (const [name, value] of Object.entries(rateLimit.headers)) {
       response.headers.set(name, value);
     }
     return response;
+  };
+
+  return async (request: Request, context: Context) => {
+    try {
+      return await handle(request, context);
+    } catch (error) {
+      console.error(`[api/v1] ${request.method} ${request.url}`, error);
+      return apiError(500, "internal_error", "Terjadi kesalahan server");
+    }
   };
 }
