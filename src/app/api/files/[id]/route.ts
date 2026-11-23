@@ -25,5 +25,5 @@ export async function GET(
     (file.ownerId === user.id || user.role === "ADMINISTRATOR");
   if (!canRead) return apiError(404, "not_found", "File tidak ditemukan");
 
-  return Response.redirect(await createDownloadUrl(file.key, file.name), 302);
+  return Response.redirect(await createDownloadUrl(file), 302);
 }

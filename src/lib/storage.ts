@@ -46,14 +46,22 @@ export function createUploadUrl(input: {
   );
 }
 
-/** URL GET sementara. Panggil hanya setelah izin user dicek. */
-export function createDownloadUrl(key: string, fileName: string) {
+/**
+ * URL GET sementara. Panggil hanya setelah izin user dicek.
+ * Tipe dari database dan `attachment` dipaksakan, jadi objek yang ditimpa dengan tipe lain tetap diunduh sebagai tipe yang divalidasi.
+ */
+export function createDownloadUrl(file: {
+  key: string;
+  name: string;
+  contentType: string;
+}) {
   return getSignedUrl(
     s3,
     new GetObjectCommand({
       Bucket: env.S3_BUCKET,
-      Key: key,
-      ResponseContentDisposition: contentDisposition(fileName),
+      Key: file.key,
+      ResponseContentType: file.contentType,
+      ResponseContentDisposition: contentDisposition(file.name),
     }),
     { expiresIn: URL_EXPIRES_IN },
   );
