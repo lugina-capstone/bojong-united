@@ -65,7 +65,7 @@ Struktur dikembangkan saat diperlukan: `components/layout` untuk layout yang dig
 
 ## Instalasi
 
-Gunakan Node.js **22 atau lebih baru** yang memenuhi kebutuhan dependency proyek. Lingkungan yang diverifikasi menggunakan Node.js 24.15.0 dan npm 11.12.1.
+Gunakan Node.js **22.22.1 atau lebih baru** yang memenuhi kebutuhan dependency proyek. Lingkungan yang diverifikasi menggunakan Node.js 24.15.0 dan npm 11.12.1.
 
 ```bash
 git clone https://github.com/lugina-capstone/bojong-united.git
@@ -114,7 +114,7 @@ Hasil verifikasi 23 November 2026: instalasi, ESLint, TypeScript, build, dan smo
 
 ## Konsistensi tim
 
-- Versi Node.js dikunci di `.nvmrc` (22) dan `engines` di `package.json`.
+- Versi Node.js dikunci di `.nvmrc` (22) dan `engines` (`>=22.22.1`, minimum lint-staged) di `package.json`.
 - Prettier (dengan `prettier-plugin-tailwindcss`) merapikan kode dan mengurutkan class Tailwind; `eslint-config-prettier` mencegah bentrok dengan ESLint.
 - `npm ci` memasang git hook Husky: `pre-commit` menjalankan lint-staged (ESLint + Prettier pada file yang di-stage) dan `commit-msg` menjalankan Commitlint (Conventional Commits).
 - GitHub Actions menjalankan lint, format check, typecheck, dan build pada setiap pull request.
