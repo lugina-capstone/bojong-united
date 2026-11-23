@@ -25,7 +25,7 @@ enum MemberRole {
 
 model User {
   id              String      @id @default(cuid())
-  /// Disimpan dalam huruf kecil. Satu email untuk satu akun.
+  /// Wajib huruf kecil (CHECK users_email_lowercase). Satu email untuk satu akun.
   email           String      @unique
   name            String
   emailVerified   DateTime?
