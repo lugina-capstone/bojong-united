@@ -10,11 +10,13 @@
     "typecheck": "next typegen && tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "test": "vitest run",
     "prepare": "husky",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "postinstall": "prisma generate"
@@ -23,10 +25,12 @@
     "@base-ui/react": "^1.9.0",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
+    "better-auth": "1.7.27",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "lucide-react": "^1.78.0",
     "next": "16.4.6",
+    "nodemailer": "8.0.11",
     "pg": "8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -40,6 +44,7 @@
     "@commitlint/config-conventional": "^21.2.4",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
+    "@types/nodemailer": "8.0.2",
     "@types/pg": "8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -53,7 +58,9 @@
     "prettier-plugin-tailwindcss": "^0.8.1",
     "prisma": "7.10.1",
     "tailwindcss": "4.3.3",
-    "typescript": "^5"
+    "tsx": "4.23.15",
+    "typescript": "^5",
+    "vitest": "4.1.12"
   },
   "engines": {
     "node": ">=22.22.1"

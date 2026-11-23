@@ -28,13 +28,15 @@ model User {
   /// Wajib huruf kecil (CHECK users_email_lowercase). Satu email untuk satu akun.
   email           String      @unique
   name            String
-  emailVerified   DateTime?
+  emailVerified   Boolean     @default(false)
   image           String?
   /// Administrator platform (global), bukan peran organisasi.
   isAdministrator Boolean     @default(false)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   membership      Membership?
+  sessions        Session[]
+  accounts        Account[]
 
   @@map("users")
 }
@@ -65,4 +67,57 @@ model Membership {
 
   @@index([organizationId])
   @@map("memberships")
+}
+
+// Tabel Better Auth. Nama field mengikuti skema bawaan Better Auth.
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// Satu baris per metode login: providerId "credential" (email + password) atau "google".
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  /// Hash password (scrypt) untuk providerId "credential".
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+/// Token verifikasi email dan reset password.
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verifications")
 }

@@ -21,8 +21,10 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: cp .env.example .env
       - run: npx prisma validate
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
+      - run: npm test
       - run: npm run build
