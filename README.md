@@ -19,9 +19,9 @@ Versi berikut berasal dari dependency yang terpasang melalui `package-lock.json`
 | ESLint / eslint-config-next | 9.39.5 / 16.4.6                                                      |
 | shadcn/ui                   | Source komponen lokal, CLI 4.23.0                                    |
 | Base UI                     | `@base-ui/react` 1.9.0                                               |
-| Preset shadcn               | `base-nova`, warna neutral                                           |
+| Preset shadcn               | `base-nova`, token warna diganti dari Figma                          |
 | Lucide React                | 1.78.0                                                               |
-| Font                        | Geist Sans dan Geist Mono melalui `next/font`                        |
+| Font                        | Inter melalui `next/font`                                            |
 | Utilitas UI                 | `cn` 0.5.2, `class-variance-authority` 0.7.1, `tw-animate-css` 1.4.0 |
 
 Gunakan npm dan pertahankan `package-lock.json`. Tidak perlu menginisialisasi ulang shadcn atau memasang ulang library UI.
@@ -31,7 +31,7 @@ Gunakan npm dan pertahankan `package-lock.json`. Tidak perlu menginisialisasi ul
 ```text
 src/
   app/
-    globals.css          # Tailwind dan theme tokens light/dark
+    globals.css          # Tailwind dan design token dari Figma
     icon.svg             # Ikon aplikasi
     layout.tsx           # Metadata, bahasa, dan font global
     page.tsx             # Halaman awal
@@ -126,7 +126,32 @@ Komponen yang sudah tersedia di `src/components/ui`:
 
 `badge`, `button`, `card`, `dialog`, `input`, `select`, `table`, `tabs`, dan `textarea`.
 
-Halaman awal menggunakan `Card`, `CardContent`, dan `Badge`, beserta ikon Lucide. Komponen lain dipertahankan sebagai fondasi yang sudah tersedia. Token warna dan radius dipusatkan di `globals.css`; Geist dipetakan ke token font Tailwind. Tidak ada design system tambahan atau library UI kedua.
+Halaman awal menggunakan `Card`, `CardContent`, dan `Badge`, beserta ikon Lucide. Komponen lain dipertahankan sebagai fondasi yang sudah tersedia. Token warna dan radius dipusatkan di `globals.css`; Inter dipetakan ke token font Tailwind. Tidak ada design system tambahan atau library UI kedua.
+
+## Design token dan slicing
+
+Sumber desain adalah file Figma `redesign`: page **Final** (frame desktop 1440×1024) dan page **Komponen**. Token di `src/app/globals.css` diambil dari collection variable **Lugina** dan text style `Lugina/*`. Collection "Supaste" di file Figma adalah sisa lama dan tidak dipakai. Untuk saat ini hanya ada mode terang.
+
+| Jenis                      | Class Tailwind                                                                                                                                                                                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Warna semantik (shadcn)    | `bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `border-input`, `bg-primary`, `text-destructive`                                                                                        |
+| Palet                      | `primary-50…900`, `success-*`, `warning-*`, `danger-*` (50/200/500/700), `text-label`, `text-subtle`, `bg-overlay`                                                                                                               |
+| Tone (badge/avatar/sampul) | `bg-tone-{blue,sage,peach,slate,lilac,sand}-bg` dengan `text-tone-…-fg`                                                                                                                                                          |
+| Tipografi                  | `text-hero` 36, `text-display` 28, `text-stat` 26, `text-h2` 20, `text-h3` 15, `text-body` 13 (default body), `text-small` 12, `text-caption` 11, `text-overline` 11. Varian Medium/Strong memakai `font-medium`/`font-semibold` |
+| Radius                     | `rounded-sm` 6, `rounded-md` 8, `rounded-lg` 10, `rounded-xl` 12, `rounded-2xl` 16, `rounded-full` untuk pill                                                                                                                    |
+| Motion                     | `ease-standard`, `duration-(--duration-fast)` 150 ms, `--duration-base` 200 ms, `--duration-slow` 350 ms                                                                                                                         |
+
+Radius Figma yang tidak ada di skala (misalnya 7, 9, 11) dibulatkan ke nilai terdekat. Spacing memakai skala 4px bawaan Tailwind.
+
+### Aturan responsif
+
+Frame Figma 1440 px adalah acuan desktop, bukan lebar tetap.
+
+- Tulis class mobile-first: class dasar untuk HP, lalu `sm:` 640, `md:` 768, `lg:` 1024, `xl:` 1280, `2xl:` 1536.
+- Jangan menyalin lebar/tinggi piksel dari Figma ke container. Pakai `w-full`, `max-w-*`, flex/grid, dan `min-h-*`.
+- Sidebar berubah menjadi drawer (`Sheet`) di bawah `lg`. Grid kartu turun kolom di layar kecil. Tabel lebar dibungkus `overflow-x-auto`.
+- Input dan textarea memakai `text-base` (16 px) di mobile dan `md:text-body` di desktop, supaya iOS tidak auto-zoom.
+- Periksa setiap halaman di lebar 375, 768, 1366, 1440, dan 1920 px tanpa scroll horizontal.
 
 ## Status dan tahap berikutnya
 
