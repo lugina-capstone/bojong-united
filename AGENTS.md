@@ -14,5 +14,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Sebelum selesai, jalankan `npm run lint`, `npm run format:check`, `npm run typecheck`, dan `npm run build`.
 - Commit mengikuti Conventional Commits; lihat `CONTRIBUTING.md`.
 - UI memakai komponen `src/components/ui` (shadcn/ui, Base UI) dan token tema di `src/app/globals.css`. Jangan hardcode warna, radius, atau font.
+- Slicing mengikuti Figma `redesign` (page Final dan Komponen) dan memakai token di bagian "Design token dan slicing" README: `text-body`, `text-h2`, `bg-tone-sage-bg`, dan seterusnya.
+- Setiap halaman wajib responsif. Frame 1440 px adalah acuan desktop, jadi tulis class mobile-first, jangan menyalin lebar piksel tetap, dan cek di lebar 375, 768, 1366, 1440, dan 1920 px. Lihat "Aturan responsif" di README.
 - Ikon memakai `lucide-react`.
 - Alias `@/*` mengarah ke `src/*`.
