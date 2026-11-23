@@ -3,7 +3,9 @@
 ## Persiapan
 
 1. Gunakan Node.js sesuai `.nvmrc` (`nvm use`).
-2. Jalankan `npm ci`. Script `prepare` memasang git hook Husky secara otomatis.
+2. Jalankan `npm ci`. Script `prepare` memasang git hook Husky, dan `postinstall` membuat Prisma Client.
+3. Salin `.env.example` ke `.env`, lalu jalankan `npm run db:up` dan `npm run db:migrate` (butuh Docker).
+4. Setelah mengubah `prisma/schema.prisma`, jalankan `npm run db:migrate -- --name <deskripsi>` dan commit folder migrasinya.
 
 ## Alur kerja
 

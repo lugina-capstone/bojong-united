@@ -1,0 +1,11 @@
+{
+  "identities": [
+    {
+      "name": "local",
+      "credentials": [
+        { "accessKey": "bojong", "secretKey": "bojong-local-secret" }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}
