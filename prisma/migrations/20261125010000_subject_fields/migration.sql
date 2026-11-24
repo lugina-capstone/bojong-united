@@ -32,22 +32,34 @@ INSERT INTO "material_categories" ("id", "name", "isDefault") VALUES
   ('category_bisnis_data', 'Bisnis & Data', true)
 ON CONFLICT ("name") WHERE "organizationId" IS NULL DO NOTHING;
 
--- Kategori teks lama dipetakan ke bidang bawaan dengan nama sama, selain itu ke "Umum".
+-- Kategori teks lama: nama bidang bawaan dipakai langsung, nama lain menjadi bidang custom
+-- organisasi. Acara terbit tanpa kategori masuk "Umum".
 ALTER TABLE "events" ADD COLUMN "fieldId" TEXT;
 ALTER TABLE "rubrics" ADD COLUMN "fieldId" TEXT;
 
+INSERT INTO "subject_fields" ("id", "organizationId", "name")
+SELECT gen_random_uuid()::text, c."organizationId", c."category"
+FROM (
+  SELECT "organizationId", "category" FROM "events" WHERE "category" IS NOT NULL
+  UNION
+  SELECT "organizationId", "category" FROM "rubrics"
+) c
+WHERE NOT EXISTS (
+  SELECT 1 FROM "subject_fields" f WHERE f."organizationId" IS NULL AND f."name" = c."category"
+);
+
 UPDATE "events" e
-SET "fieldId" = COALESCE(
-  (SELECT f."id" FROM "subject_fields" f WHERE f."organizationId" IS NULL AND f."name" = e."category"),
-  'field_umum'
-)
-WHERE e."category" IS NOT NULL OR e."status" <> 'DRAFT';
+SET "fieldId" = f."id"
+FROM "subject_fields" f
+WHERE f."name" = e."category"
+  AND (f."organizationId" IS NULL OR f."organizationId" = e."organizationId");
+UPDATE "events" SET "fieldId" = 'field_umum' WHERE "fieldId" IS NULL AND "status" <> 'DRAFT';
 
 UPDATE "rubrics" r
-SET "fieldId" = COALESCE(
-  (SELECT f."id" FROM "subject_fields" f WHERE f."organizationId" IS NULL AND f."name" = r."category"),
-  'field_umum'
-);
+SET "fieldId" = f."id"
+FROM "subject_fields" f
+WHERE f."name" = r."category"
+  AND (f."organizationId" IS NULL OR f."organizationId" = r."organizationId");
 
 ALTER TABLE "events" DROP COLUMN "category";
 ALTER TABLE "rubrics" DROP COLUMN "category",
