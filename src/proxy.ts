@@ -8,6 +8,8 @@ const publicPaths = [
   "/lupa-password",
   "/reset-password",
   "/akun-dihapus",
+  "/ketentuan",
+  "/privasi",
 ];
 
 // Pengecekan optimistis (hanya ada atau tidaknya cookie sesi).

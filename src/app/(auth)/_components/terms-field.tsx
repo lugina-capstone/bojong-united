@@ -26,12 +26,19 @@ function TermsField({
           Saya menyetujui{" "}
           <Link
             href="/ketentuan"
+            target="_blank"
+            rel="noopener"
             className="text-small-strong text-primary-500"
           >
             Ketentuan Layanan
           </Link>{" "}
           dan{" "}
-          <Link href="/privasi" className="text-small-strong text-primary-500">
+          <Link
+            href="/privasi"
+            target="_blank"
+            rel="noopener"
+            className="text-small-strong text-primary-500"
+          >
             Kebijakan Privasi
           </Link>
           .
