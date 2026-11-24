@@ -86,19 +86,23 @@ export default async function MembersPage({
         ],
       }
     : undefined;
+  const roleFilter = memberRoles.includes(role as never)
+    ? { role: role as (typeof memberRoles)[number] }
+    : {};
   const base: Prisma.MembershipWhereInput = {
     organizationId,
     status: "ACTIVE",
-    ...(memberRoles.includes(role as never)
-      ? { role: role as (typeof memberRoles)[number] }
-      : {}),
+    ...roleFilter,
     ...(search ? { user: search } : {}),
   };
   const where: Prisma.MembershipWhereInput = { AND: [base, tab.where] };
   const requestWhere: Prisma.TrainerRequestWhereInput = {
     organizationId,
     status: "PENDING",
-    user: { membership: { organizationId, status: "ACTIVE" }, ...search },
+    user: {
+      membership: { organizationId, status: "ACTIVE", ...roleFilter },
+      ...search,
+    },
   };
 
   const [
@@ -183,8 +187,11 @@ export default async function MembersPage({
                 name: true,
                 email: true,
                 accounts: { select: { providerId: true } },
+                _count: {
+                  select: { createdEvents: { where: { organizationId } } },
+                },
                 createdEvents: {
-                  where: { organizationId },
+                  where: { organizationId, status: { not: "DRAFT" } },
                   orderBy: { createdAt: "desc" },
                   select: {
                     id: true,
@@ -451,7 +458,7 @@ export default async function MembersPage({
                 role: profile.role,
                 isAdmin: profile.isAdmin,
                 isSelf: profile.userId === user.id,
-                eventCount: profile.user.createdEvents.length,
+                eventCount: profile.user._count.createdEvents,
               }}
             />
           </div>
