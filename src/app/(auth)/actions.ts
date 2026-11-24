@@ -10,7 +10,8 @@ import { auth } from "@/lib/auth";
 import { destinationFor, destinationHref } from "@/lib/auth-routing";
 import { db } from "@/lib/db";
 import { generateOrganizationCode } from "@/lib/organization-code";
-import { getCurrentUser } from "@/lib/session";
+import { OTP_RESEND_SECONDS } from "@/lib/otp";
+import { requireUser } from "@/lib/session";
 import {
   forgotPasswordSchema,
   joinOrganizationSchema,
@@ -142,24 +143,26 @@ async function createOrganization(
   }
 }
 
-/** Daftar organisasi baru (AA-06): akun pemohon + organisasi PENDING, pemohon jadi admin. */
+/**
+ * Daftar organisasi baru (AA-06), langkah 1: akun pemohon saja. Organisasi dibuat lewat
+ * `createOrganizationAction` setelah email terverifikasi, agar ganti email tidak meninggalkan
+ * pengajuan ganda.
+ */
 export async function registerOrganizationAction(
   input: unknown,
 ): Promise<FormState> {
   const parsed = registerOrganizationSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
   if (await emailTaken(parsed.data.email)) return EMAIL_TAKEN;
-  const userId = await signUpUser(parsed.data);
-  await createOrganization(userId, parsed.data, parsed.data.email);
+  await signUpUser(parsed.data);
   return { ok: true, email: parsed.data.email };
 }
 
-/** Akun yang sedang masuk (dikeluarkan atau Peserta) membuat organisasi baru. */
+/** Akun yang sedang masuk (pemohon baru, dikeluarkan, atau Peserta) membuat organisasi baru. */
 export async function createOrganizationAction(
   input: unknown,
 ): Promise<FormState> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/masuk");
+  const user = await requireUser();
   const parsed = organizationDataSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
   if (user.membership?.status === "ACTIVE")
@@ -171,8 +174,7 @@ export async function createOrganizationAction(
 
 /** Akun yang sedang masuk (dikeluarkan atau Peserta) bergabung dengan kode. */
 export async function joinOrganizationAction(code: string): Promise<FormState> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/masuk");
+  const user = await requireUser();
   if (user.membership?.status === "ACTIVE")
     return { error: "Akun ini masih tergabung di organisasi." };
   const parsed = organizationCodeSchema.safeParse(code);
@@ -197,8 +199,7 @@ export async function joinOrganizationAction(code: string): Promise<FormState> {
 export async function resubmitOrganizationAction(
   input: unknown,
 ): Promise<FormState> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/masuk");
+  const user = await requireUser();
   const membership = await db.membership.findUnique({
     where: { userId: user.id },
     select: {
@@ -226,8 +227,7 @@ export async function resubmitOrganizationAction(
 
 /** Pasang logo (file sudah diupload lewat /api/files) ke organisasi yang dikelola user. */
 export async function setOrganizationLogoAction(fileId: string) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/masuk");
+  const user = await requireUser();
   const membership = await db.membership.findUnique({
     where: { userId: user.id },
     select: { isAdmin: true, organizationId: true },
@@ -269,17 +269,30 @@ export async function verifyOtpAction(input: unknown): Promise<FormState> {
   return { ok: true };
 }
 
+/** True jika token dengan identifier/value ini dibuat kurang dari `OTP_RESEND_SECONDS` lalu. */
+async function sentRecently(where: Prisma.VerificationWhereInput) {
+  const since = new Date(Date.now() - (OTP_RESEND_SECONDS - 5) * 1000);
+  return (
+    (await db.verification.count({
+      where: { ...where, createdAt: { gt: since } },
+    })) > 0
+  );
+}
+
+const WAIT_RESEND = "Tunggu sebentar sebelum meminta kode baru.";
+
 export async function resendOtpAction(email: string): Promise<FormState> {
   const parsed = forgotPasswordSchema.safeParse({ email });
   if (!parsed.success) return fieldErrorsOf(parsed.error);
+  const identifier = `email-verification-otp-${parsed.data.email}`;
+  if (await sentRecently({ identifier })) return { error: WAIT_RESEND };
   try {
     await auth.api.sendVerificationOTP({
       body: { email: parsed.data.email, type: "email-verification" },
       headers: await headers(),
     });
   } catch (error) {
-    if (isAPIError(error))
-      return { error: "Tunggu sebentar sebelum meminta kode baru." };
+    if (isAPIError(error)) return { error: WAIT_RESEND };
     throw error;
   }
   return { ok: true };
@@ -287,8 +300,7 @@ export async function resendOtpAction(email: string): Promise<FormState> {
 
 /** Tujuan setelah sesi ada: beranda, layar Dikeluarkan, atau layar status di Masuk. */
 export async function homeHref() {
-  const user = await getCurrentUser();
-  if (!user) return "/masuk";
+  const user = await requireUser();
   return destinationHref(destinationFor(user));
 }
 
@@ -338,6 +350,17 @@ export async function signOutAction() {
 export async function forgotPasswordAction(input: unknown): Promise<FormState> {
   const parsed = forgotPasswordSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
+  const user = await db.user.findUnique({
+    where: { email: parsed.data.email },
+    select: { id: true },
+  });
+  const throttled =
+    user &&
+    (await sentRecently({
+      value: user.id,
+      identifier: { startsWith: "reset-password:" },
+    }));
+  if (throttled) return { ok: true, email: parsed.data.email };
   await auth.api.requestPasswordReset({
     body: { email: parsed.data.email, redirectTo: "/reset-password" },
     headers: await headers(),
@@ -367,8 +390,7 @@ export async function resetPasswordAction(
 export async function completeGoogleProfileAction(
   input: unknown,
 ): Promise<FormState> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/masuk");
+  const user = await requireUser();
   const parsed = signUpSchema.pick({ name: true }).safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
   await db.user.update({
@@ -380,8 +402,7 @@ export async function completeGoogleProfileAction(
 
 /** Akun dikeluarkan memilih lanjut sebagai Peserta. */
 export async function continueAsPesertaAction() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/masuk");
+  const user = await requireUser();
   await db.membership.deleteMany({
     where: { userId: user.id, status: "REMOVED" },
   });
@@ -396,8 +417,7 @@ export async function deleteAccountAction(input: {
   email: string;
   confirmed: boolean;
 }): Promise<FormState> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/masuk");
+  const user = await requireUser();
   if (user.membership?.status !== "REMOVED")
     return {
       error: "Hapus akun hanya tersedia setelah dikeluarkan dari organisasi.",
@@ -415,7 +435,7 @@ export async function deleteAccountAction(input: {
       data: {
         status: "DELETED",
         deletedAt: new Date(),
-        email: `deleted+${user.id}@becraft.invalid`,
+        email: `deleted+${user.id.toLowerCase()}@becraft.invalid`,
         name: "Akun dihapus",
         image: null,
       },

@@ -13,8 +13,7 @@ import { AuthHeading } from "@/components/layout/auth-panel";
 import { Button } from "@/components/ui/button";
 import { IconBox } from "@/components/ui/icon-box";
 import { OTP_LENGTH, OtpInput } from "@/components/ui/otp-input";
-
-const RESEND_SECONDS = 60;
+import { OTP_RESEND_SECONDS } from "@/lib/otp";
 
 /** Langkah verifikasi email dengan kode 6 digit (AA-02). */
 function OtpStep({
@@ -31,7 +30,7 @@ function OtpStep({
   const [otp, setOtp] = React.useState("");
   const [error, setError] = React.useState<string>();
   const [notice, setNotice] = React.useState<string>();
-  const [cooldown, setCooldown] = React.useState(RESEND_SECONDS);
+  const [cooldown, setCooldown] = React.useState(OTP_RESEND_SECONDS);
   const [pending, startTransition] = React.useTransition();
 
   React.useEffect(() => {
@@ -60,7 +59,7 @@ function OtpStep({
       if (result.ok) {
         setNotice("Kode baru sudah dikirim.");
         setOtp("");
-        setCooldown(RESEND_SECONDS);
+        setCooldown(OTP_RESEND_SECONDS);
       } else setError(result.error ?? result.fieldErrors?.email);
     });
   }

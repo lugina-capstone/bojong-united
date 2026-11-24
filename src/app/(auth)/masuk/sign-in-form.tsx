@@ -8,11 +8,7 @@ import { BackLink } from "@/app/(auth)/_components/back-link";
 import { GoogleSignIn } from "@/app/(auth)/_components/google-sign-in";
 import { OtpStep } from "@/app/(auth)/_components/otp-step";
 import { PasswordInput } from "@/app/(auth)/_components/password-input";
-import {
-  type FormState,
-  resendOtpAction,
-  signInAction,
-} from "@/app/(auth)/actions";
+import { type FormState, signInAction } from "@/app/(auth)/actions";
 import {
   AuthHeading,
   AuthPanel,
@@ -74,10 +70,9 @@ function SignInForm({
           startTransition(async () => {
             const result = await signInAction(values);
             setState(result ?? {});
-            if (result?.code === "EMAIL_NOT_VERIFIED" && result.email) {
-              await resendOtpAction(result.email);
+            // Kode OTP sudah dikirim Better Auth saat masuk (sendOnSignIn).
+            if (result?.code === "EMAIL_NOT_VERIFIED" && result.email)
               setVerifyEmail(result.email);
-            }
           });
         }}
       >

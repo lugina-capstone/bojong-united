@@ -18,6 +18,7 @@ import { StepBadge } from "@/app/(auth)/_components/step-badge";
 import { TermsField } from "@/app/(auth)/_components/terms-field";
 import {
   type FormState,
+  createOrganizationAction,
   registerOrganizationAction,
   setOrganizationLogoAction,
   signOutAction,
@@ -82,6 +83,11 @@ function OrganizationForm() {
           email={state.email}
           onChangeEmail={() => setStep("form")}
           onVerified={async () => {
+            const created = await createOrganizationAction(organization);
+            if (!created.ok) {
+              toast.error(created.error ?? "Organisasi gagal dibuat.");
+              return;
+            }
             if (logo) {
               const uploaded = await uploadOrganizationLogo(
                 logo,
