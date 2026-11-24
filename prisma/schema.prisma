@@ -199,6 +199,8 @@ model Event {
   creatorId             String
   title                 String
   description           String?
+  /// Ketentuan dan arahan pengerjaan.
+  guidelines            String?
   /// Wajib diisi sebelum acara diterbitkan.
   fieldId               String?
   participantType       EventParticipantType @default(INDIVIDUAL)
@@ -213,6 +215,9 @@ model Event {
   draftStep             Int                  @default(1)
   certificateEnabled    Boolean              @default(false)
   certificateTemplateId String?
+  certificateTitle      String?
+  certificateIssuer     String?
+  certificateSigner     String?
   publishedAt           DateTime?
   closedAt              DateTime?
   archivedAt            DateTime?

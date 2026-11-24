@@ -5,8 +5,8 @@ const EVENT_STEPS = [
   "Informasi acara",
   "Milestone",
   "Rubrik",
-  "Peserta",
-  "Tinjau & terbitkan",
+  "Sertifikat",
+  "Tinjau",
 ];
 const MATERIAL_STEPS = ["Informasi materi", "Konten", "Tinjau & terbitkan"];
 
