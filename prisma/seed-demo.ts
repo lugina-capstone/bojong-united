@@ -185,25 +185,25 @@ export async function seedDemo(
     },
   });
 
-  // Kategori materi bawaan dan kategori custom organisasi.
-  // Unique index tidak mencegah duplikat untuk organizationId NULL, jadi cek manual.
-  const defaultCategories = [];
-  for (const name of [
-    "Desain Produk",
-    "Desain Komunikasi",
-    "Teknologi",
-    "Bisnis & Data",
-  ]) {
-    defaultCategories.push(
-      (await db.materialCategory.findFirst({
-        where: { organizationId: null, name },
-      })) ??
-        (await db.materialCategory.create({ data: { name, isDefault: true } })),
-    );
-  }
-  const [desainProduk, desainKomunikasi] = defaultCategories;
+  // Kategori materi dan bidang bawaan dibuat oleh migrasi; yang custom milik organisasi.
+  const desainProduk = await db.materialCategory.findFirstOrThrow({
+    where: { organizationId: null, name: "Desain Produk" },
+  });
+  const desainKomunikasi = await db.materialCategory.findFirstOrThrow({
+    where: { organizationId: null, name: "Desain Komunikasi" },
+  });
   const fotografi = await db.materialCategory.create({
     data: { organizationId: lugina.id, name: "Fotografi Produk" },
+  });
+  const [bidangUiux, bidangPoster] = await Promise.all(
+    ["UI/UX", "Poster"].map((name) =>
+      db.subjectField.findFirstOrThrow({
+        where: { organizationId: null, name },
+      }),
+    ),
+  );
+  const bidangAplikasi = await db.subjectField.create({
+    data: { organizationId: lugina.id, name: "Pengembangan Aplikasi" },
   });
 
   // Materi Trainer.
@@ -211,7 +211,7 @@ export async function seedDemo(
     data: {
       organizationId: lugina.id,
       trainerId: andi.id,
-      categoryId: desainKomunikasi!.id,
+      categoryId: desainKomunikasi.id,
       title: "Dasar Tipografi untuk Poster",
       description: "Memilih dan memadukan huruf agar poster mudah dibaca.",
       level: "BEGINNER",
@@ -249,7 +249,7 @@ export async function seedDemo(
     data: {
       organizationId: lugina.id,
       trainerId: siti.id,
-      categoryId: desainProduk!.id,
+      categoryId: desainProduk.id,
       title: "Prototyping Kemasan Sederhana",
       description: "Membuat mockup kemasan dari kertas.",
       level: "INTERMEDIATE",
@@ -316,7 +316,7 @@ export async function seedDemo(
       organizationId: lugina.id,
       creatorId: budi.id,
       title: "Rubrik Desain Poster",
-      category: "Desain Grafis",
+      fieldId: bidangPoster!.id,
       criteria: {
         create: [
           { order: 1, name: "Konsep", ...levels("Konsep") },
@@ -333,7 +333,7 @@ export async function seedDemo(
       organizationId: lugina.id,
       creatorId: budi.id,
       title: "Rubrik Desain Poster",
-      category: "Desain Grafis",
+      fieldId: bidangPoster!.id,
       sourceRubricId: rubrikPoster.id,
       version: 2,
       criteria: {
@@ -352,7 +352,7 @@ export async function seedDemo(
       organizationId: lugina.id,
       creatorId: rina.id,
       title: "Rubrik Proyek Aplikasi",
-      category: "Pengembangan Perangkat Lunak",
+      fieldId: bidangAplikasi.id,
       criteria: {
         create: [
           { order: 1, name: "Fungsionalitas", ...levels("Fungsionalitas") },
@@ -399,7 +399,7 @@ export async function seedDemo(
       creatorId: budi.id,
       title: "Lomba Desain Poster Hari Guru",
       description: "Rancang poster bertema apresiasi guru.",
-      category: "Desain Grafis",
+      fieldId: bidangPoster!.id,
       kkm: 75,
       startsAt: daysFromNow(-14),
       endsAt: daysFromNow(14),
@@ -567,7 +567,7 @@ export async function seedDemo(
       title: "Proyek Aplikasi Kantin Sekolah",
       description:
         "Bangun prototipe aplikasi pemesanan kantin secara berkelompok.",
-      category: "Pengembangan Perangkat Lunak",
+      fieldId: bidangAplikasi.id,
       participantType: "TEAM",
       maxTeamMembers: 4,
       kkm: 70,
@@ -644,7 +644,7 @@ export async function seedDemo(
       organizationId: lugina.id,
       creatorId: budi.id,
       title: "Workshop Wireframe Sehari",
-      category: "Desain UI",
+      fieldId: bidangUiux!.id,
       startsAt: daysFromNow(20),
       endsAt: daysFromNow(20),
       draftStep: 2,
@@ -660,6 +660,7 @@ export async function seedDemo(
       organizationId: disabled.id,
       creatorId: nonaktifCreator.userId,
       title: "Kelas Ilustrasi Digital",
+      fieldId: bidangPoster!.id,
       startsAt: daysFromNow(-5),
       endsAt: daysFromNow(10),
       status: "PUBLISHED",
