@@ -20,6 +20,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import type { Prisma } from "@/generated/prisma/client";
 import type { EventStatus } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
+import { phaseWhere } from "@/lib/event-query";
 import { requireTeacher } from "@/lib/teacher-access";
 import { cn } from "@/lib/utils";
 
@@ -55,28 +56,6 @@ const PHASES = [
   { value: "belum", label: "Belum dimulai" },
   { value: "berakhir", label: "Berakhir" },
 ];
-
-function phaseWhere(phase: string, now: Date): Prisma.EventWhereInput {
-  switch (phase) {
-    case "berlangsung":
-      return {
-        status: "PUBLISHED",
-        startsAt: { lte: now },
-        endsAt: { gt: now },
-      };
-    case "belum":
-      return { status: "PUBLISHED", startsAt: { gt: now } };
-    case "berakhir":
-      return {
-        OR: [
-          { status: "CLOSED" },
-          { status: "PUBLISHED", endsAt: { lte: now } },
-        ],
-      };
-    default:
-      return {};
-  }
-}
 
 export default async function MyEventsPage({
   searchParams,
