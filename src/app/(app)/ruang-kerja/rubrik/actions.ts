@@ -1,0 +1,159 @@
+"use server";
+
+import { refresh } from "next/cache";
+
+import { db } from "@/lib/db";
+import { requireTeacher } from "@/lib/teacher-access";
+import { rubricSchema } from "@/lib/validations/event";
+
+export type RubricActionState = {
+  ok?: boolean;
+  error?: string;
+  fieldErrors?: Record<string, string>;
+  rubricId?: string;
+};
+
+function fieldErrorsOf(issues: { path: PropertyKey[]; message: string }[]) {
+  const errors: Record<string, string> = {};
+  for (const issue of issues)
+    errors[issue.path.map(String).join(".")] ??= issue.message;
+  return errors;
+}
+
+function criteriaData(
+  criteria: ReturnType<typeof rubricSchema.parse>["criteria"],
+) {
+  return criteria.map((c, index) => ({ order: index + 1, ...c }));
+}
+
+export async function createRubricAction(
+  input: unknown,
+): Promise<RubricActionState> {
+  const { user, organizationId } = await requireTeacher();
+  const parsed = rubricSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      error: "Periksa kembali isian rubrik.",
+      fieldErrors: fieldErrorsOf(parsed.error.issues),
+    };
+  }
+  const field = await db.subjectField.findFirst({
+    where: {
+      id: parsed.data.fieldId,
+      OR: [{ organizationId }, { organizationId: null }],
+    },
+  });
+  if (!field) return { fieldErrors: { fieldId: "Bidang tidak ditemukan" } };
+  const rubric = await db.rubric.create({
+    data: {
+      organizationId,
+      creatorId: user.id,
+      title: parsed.data.title,
+      description: parsed.data.description,
+      fieldId: field.id,
+      criteria: { create: criteriaData(parsed.data.criteria) },
+    },
+  });
+  refresh();
+  return { ok: true, rubricId: rubric.id };
+}
+
+/**
+ * Simpan perubahan rubrik. Jika rubrik sudah dipakai menilai, perubahan disimpan sebagai
+ * versi baru (salinan) dan versi lama tetap utuh untuk nilai yang sudah ada.
+ */
+export async function updateRubricAction(
+  rubricId: string,
+  input: unknown,
+): Promise<RubricActionState> {
+  const { user, organizationId } = await requireTeacher();
+  const rubric = await db.rubric.findFirst({
+    where: { id: rubricId, organizationId, archivedAt: null },
+  });
+  if (!rubric) return { error: "Rubrik tidak ditemukan." };
+  const parsed = rubricSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      error: "Periksa kembali isian rubrik.",
+      fieldErrors: fieldErrorsOf(parsed.error.issues),
+    };
+  }
+  const used =
+    (await db.gradeScore.count({ where: { criterion: { rubricId } } })) > 0;
+  if (used) {
+    const copy = await db.rubric.create({
+      data: {
+        organizationId,
+        creatorId: user.id,
+        title: parsed.data.title,
+        description: parsed.data.description,
+        fieldId: parsed.data.fieldId,
+        version: rubric.version + 1,
+        sourceRubricId: rubric.sourceRubricId ?? rubric.id,
+        criteria: { create: criteriaData(parsed.data.criteria) },
+      },
+    });
+    refresh();
+    return { ok: true, rubricId: copy.id };
+  }
+  await db.$transaction([
+    db.rubricCriterion.deleteMany({ where: { rubricId } }),
+    db.rubric.update({
+      where: { id: rubricId },
+      data: {
+        title: parsed.data.title,
+        description: parsed.data.description,
+        fieldId: parsed.data.fieldId,
+        criteria: { create: criteriaData(parsed.data.criteria) },
+      },
+    }),
+  ]);
+  refresh();
+  return { ok: true, rubricId };
+}
+
+/** Salin rubrik menjadi rubrik baru yang bisa diedit. */
+export async function copyRubricAction(
+  rubricId: string,
+): Promise<RubricActionState> {
+  const { user, organizationId } = await requireTeacher();
+  const rubric = await db.rubric.findFirst({
+    where: { id: rubricId, organizationId },
+    include: { criteria: { orderBy: { order: "asc" } } },
+  });
+  if (!rubric) return { error: "Rubrik tidak ditemukan." };
+  const copy = await db.rubric.create({
+    data: {
+      organizationId,
+      creatorId: user.id,
+      title: `${rubric.title} (salinan)`,
+      description: rubric.description,
+      fieldId: rubric.fieldId,
+      criteria: {
+        create: rubric.criteria.map(
+          ({
+            order,
+            name,
+            description,
+            level1,
+            level2,
+            level3,
+            level4,
+            level5,
+          }) => ({
+            order,
+            name,
+            description,
+            level1,
+            level2,
+            level3,
+            level4,
+            level5,
+          }),
+        ),
+      },
+    },
+  });
+  refresh();
+  return { ok: true, rubricId: copy.id };
+}
