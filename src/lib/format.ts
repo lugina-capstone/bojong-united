@@ -87,3 +87,8 @@ export function formatNumber(value: number) {
 export function daysAgo(days: number, now = new Date()) {
   return new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 }
+
+export function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toLocaleString("id-ID", { maximumFractionDigits: 1 })} MB`;
+}

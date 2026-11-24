@@ -8,6 +8,7 @@ export const notificationTypes = [
   "organization.disabled",
   "organization.enabled",
   "member.joined",
+  "member.left",
   "member.role-changed",
   "member.admin-granted",
   "member.admin-revoked",
@@ -104,6 +105,14 @@ export function describeNotification(
         href: "/organisasi/anggota",
         icon: "user-plus",
         tone: "success",
+      };
+    case "member.left":
+      return {
+        title: "Anggota keluar",
+        body: `${name} keluar dari organisasi.`,
+        href: "/organisasi/anggota",
+        icon: "user-plus",
+        tone: "warning",
       };
     case "member.role-changed":
       return {

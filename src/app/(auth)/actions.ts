@@ -9,6 +9,10 @@ import { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { destinationFor, destinationHref } from "@/lib/auth-routing";
 import { db } from "@/lib/db";
+import {
+  notifyAdministrators,
+  notifyOrganizationAdmins,
+} from "@/lib/notifications";
 import { generateOrganizationCode } from "@/lib/organization-code";
 import { OTP_RESEND_SECONDS, otpResendKey } from "@/lib/otp";
 import { requireUser } from "@/lib/session";
@@ -168,7 +172,16 @@ export async function createOrganizationAction(
   if (user.membership?.status === "ACTIVE")
     return { error: "Akun ini masih tergabung di organisasi." };
   await db.membership.deleteMany({ where: { userId: user.id } });
-  await createOrganization(user.id, parsed.data, user.email);
+  const organization = await createOrganization(
+    user.id,
+    parsed.data,
+    user.email,
+  );
+  await notifyAdministrators("organization.submitted", {
+    organizationId: organization.id,
+    organizationName: parsed.data.organizationName,
+    userName: user.name,
+  });
   return { ok: true };
 }
 
@@ -192,6 +205,12 @@ export async function joinOrganizationAction(code: string): Promise<FormState> {
   await db.membership.create({
     data: { userId: user.id, organizationId: organization.id, role: "GURU" },
   });
+  await notifyOrganizationAdmins(
+    organization.id,
+    "member.joined",
+    { organizationId: organization.id, userName: user.name },
+    user.id,
+  );
   redirect("/ruang-kerja");
 }
 
@@ -221,6 +240,11 @@ export async function resubmitOrganizationAction(
       reviewedAt: null,
       reviewedById: null,
     },
+  });
+  await notifyAdministrators("organization.resubmitted", {
+    organizationId: membership.organization.id,
+    organizationName: parsed.data.organizationName,
+    userName: user.name,
   });
   return { ok: true };
 }
@@ -266,7 +290,43 @@ export async function verifyOtpAction(input: unknown): Promise<FormState> {
       };
     throw error;
   }
+  await notifyAfterVerification(parsed.data.email);
   return { ok: true };
+}
+
+/** Pengajuan/anggota baru baru diberitahukan setelah email pemohon terverifikasi. */
+async function notifyAfterVerification(email: string) {
+  const user = await db.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      name: true,
+      membership: {
+        select: {
+          isAdmin: true,
+          status: true,
+          organization: { select: { id: true, name: true, status: true } },
+        },
+      },
+    },
+  });
+  const membership = user?.membership;
+  if (!user || membership?.status !== "ACTIVE") return;
+  const { organization } = membership;
+  const payload = {
+    organizationId: organization.id,
+    organizationName: organization.name,
+    userName: user.name,
+  };
+  if (membership.isAdmin && organization.status === "PENDING")
+    await notifyAdministrators("organization.submitted", payload);
+  else if (!membership.isAdmin && organization.status === "APPROVED")
+    await notifyOrganizationAdmins(
+      organization.id,
+      "member.joined",
+      payload,
+      user.id,
+    );
 }
 
 /** True jika token reset dengan kriteria ini dibuat kurang dari `OTP_RESEND_SECONDS` lalu. */

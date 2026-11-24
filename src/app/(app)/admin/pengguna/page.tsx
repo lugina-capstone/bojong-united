@@ -27,7 +27,7 @@ import {
 } from "@/app/(app)/_components/list-controls";
 import { ListFooter } from "@/app/(app)/_components/list-footer";
 import { SectionCard } from "@/app/(app)/_components/section-card";
-import { DetailSheet } from "@/app/(app)/admin/pengguna/detail-sheet";
+import { DetailSheet } from "@/app/(app)/_components/detail-sheet";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
