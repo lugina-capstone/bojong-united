@@ -7,7 +7,7 @@ import {
   requireAssessableEvent,
 } from "@/lib/assessment";
 import { db } from "@/lib/db";
-import { milestoneScore } from "@/lib/event-rules";
+import { eventPhase, milestoneScore } from "@/lib/event-rules";
 import { notify } from "@/lib/notifications";
 import { gradeSchema, revisionSchema } from "@/lib/validations/event";
 
@@ -102,7 +102,13 @@ export async function requestRevisionAction(
 ): Promise<GradeActionState> {
   const found = await pendingSubmission(submissionId);
   if ("error" in found) return { error: found.error };
-  const { submission, user } = found;
+  const { submission, user, event } = found;
+  if (eventPhase(event) !== "ongoing") {
+    return {
+      error:
+        "Revisi hanya bisa diminta selama acara berlangsung. Beri nilai untuk versi ini.",
+    };
+  }
   const parsed = revisionSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]!.message };
   try {
