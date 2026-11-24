@@ -15,7 +15,7 @@ import Link from "next/link";
 
 import { SubmissionForm } from "@/app/(app)/acara/[id]/_components/submission-form";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { FileItem } from "@/components/ui/file-item";
 import { InfoBox } from "@/components/ui/info-box";
 import { Progress } from "@/components/ui/progress";
@@ -398,16 +398,38 @@ export default async function WorkspacePage({
                   </p>
                 </section>
               )}
-              {event.certificateEnabled && (
-                <section className="flex flex-col gap-1 rounded-xl bg-muted p-5">
-                  <h2 className="text-body-strong text-foreground">
-                    Sertifikat otomatis
+              {ws.enrollment.certificate ? (
+                <section className="flex flex-col gap-2 rounded-xl bg-success-50 p-5">
+                  <h2 className="text-body-strong text-success-700">
+                    Sertifikat tersedia
                   </h2>
                   <p className="text-small text-label">
-                    Seluruh milestone selesai, seluruh nilai terbit, dan nilai
-                    akhir minimal {event.kkm}. Tersimpan di portofolio Anda.
+                    Nilai akhir{" "}
+                    {formatScore(ws.enrollment.certificate.finalScore)} memenuhi
+                    KKM {event.kkm}.
                   </p>
+                  <Link
+                    href={`/sertifikat/${ws.enrollment.certificate.number}`}
+                    className={buttonVariants({
+                      size: "sm",
+                      className: "w-fit",
+                    })}
+                  >
+                    Lihat sertifikat
+                  </Link>
                 </section>
+              ) : (
+                event.certificateEnabled && (
+                  <section className="flex flex-col gap-1 rounded-xl bg-muted p-5">
+                    <h2 className="text-body-strong text-foreground">
+                      Sertifikat otomatis
+                    </h2>
+                    <p className="text-small text-label">
+                      Seluruh milestone selesai, seluruh nilai terbit, dan nilai
+                      akhir minimal {event.kkm}. Tersimpan di portofolio Anda.
+                    </p>
+                  </section>
+                )
               )}
             </aside>
           </div>

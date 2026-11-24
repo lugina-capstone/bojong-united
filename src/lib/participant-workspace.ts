@@ -17,7 +17,10 @@ export type MilestoneView = Awaited<
 export async function loadWorkspace(eventId: string, userId: string) {
   const enrollment = await db.enrollment.findUnique({
     where: { eventId_userId: { eventId, userId } },
-    include: { team: { select: { name: true } } },
+    include: {
+      team: { select: { name: true } },
+      certificate: { select: { number: true, finalScore: true } },
+    },
   });
   if (!enrollment) notFound();
   const event = await db.event.findFirst({
