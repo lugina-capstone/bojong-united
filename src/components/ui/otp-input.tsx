@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { OTPInput, OTPInputContext, REGEXP_ONLY_DIGITS } from "input-otp";
 
-const OTP_LENGTH = 6;
+import { OTP_LENGTH } from "@/lib/otp";
 
 function OtpSlot({ index, invalid }: { index: number; invalid?: boolean }) {
   const context = React.useContext(OTPInputContext);
