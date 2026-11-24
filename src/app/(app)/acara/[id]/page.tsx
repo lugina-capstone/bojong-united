@@ -19,7 +19,12 @@ import { Button } from "@/components/ui/button";
 import { FileItem } from "@/components/ui/file-item";
 import { InfoBox } from "@/components/ui/info-box";
 import { Progress } from "@/components/ui/progress";
-import { formatDate, formatDateTime, formatFileSize } from "@/lib/format";
+import {
+  formatDate,
+  formatDateTime,
+  formatFileSize,
+  formatScore,
+} from "@/lib/format";
 import { requireParticipant } from "@/lib/participant-access";
 import { loadWorkspace, type MilestoneView } from "@/lib/participant-workspace";
 import { cn } from "@/lib/utils";
@@ -444,6 +449,7 @@ function MilestoneDetail({ m }: { m: MilestoneView }) {
                   size="icon-sm"
                   variant="ghost"
                   aria-label={`Unduh ${file.name}`}
+                  nativeButton={false}
                   render={
                     <a
                       href={`/api/files/${file.id}`}
@@ -501,7 +507,7 @@ function MilestoneState({
             Penilaian versi {latest.version}
           </h2>
           <span className="text-display text-primary-600">
-            {Number(latest.grade.score)}
+            {formatScore(latest.grade.score)}
           </span>
         </div>
         <ul className="flex flex-col divide-y divide-border text-small">
@@ -537,6 +543,7 @@ function MilestoneState({
         {needsSurvey && !readOnly && (
           <Button
             className="w-fit"
+            nativeButton={false}
             render={<Link href={`/acara/${eventId}/survei/${m.id}`} />}
           >
             <ClipboardListIcon aria-hidden="true" />
@@ -587,6 +594,7 @@ function History({ m }: { m: MilestoneView }) {
                   size="icon-sm"
                   variant="ghost"
                   aria-label={`Buka ${s.file.name}`}
+                  nativeButton={false}
                   render={
                     <a
                       href={`/api/files/${s.file.id}`}

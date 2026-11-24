@@ -97,3 +97,8 @@ export function formatFileSize(bytes: number) {
 export function parseWibInput(value: string) {
   return new Date(`${value}:00+07:00`);
 }
+
+/** Nilai 0–100 dibulatkan 2 desimal (mis. 55.00000000000001 → "55"). */
+export function formatScore(value: number) {
+  return String(Math.round(value * 100) / 100);
+}

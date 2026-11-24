@@ -190,6 +190,7 @@ export function SurveyForm({
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
         <Button
           variant="secondary"
+          nativeButton={false}
           render={<Link href={`/acara/${eventId}?m=${milestoneOrder}`} />}
         >
           <ArrowLeftIcon aria-hidden="true" />

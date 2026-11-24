@@ -37,7 +37,7 @@ import {
 import { requireAssessableEvent } from "@/lib/assessment";
 import { db } from "@/lib/db";
 import { eventPhase, finalScore } from "@/lib/event-rules";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatScore } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Pantau progres" };
@@ -342,8 +342,10 @@ export default async function ProgressPage({
                               status={c.status}
                               value={
                                 c.status === "graded" && c.latest.grade
-                                  ? String(c.latest.grade.score)
-                                  : undefined
+                                  ? formatScore(c.latest.grade.score)
+                                  : c.status === "submitted"
+                                    ? "Dikumpulkan"
+                                    : undefined
                               }
                               date={
                                 c.surveyPending
@@ -371,7 +373,7 @@ export default async function ProgressPage({
                               : "text-danger-700",
                           )}
                         >
-                          {r.final}
+                          {formatScore(r.final)}
                         </span>
                       )}
                     </TableCell>

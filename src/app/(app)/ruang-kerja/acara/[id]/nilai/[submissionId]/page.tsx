@@ -13,7 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { FileItem } from "@/components/ui/file-item";
 import { requireAssessableEvent } from "@/lib/assessment";
 import { db } from "@/lib/db";
-import { formatDateTime, formatFileSize } from "@/lib/format";
+import { formatDateTime, formatFileSize, formatScore } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Penilaian peserta" };
 
@@ -157,6 +157,7 @@ export default async function GradePage({
                       size="icon-sm"
                       variant="ghost"
                       aria-label={`Buka ${v.file.name}`}
+                      nativeButton={false}
                       render={
                         <a
                           href={`/api/files/${v.file.id}`}
@@ -194,7 +195,8 @@ export default async function GradePage({
               {v.grade && (
                 <div className="flex flex-col gap-2 rounded-lg bg-muted p-3 text-small">
                   <p className="text-small-strong text-foreground">
-                    Nilai {v.grade.score} · dinilai {v.grade.grader.name}
+                    Nilai {formatScore(v.grade.score)} · dinilai{" "}
+                    {v.grade.grader.name}
                   </p>
                   <ul className="flex flex-col gap-1 text-label">
                     {[...v.grade.scores]
@@ -237,7 +239,7 @@ export default async function GradePage({
               <h2 className="text-h3 text-foreground">Nilai terbaru</h2>
               <p className="text-small text-muted-foreground">
                 {latest.grade
-                  ? `Versi ${latest.version} sudah dinilai: ${latest.grade.score}.`
+                  ? `Versi ${latest.version} sudah dinilai: ${formatScore(latest.grade.score)}.`
                   : "Nilai ditetapkan setelah peserta mengirim revisi dan diperiksa ulang."}
               </p>
             </section>
