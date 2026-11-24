@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 /** Gaya kolom bersama untuk Input, Select, SearchInput, dan Textarea. */
 const fieldControlClass =
-  "w-full min-w-0 rounded-lg border border-input bg-card px-3 text-body text-foreground transition-colors outline-none placeholder:text-subtle hover:border-subtle focus-visible:border-[1.5px] focus-visible:border-primary-500 focus-visible:shadow-focus-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70 aria-invalid:border-danger-500 aria-invalid:focus-visible:shadow-none";
+  "w-full min-w-0 rounded-lg border border-input bg-card px-3 text-body text-foreground max-md:text-[1rem] transition-colors outline-none placeholder:text-subtle hover:border-subtle focus-visible:border-[1.5px] focus-visible:border-primary-500 focus-visible:shadow-focus-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70 aria-invalid:border-danger-500 aria-invalid:focus-visible:shadow-none";
 
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
