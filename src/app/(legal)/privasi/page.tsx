@@ -41,7 +41,7 @@ const SECTIONS: LegalSection[] = [
   {
     title: "Kontak",
     paragraphs: [
-      "Pertanyaan tentang privasi dapat disampaikan kepada pengelola Becraft di SMK Lugina Rancaekek.",
+      "Pertanyaan tentang privasi dapat disampaikan kepada pengelola Becraft.",
     ],
   },
 ];

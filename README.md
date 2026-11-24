@@ -154,7 +154,7 @@ Autentikasi memakai [Better Auth](https://www.better-auth.com) dengan sesi di da
 
   | Email                           | Peran / kondisi                                      |
   | ------------------------------- | ---------------------------------------------------- |
-  | `admin.organisasi@becraft.test` | Trainer + Admin Organisasi, SMK Lugina Rancaekek     |
+  | `admin.organisasi@becraft.test` | Trainer + Admin Organisasi, SMK Harapan Bangsa       |
   | `guru@becraft.test`             | Guru, punya pengajuan Trainer yang menunggu          |
   | `asesor@becraft.test`           | Asesor, pengajuan Trainer ditolak, pembuat acara tim |
   | `trainer@becraft.test`          | Trainer, pemilik materi                              |

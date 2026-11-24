@@ -127,7 +127,7 @@ async function Gallery({
   return (
     <AppShell
       access={access}
-      workspace="SMK Lugina Rancaekek"
+      workspace="SMK Harapan Bangsa"
       user={{ name: "Andi Saputra", roleLabel: accessLabel(access) }}
       breadcrumb="Pengembangan  /  Galeri komponen"
       notificationCount={4}
@@ -376,7 +376,7 @@ async function Gallery({
             <EventCard
               title="Desain Ulang Aplikasi Kantin"
               field="UI/UX"
-              organization="SMK Lugina Rancaekek"
+              organization="SMK Harapan Bangsa"
               period="1–20 Des 2026 · 3 milestone"
               status="ongoing"
               isTeam
@@ -395,7 +395,7 @@ async function Gallery({
               title="Dasar Figma untuk Pemula"
               category="Desain"
               description="Kenali frame, auto layout, dan komponen."
-              organization="SMK Lugina Rancaekek"
+              organization="SMK Harapan Bangsa"
               sections={6}
               duration="± 2 jam"
               learners={86}
@@ -404,9 +404,9 @@ async function Gallery({
             />
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <OrgLogo name="SMK Lugina" size="sm" />
-            <OrgLogo name="SMK Lugina" />
-            <OrgLogo name="SMK Lugina" size="lg" />
+            <OrgLogo name="SMK Harapan" size="sm" />
+            <OrgLogo name="SMK Harapan" />
+            <OrgLogo name="SMK Harapan" size="lg" />
             <IconBox icon={BookOpenIcon} tone="sage" />
             <IconBox icon={CalendarDaysIcon} tone="lilac" size="lg" />
           </div>

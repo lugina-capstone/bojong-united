@@ -21,8 +21,7 @@ function LegalDocument({
         </p>
       </header>
       <Alert tone="warning" title="Teks sementara">
-        Dokumen ini masih versi sementara dan akan diganti dengan versi resmi
-        dari SMK Lugina Rancaekek.
+        Dokumen ini masih versi sementara dan akan diganti dengan versi resmi.
       </Alert>
       <ol className="flex flex-col gap-6">
         {sections.map((section, index) => (

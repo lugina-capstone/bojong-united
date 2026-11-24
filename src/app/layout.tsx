@@ -11,11 +11,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Becraft | SMK Lugina Rancaekek",
+    default: "Becraft | Digital Portfolio & Assessment System",
     template: "%s | Becraft",
   },
   description:
-    "Becraft — Digital Portfolio & Assessment System untuk SMK Lugina Rancaekek. Ikuti acara, kumpulkan karya, dan bangun portofolio.",
+    "Becraft — Digital Portfolio & Assessment System. Ikuti acara, kumpulkan karya, dan bangun portofolio.",
   applicationName: "Becraft",
 };
 

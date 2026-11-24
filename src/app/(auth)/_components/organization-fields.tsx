@@ -47,7 +47,7 @@ function OrganizationFields({
           id="organizationName"
           icon={Building2Icon}
           autoComplete="organization"
-          placeholder="Contoh: SMK Lugina Rancaekek"
+          placeholder="Contoh: SMK Harapan Bangsa"
           value={values.organizationName}
           onChange={(event) =>
             onChange({ ...values, organizationName: event.target.value })
