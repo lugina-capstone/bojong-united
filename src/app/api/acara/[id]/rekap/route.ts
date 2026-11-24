@@ -6,7 +6,8 @@ import { hasPermission } from "@/lib/rbac";
 import { getCurrentUser } from "@/lib/session";
 
 function csvCell(value: string | number) {
-  const text = String(value);
+  const raw = String(value);
+  const text = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
   return /[",\n;]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
