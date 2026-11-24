@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
 import { IconBox } from "@/components/ui/icon-box";

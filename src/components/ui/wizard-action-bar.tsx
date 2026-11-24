@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 /** Bilah aksi wizard sticky di bawah: Kembali, info langkah, Simpan draf, Lanjut. */
 function WizardActionBar({

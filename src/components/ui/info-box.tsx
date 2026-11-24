@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import { InfoIcon } from "lucide-react";
 
 /** Kotak info aturan penilaian/alur untuk Guru atau Peserta. */

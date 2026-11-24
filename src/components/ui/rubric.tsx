@@ -2,7 +2,7 @@
 
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 const SCORES = [1, 2, 3, 4, 5] as const;
 

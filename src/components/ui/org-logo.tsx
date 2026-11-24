@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- logo berasal dari URL sementara storage. */
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 const orgLogoVariants = cva(
   "flex shrink-0 items-center justify-center overflow-hidden bg-primary-100 font-semibold text-primary-700",

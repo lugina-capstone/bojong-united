@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import { FileIcon, type LucideIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";

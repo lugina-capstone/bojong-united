@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import { CheckIcon, LockKeyholeIcon } from "lucide-react";
 
 type MilestoneState = "done" | "active" | "locked";

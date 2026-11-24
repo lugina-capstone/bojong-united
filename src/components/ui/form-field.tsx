@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 /** Label + kontrol + teks bantuan/error. Kontrol diberi `id`, `aria-invalid`, dan `aria-describedby` sendiri. */
 function FormField({

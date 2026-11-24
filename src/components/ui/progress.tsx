@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 /** Bilah progres: ≥ 50% hijau (success/500), < 50% biru (primary/500). Lebar isi = persentase asli. */
 function Progress({

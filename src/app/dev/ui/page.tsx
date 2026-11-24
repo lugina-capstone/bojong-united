@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import {
   BookOpenIcon,
   CalendarDaysIcon,
@@ -54,6 +55,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   SkeletonCardGrid,
+  SkeletonDashboard,
   SkeletonStatGrid,
   SkeletonTable,
 } from "@/components/ui/skeleton-patterns";
@@ -104,10 +106,18 @@ function Section({
   );
 }
 
-export default async function DevUiPage({
-  searchParams,
-}: PageProps<"/dev/ui">) {
+export default function DevUiPage({ searchParams }: PageProps<"/dev/ui">) {
   if (process.env.NODE_ENV === "production") notFound();
+  return (
+    <Suspense fallback={<SkeletonDashboard />}>
+      <Gallery searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function Gallery({
+  searchParams,
+}: Pick<PageProps<"/dev/ui">, "searchParams">) {
   const { role } = await searchParams;
   const roleKey = typeof role === "string" && role in ROLES ? role : "trainer";
   const access = ROLES[roleKey];

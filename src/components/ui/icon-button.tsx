@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {

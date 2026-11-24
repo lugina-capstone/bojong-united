@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 /** Bilah filter: kolom cari melebar + Select di kanan; menumpuk di mobile. */
 function FilterBar({

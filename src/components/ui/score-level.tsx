@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 const LEVELS = {
   1: { label: "Sangat kurang", tone: "bg-danger-100 text-danger-600" },

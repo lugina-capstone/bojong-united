@@ -2,7 +2,7 @@
 
 import { Toggle as TogglePrimitive } from "@base-ui/react/toggle";
 import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import { CheckIcon } from "lucide-react";
 
 /** Grup chip pilihan (mis. Bidang). Pakai `multiple` untuk pilihan ganda. */

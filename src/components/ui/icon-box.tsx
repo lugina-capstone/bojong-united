@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
 const iconBoxVariants = cva("flex shrink-0 items-center justify-center", {

@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import { CircleCheckIcon, CircleDashedIcon, ClockIcon } from "lucide-react";
 
 type CellStatus = "graded" | "submitted" | "revision" | "empty";

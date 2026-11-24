@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 /** Kepala halaman: judul, deskripsi, eyebrow opsional, dan aksi di kanan. */
 function PageHeader({

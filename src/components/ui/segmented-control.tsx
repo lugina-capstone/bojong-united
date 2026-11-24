@@ -2,7 +2,7 @@
 
 import { Toggle as TogglePrimitive } from "@base-ui/react/toggle";
 import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 /** Segmen pilihan tunggal, mis. filter Semua/Aktif/Selesai. */
 function SegmentedControl({ className, ...props }: ToggleGroupPrimitive.Props) {

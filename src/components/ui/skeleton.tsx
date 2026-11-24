@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 const skeletonVariants = cva("animate-skeleton motion-reduce:animate-none", {
   variants: {
