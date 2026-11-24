@@ -79,6 +79,12 @@ function EventWizard({ data, step }: { data: WizardData; step: number }) {
   const [errors, setErrors] = React.useState<Errors>({});
   const [pending, startTransition] = React.useTransition();
   const heading = HEADINGS[step - 1]!;
+  const edited =
+    <T,>(set: (value: T) => void) =>
+    (value: T) => {
+      set(value);
+      setErrors({});
+    };
 
   function hrefFor(eventId: string, target: number) {
     return `/ruang-kerja/acara/${eventId}/edit?step=${target}`;
@@ -153,7 +159,7 @@ function EventWizard({ data, step }: { data: WizardData; step: number }) {
           <p className="text-overline text-primary-500">
             {info.title.trim() ? info.title : "Mulai perjalanan belajar baru"}
           </p>
-          <h1 className="text-h1 text-foreground">{heading.title}</h1>
+          <h1 className="text-display text-foreground">{heading.title}</h1>
           <p className="text-body text-muted-foreground">
             {heading.description}
           </p>
@@ -163,7 +169,7 @@ function EventWizard({ data, step }: { data: WizardData; step: number }) {
           <StepInfo
             data={data}
             value={info}
-            onChange={setInfo}
+            onChange={edited(setInfo)}
             fields={fields}
             onFieldCreated={(field) => setFields((list) => [...list, field])}
             errors={errors}
@@ -172,7 +178,7 @@ function EventWizard({ data, step }: { data: WizardData; step: number }) {
         {step === 2 && (
           <StepMilestones
             value={milestones}
-            onChange={setMilestones}
+            onChange={edited(setMilestones)}
             errors={errors}
             period={{ startsAt: info.startsAt, endsAt: info.endsAt }}
           />
@@ -180,7 +186,7 @@ function EventWizard({ data, step }: { data: WizardData; step: number }) {
         {step === 3 && (
           <StepRubrics
             milestones={milestones}
-            onChange={setMilestones}
+            onChange={edited(setMilestones)}
             rubrics={rubrics}
             onRubricCreated={(rubric) =>
               setRubrics((list) => [rubric, ...list])
@@ -194,7 +200,7 @@ function EventWizard({ data, step }: { data: WizardData; step: number }) {
             data={data}
             title={info.title}
             value={certificate}
-            onChange={setCertificate}
+            onChange={edited(setCertificate)}
             errors={errors}
           />
         )}

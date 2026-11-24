@@ -178,7 +178,8 @@ export async function loadWizard(input: {
       })) ?? [],
     certificate: {
       kkm: event?.kkm ?? 75,
-      certificateEnabled: event?.certificateEnabled ?? true,
+      certificateEnabled:
+        event && event.draftStep >= 5 ? event.certificateEnabled : true,
       certificateTemplateId:
         event?.certificateTemplateId ?? templates[0]?.id ?? null,
       certificateTitle: event?.certificateTitle ?? "Sertifikat Penyelesaian",

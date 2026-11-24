@@ -25,7 +25,9 @@ export default async function EventPublishedPage({
       </span>
       <div className="flex flex-col gap-2">
         <p className="text-overline text-primary-500">Acara diterbitkan</p>
-        <h1 className="text-h1 break-words text-foreground">{event.title}</h1>
+        <h1 className="text-display break-words text-foreground">
+          {event.title}
+        </h1>
         <p className="text-body text-muted-foreground">
           {milestones} milestone ·{" "}
           {event.startsAt ? formatDate(event.startsAt) : "–"} –{" "}

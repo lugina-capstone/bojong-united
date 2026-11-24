@@ -23,7 +23,7 @@ import {
   SegmentedControlItem,
 } from "@/components/ui/segmented-control";
 import { Textarea } from "@/components/ui/textarea";
-import { formatDate } from "@/lib/format";
+import { formatDate, parseWibInput } from "@/lib/format";
 
 type Info = WizardData["info"];
 
@@ -75,7 +75,7 @@ function StepInfo({
   const fieldName = fields.find((f) => f.id === value.fieldId)?.name;
   const period =
     value.startsAt && value.endsAt
-      ? `${formatDate(new Date(value.startsAt))} – ${formatDate(new Date(value.endsAt))}`
+      ? `${formatDate(parseWibInput(value.startsAt))} – ${formatDate(parseWibInput(value.endsAt))}`
       : "Periode belum diatur";
 
   return (

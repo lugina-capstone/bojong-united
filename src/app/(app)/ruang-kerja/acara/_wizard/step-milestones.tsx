@@ -20,7 +20,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UploadItem } from "@/components/ui/upload-item";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, parseWibInput } from "@/lib/format";
 import { uploadFile } from "@/lib/upload-client";
 import { cn } from "@/lib/utils";
 import { formatLabels, submissionFormats } from "@/lib/validations/event";
@@ -166,7 +166,7 @@ function StepMilestones({
                         className="size-3.5"
                       />
                       {milestone.dueAt
-                        ? `Tenggat ${formatDateTime(new Date(milestone.dueAt))}`
+                        ? `Tenggat ${formatDateTime(parseWibInput(milestone.dueAt))}`
                         : "Tenggat belum diatur"}
                     </span>
                   </span>

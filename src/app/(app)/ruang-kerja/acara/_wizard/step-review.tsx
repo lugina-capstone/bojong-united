@@ -10,7 +10,7 @@ import { Alert } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { MilestoneCard } from "@/components/ui/milestone-card";
 import { OrgLogo } from "@/components/ui/org-logo";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime, parseWibInput } from "@/lib/format";
 import { formatLabels } from "@/lib/validations/event";
 
 /** Langkah 5: tinjau seluruh isian sebelum terbit. */
@@ -38,7 +38,7 @@ function StepReview({
     [
       "Periode",
       info.startsAt && info.endsAt
-        ? `${formatDate(new Date(info.startsAt))} – ${formatDate(new Date(info.endsAt))}`
+        ? `${formatDate(parseWibInput(info.startsAt))} – ${formatDate(parseWibInput(info.endsAt))}`
         : "–",
     ],
     [
@@ -110,7 +110,7 @@ function StepReview({
               order={i + 1}
               title={m.title}
               description={m.instructions || undefined}
-              deadline={m.dueAt ? formatDateTime(new Date(m.dueAt)) : "–"}
+              deadline={m.dueAt ? formatDateTime(parseWibInput(m.dueAt)) : "–"}
               formats={m.formats.map((f) => formatLabels[f])}
               hasSurvey
               status={
