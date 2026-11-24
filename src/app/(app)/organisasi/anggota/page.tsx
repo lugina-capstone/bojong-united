@@ -417,7 +417,7 @@ export default async function MembersPage({
                 },
                 {
                   label: "Acara dibuat",
-                  value: `${profile.user.createdEvents.length} acara (${profile.user.createdEvents.filter((e) => e.status === "PUBLISHED").length} aktif)`,
+                  value: `${profile.user._count.createdEvents} acara (${profile.user.createdEvents.filter((e) => e.status === "PUBLISHED").length} aktif)`,
                 },
               ]}
             />
