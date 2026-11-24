@@ -174,12 +174,30 @@ export default async function ProgressPage({
         </Link>{" "}
         / {event.title} / Pantau progres
       </nav>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-display text-foreground">Pantau progres peserta</h1>
-        <p className="text-small text-muted-foreground">
-          Lihat perkembangan tiap milestone dan buka tugas untuk menilai atau
-          memberi revisi.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-display text-foreground">
+            Pantau progres peserta
+          </h1>
+          <p className="text-small text-muted-foreground">
+            Lihat perkembangan tiap milestone dan buka tugas untuk menilai atau
+            memberi revisi.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Link
+            href={`${PATH}/rekap`}
+            className={buttonVariants({ variant: "secondary", size: "sm" })}
+          >
+            Rekap akhir
+          </Link>
+          <Link
+            href={`/ruang-kerja/galeri/${id}`}
+            className={buttonVariants({ variant: "secondary", size: "sm" })}
+          >
+            Galeri karya
+          </Link>
+        </div>
       </div>
 
       <section className="flex flex-col gap-4 rounded-2xl bg-primary-50 p-5 sm:p-6 lg:flex-row lg:items-end lg:justify-between">
