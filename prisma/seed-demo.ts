@@ -8,7 +8,9 @@ import type {
 } from "../src/generated/prisma/enums";
 
 /** Kode organisasi demo utama. Seed demo dilewati jika organisasi ini sudah ada. */
-export const DEMO_ORGANIZATION_CODE = "LUGINA25";
+export const DEMO_ORGANIZATION_CODE = "BECRAFT1";
+// Kode demo lama; database yang sudah di-seed dengan kode ini tidak di-seed ulang.
+const LEGACY_DEMO_CODE = "LUGINA25";
 
 const DAY = 24 * 60 * 60 * 1000;
 const daysFromNow = (days: number) => new Date(Date.now() + days * DAY);
@@ -30,8 +32,8 @@ export async function seedDemo(
   db: PrismaClient,
   { password, administratorId }: { password: string; administratorId: string },
 ) {
-  const existing = await db.organization.findUnique({
-    where: { code: DEMO_ORGANIZATION_CODE },
+  const existing = await db.organization.findFirst({
+    where: { code: { in: [DEMO_ORGANIZATION_CODE, LEGACY_DEMO_CODE] } },
   });
   if (existing) {
     console.log("Data demo sudah ada, dilewati.");
@@ -80,8 +82,8 @@ export async function seedDemo(
   }
 
   // Organisasi dengan semua status.
-  const lugina = await createOrganization({
-    name: "SMK Lugina Rancaekek",
+  const demoOrg = await createOrganization({
+    name: "SMK Harapan Bangsa",
     code: DEMO_ORGANIZATION_CODE,
     type: "SEKOLAH_UNIVERSITAS",
     status: "APPROVED",
@@ -131,19 +133,24 @@ export async function seedDemo(
   const siti = await createMember(
     "Siti Rahmawati",
     "admin.organisasi",
-    lugina.id,
+    demoOrg.id,
     "TRAINER",
     { isAdmin: true },
   );
-  const budi = await createMember("Budi Santoso", "guru", lugina.id, "GURU");
-  const rina = await createMember("Rina Kusuma", "asesor", lugina.id, "ASESOR");
+  const budi = await createMember("Budi Santoso", "guru", demoOrg.id, "GURU");
+  const rina = await createMember(
+    "Rina Kusuma",
+    "asesor",
+    demoOrg.id,
+    "ASESOR",
+  );
   const andi = await createMember(
     "Andi Pratama",
     "trainer",
-    lugina.id,
+    demoOrg.id,
     "TRAINER",
   );
-  await createMember("Fajar Hidayat", "dikeluarkan", lugina.id, "GURU", {
+  await createMember("Fajar Hidayat", "dikeluarkan", demoOrg.id, "GURU", {
     removed: true,
   });
   await createMember("Dewi Lestari", "pemohon", pending.id, "GURU", {
@@ -168,14 +175,14 @@ export async function seedDemo(
   await db.trainerRequest.create({
     data: {
       userId: budi.id,
-      organizationId: lugina.id,
+      organizationId: demoOrg.id,
       plannedMaterial: "Dasar Fotografi Produk untuk Katalog Online",
     },
   });
   await db.trainerRequest.create({
     data: {
       userId: rina.id,
-      organizationId: lugina.id,
+      organizationId: demoOrg.id,
       plannedMaterial: "Pengantar Desain UI",
       status: "REJECTED",
       rejectionReason:
@@ -193,7 +200,7 @@ export async function seedDemo(
     where: { organizationId: null, name: "Desain Komunikasi" },
   });
   const fotografi = await db.materialCategory.create({
-    data: { organizationId: lugina.id, name: "Fotografi Produk" },
+    data: { organizationId: demoOrg.id, name: "Fotografi Produk" },
   });
   const [bidangUiux, bidangPoster] = await Promise.all(
     ["UI/UX", "Poster"].map((name) =>
@@ -203,13 +210,13 @@ export async function seedDemo(
     ),
   );
   const bidangAplikasi = await db.subjectField.create({
-    data: { organizationId: lugina.id, name: "Pengembangan Aplikasi" },
+    data: { organizationId: demoOrg.id, name: "Pengembangan Aplikasi" },
   });
 
   // Materi Trainer.
   const materiPoster = await db.material.create({
     data: {
-      organizationId: lugina.id,
+      organizationId: demoOrg.id,
       trainerId: andi.id,
       categoryId: desainKomunikasi.id,
       title: "Dasar Tipografi untuk Poster",
@@ -247,7 +254,7 @@ export async function seedDemo(
   });
   await db.material.create({
     data: {
-      organizationId: lugina.id,
+      organizationId: demoOrg.id,
       trainerId: siti.id,
       categoryId: desainProduk.id,
       title: "Prototyping Kemasan Sederhana",
@@ -274,7 +281,7 @@ export async function seedDemo(
   });
   await db.material.create({
     data: {
-      organizationId: lugina.id,
+      organizationId: demoOrg.id,
       trainerId: andi.id,
       categoryId: fotografi.id,
       title: "Foto Produk dengan Ponsel",
@@ -313,7 +320,7 @@ export async function seedDemo(
   // Rubrik dan salinan perubahannya.
   const rubrikPoster = await db.rubric.create({
     data: {
-      organizationId: lugina.id,
+      organizationId: demoOrg.id,
       creatorId: budi.id,
       title: "Rubrik Desain Poster",
       fieldId: bidangPoster!.id,
@@ -330,7 +337,7 @@ export async function seedDemo(
   });
   await db.rubric.create({
     data: {
-      organizationId: lugina.id,
+      organizationId: demoOrg.id,
       creatorId: budi.id,
       title: "Rubrik Desain Poster",
       fieldId: bidangPoster!.id,
@@ -349,7 +356,7 @@ export async function seedDemo(
   });
   const rubrikAplikasi = await db.rubric.create({
     data: {
-      organizationId: lugina.id,
+      organizationId: demoOrg.id,
       creatorId: rina.id,
       title: "Rubrik Proyek Aplikasi",
       fieldId: bidangAplikasi.id,
@@ -395,7 +402,7 @@ export async function seedDemo(
   // Acara individu yang sedang berjalan.
   const lomba = await db.event.create({
     data: {
-      organizationId: lugina.id,
+      organizationId: demoOrg.id,
       creatorId: budi.id,
       title: "Lomba Desain Poster Hari Guru",
       description: "Rancang poster bertema apresiasi guru.",
@@ -562,7 +569,7 @@ export async function seedDemo(
   // Acara tim.
   const proyek = await db.event.create({
     data: {
-      organizationId: lugina.id,
+      organizationId: demoOrg.id,
       creatorId: rina.id,
       title: "Proyek Aplikasi Kantin Sekolah",
       description:
@@ -641,7 +648,7 @@ export async function seedDemo(
   // Draf acara Guru.
   await db.event.create({
     data: {
-      organizationId: lugina.id,
+      organizationId: demoOrg.id,
       creatorId: budi.id,
       title: "Workshop Wireframe Sehari",
       fieldId: bidangUiux!.id,

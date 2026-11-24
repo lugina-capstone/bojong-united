@@ -2,7 +2,6 @@ import Link from "next/link";
 import { CircleCheckIcon } from "lucide-react";
 
 import { BecraftLogo } from "@/components/brand/logo";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 
 const HIGHLIGHTS = [
@@ -26,9 +25,6 @@ export default function Home() {
 
       <main className="flex flex-1 flex-col justify-center py-16 sm:py-24">
         <div className="flex max-w-2xl flex-col gap-5">
-          <Badge tone="neutral" className="w-fit">
-            SMK Lugina Rancaekek
-          </Badge>
           <p className="text-overline text-subtle">Ruang tumbuh bersama</p>
           <h1 className="text-hero text-foreground sm:text-[56px] sm:leading-tight">
             Becraft
@@ -66,7 +62,7 @@ export default function Home() {
 
       <footer className="flex flex-col gap-2 border-t border-border py-6 text-small text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <p>Becraft</p>
-        <p>Dikembangkan untuk SMK Lugina Rancaekek.</p>
+        <p>Digital Portfolio &amp; Assessment System</p>
       </footer>
     </div>
   );

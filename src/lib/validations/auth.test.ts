@@ -8,6 +8,7 @@ describe("signUpSchema", () => {
       name: "Budi",
       email: "  Budi@Contoh.ID ",
       password: "rahasia123",
+      terms: true,
     });
     expect(result.email).toBe("budi@contoh.id");
   });
@@ -17,6 +18,7 @@ describe("signUpSchema", () => {
       name: "Budi",
       email: "budi@contoh.id",
       password: "pendek",
+      terms: true,
     });
     expect(result.success).toBe(false);
   });

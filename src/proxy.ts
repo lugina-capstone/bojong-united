@@ -7,7 +7,9 @@ const publicPaths = [
   "/daftar",
   "/lupa-password",
   "/reset-password",
-  "/verifikasi-email",
+  "/akun-dihapus",
+  "/ketentuan",
+  "/privasi",
 ];
 
 // Pengecekan optimistis (hanya ada atau tidaknya cookie sesi).
@@ -18,6 +20,7 @@ export function proxy(request: NextRequest) {
     process.env.NODE_ENV !== "production" && pathname.startsWith("/dev/");
   if (
     publicPaths.includes(pathname) ||
+    pathname.startsWith("/daftar/") ||
     isDevTool ||
     getSessionCookie(request)
   ) {

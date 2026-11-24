@@ -21,4 +21,23 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   );
 }
 
-export { Input, fieldControlClass };
+/** Input dengan ikon Lucide di kiri, mis. ikon surat untuk email. */
+function InputWithIcon({
+  icon: Icon,
+  className,
+  ...props
+}: React.ComponentProps<"input"> & {
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+}) {
+  return (
+    <div className={cn("relative w-full", className)}>
+      <Icon
+        aria-hidden={true}
+        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle"
+      />
+      <Input className="pl-9" {...props} />
+    </div>
+  );
+}
+
+export { Input, InputWithIcon, fieldControlClass };

@@ -47,7 +47,7 @@ function SidebarContent({
   onNavigate,
 }: {
   access: Access;
-  /** Nama ruang/organisasi di kartu atas, mis. "SMK Lugina Rancaekek". */
+  /** Nama ruang/organisasi di kartu atas, mis. "SMK Harapan Bangsa". */
   workspace: string;
   onNavigate?: () => void;
 }) {
