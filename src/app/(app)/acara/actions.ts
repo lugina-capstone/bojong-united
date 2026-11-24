@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 
+import { issueCertificateIfEligible } from "@/lib/assessment";
 import { db } from "@/lib/db";
 import { eventPhase, unlockedMilestoneIndex } from "@/lib/event-rules";
 import { notify } from "@/lib/notifications";
@@ -217,6 +218,7 @@ export async function submitSurveyAction(
     return { error: "Survei ini sudah Anda isi." };
   }
   await notifyNextUnlocked(ctx, user.id);
+  await issueCertificateIfEligible(ctx.event.id, user.id);
   refresh();
   return { ok: true };
 }
