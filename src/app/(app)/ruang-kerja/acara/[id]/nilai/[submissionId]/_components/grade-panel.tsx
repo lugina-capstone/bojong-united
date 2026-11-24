@@ -43,7 +43,9 @@ export function GradePanel({
   participantName,
   criteria,
   kkm,
+  canRequestRevision,
 }: {
+  canRequestRevision: boolean;
   submissionId: string;
   participantName: string;
   criteria: Criterion[];
@@ -185,18 +187,20 @@ export function GradePanel({
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={pending}
-          onClick={() => {
-            setError("");
-            setRevisionOpen(true);
-          }}
-        >
-          <RotateCcwIcon aria-hidden="true" />
-          Minta revisi
-        </Button>
+        {canRequestRevision && (
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={pending}
+            onClick={() => {
+              setError("");
+              setRevisionOpen(true);
+            }}
+          >
+            <RotateCcwIcon aria-hidden="true" />
+            Minta revisi
+          </Button>
+        )}
         <Button
           type="button"
           disabled={pending || filled < criteria.length}

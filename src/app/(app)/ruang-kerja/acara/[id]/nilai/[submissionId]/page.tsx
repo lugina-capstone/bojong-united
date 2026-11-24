@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FileItem } from "@/components/ui/file-item";
 import { requireAssessableEvent } from "@/lib/assessment";
+import { eventPhase } from "@/lib/event-rules";
 import { db } from "@/lib/db";
 import { formatDateTime, formatFileSize, formatScore } from "@/lib/format";
 
@@ -227,6 +228,7 @@ export default async function GradePage({
               submissionId={latest.id}
               participantName={submission.user.name}
               kkm={event.kkm}
+              canRequestRevision={eventPhase(event) === "ongoing"}
               criteria={milestone.rubric!.criteria.map((c) => ({
                 id: c.id,
                 name: c.name,
