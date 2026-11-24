@@ -1,7 +1,15 @@
-function StepBadge({ step, total }: { step: number; total: number }) {
+function StepBadge({
+  label,
+  step,
+  total,
+}: {
+  label?: string;
+  step: number;
+  total: number;
+}) {
   return (
-    <span className="text-caption-strong text-subtle">
-      Langkah {step} dari {total}
+    <span className="rounded-full bg-primary-50 px-2.5 py-1 text-caption-strong text-primary-500">
+      {label && `${label} · `}Langkah {step} dari {total}
     </span>
   );
 }

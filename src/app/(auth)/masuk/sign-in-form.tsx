@@ -52,10 +52,13 @@ function SignInForm({
   }
 
   return (
-    <AuthPanel topStart={<AuthTag>Masuk akun</AuthTag>}>
+    <AuthPanel
+      topStart={<AuthTag>Masuk akun</AuthTag>}
+      footer="Akses aman. Dengan masuk, Anda menyetujui Ketentuan Layanan dan Kebijakan Privasi."
+    >
       <AuthHeading
-        title="Selamat datang kembali"
-        description="Masuk untuk melanjutkan acara, materi, dan portofolio Anda."
+        title="Masuk ke akun Anda"
+        description="Selamat datang kembali. Masuk dengan email atau Google — Anda langsung diarahkan ke ruang kerja sesuai peran akun."
       />
       {statusAlert}
       {state.error && (
@@ -122,10 +125,10 @@ function SignInForm({
               setValues({ ...values, rememberMe: value === true })
             }
           />
-          Ingat saya
+          Ingat saya di perangkat ini
         </label>
         <Button type="submit" size="lg" disabled={pending}>
-          Masuk
+          Masuk ke beranda
         </Button>
         {googleEnabled && <GoogleSignIn label="Masuk dengan Google" />}
       </form>
