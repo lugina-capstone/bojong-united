@@ -1,14 +1,28 @@
 "use client";
 
+import * as React from "react";
 import { Toggle as TogglePrimitive } from "@base-ui/react/toggle";
 import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group";
 import { cn } from "@/lib/utils";
 
 /** Segmen pilihan tunggal, mis. filter Semua/Aktif/Selesai. */
-function SegmentedControl({ className, ...props }: ToggleGroupPrimitive.Props) {
+function SegmentedControl({
+  className,
+  value,
+  defaultValue,
+  onValueChange,
+  ...props
+}: ToggleGroupPrimitive.Props) {
+  const [uncontrolled, setUncontrolled] = React.useState(defaultValue ?? []);
   return (
     <ToggleGroupPrimitive
       data-slot="segmented-control"
+      value={value ?? uncontrolled}
+      onValueChange={(next, details) => {
+        if (next.length === 0) return;
+        setUncontrolled(next);
+        onValueChange?.(next, details);
+      }}
       className={cn(
         "inline-flex w-fit max-w-full gap-0.5 overflow-x-auto rounded-lg bg-muted p-0.5",
         className,
