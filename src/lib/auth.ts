@@ -9,7 +9,7 @@ import { emailOTP } from "better-auth/plugins";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { env } from "@/lib/env";
-import { OTP_LENGTH } from "@/lib/otp";
+import { OTP_LENGTH, OTP_RESEND_SECONDS, otpResendKey } from "@/lib/otp";
 import {
   LOCK_MINUTES,
   lockAfterFailure,
@@ -171,6 +171,15 @@ export const auth = betterAuth({
           select: { emailVerified: true },
         });
         if (!user || user.emailVerified) return;
+        const identifier = otpResendKey(email);
+        await db.verification.deleteMany({ where: { identifier } });
+        await db.verification.create({
+          data: {
+            identifier,
+            value: "",
+            expiresAt: new Date(Date.now() + OTP_RESEND_SECONDS * 1000),
+          },
+        });
         void sendEmail({
           to: email,
           subject: `Kode verifikasi Becraft: ${otp}`,

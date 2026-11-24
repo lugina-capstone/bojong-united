@@ -10,7 +10,7 @@ import { auth } from "@/lib/auth";
 import { destinationFor, destinationHref } from "@/lib/auth-routing";
 import { db } from "@/lib/db";
 import { generateOrganizationCode } from "@/lib/organization-code";
-import { OTP_RESEND_SECONDS } from "@/lib/otp";
+import { OTP_RESEND_SECONDS, otpResendKey } from "@/lib/otp";
 import { requireUser } from "@/lib/session";
 import {
   forgotPasswordSchema,
@@ -144,9 +144,8 @@ async function createOrganization(
 }
 
 /**
- * Daftar organisasi baru (AA-06), langkah 1: akun pemohon saja. Organisasi dibuat lewat
- * `createOrganizationAction` setelah email terverifikasi, agar ganti email tidak meninggalkan
- * pengajuan ganda.
+ * Daftar organisasi baru (AA-06): akun pemohon + organisasi PENDING, pemohon jadi admin.
+ * Pengajuan dari akun yang emailnya belum terverifikasi tidak ditampilkan di antrean Administrator.
  */
 export async function registerOrganizationAction(
   input: unknown,
@@ -154,11 +153,12 @@ export async function registerOrganizationAction(
   const parsed = registerOrganizationSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
   if (await emailTaken(parsed.data.email)) return EMAIL_TAKEN;
-  await signUpUser(parsed.data);
+  const userId = await signUpUser(parsed.data);
+  await createOrganization(userId, parsed.data, parsed.data.email);
   return { ok: true, email: parsed.data.email };
 }
 
-/** Akun yang sedang masuk (pemohon baru, dikeluarkan, atau Peserta) membuat organisasi baru. */
+/** Akun yang sedang masuk (dikeluarkan atau Peserta) membuat organisasi baru. */
 export async function createOrganizationAction(
   input: unknown,
 ): Promise<FormState> {
@@ -269,7 +269,7 @@ export async function verifyOtpAction(input: unknown): Promise<FormState> {
   return { ok: true };
 }
 
-/** True jika token dengan identifier/value ini dibuat kurang dari `OTP_RESEND_SECONDS` lalu. */
+/** True jika token reset dengan kriteria ini dibuat kurang dari `OTP_RESEND_SECONDS` lalu. */
 async function sentRecently(where: Prisma.VerificationWhereInput) {
   const since = new Date(Date.now() - (OTP_RESEND_SECONDS - 5) * 1000);
   return (
@@ -284,8 +284,14 @@ const WAIT_RESEND = "Tunggu sebentar sebelum meminta kode baru.";
 export async function resendOtpAction(email: string): Promise<FormState> {
   const parsed = forgotPasswordSchema.safeParse({ email });
   if (!parsed.success) return fieldErrorsOf(parsed.error);
-  const identifier = `email-verification-otp-${parsed.data.email}`;
-  if (await sentRecently({ identifier })) return { error: WAIT_RESEND };
+  // Penanda dibuat setiap kode dikirim (lihat `sendVerificationOTP` di auth.ts).
+  const waiting = await db.verification.count({
+    where: {
+      identifier: otpResendKey(parsed.data.email),
+      expiresAt: { gt: new Date(Date.now() + 5000) },
+    },
+  });
+  if (waiting > 0) return { error: WAIT_RESEND };
   try {
     await auth.api.sendVerificationOTP({
       body: { email: parsed.data.email, type: "email-verification" },
