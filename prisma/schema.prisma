@@ -67,6 +67,7 @@ model User {
   trainerRequests         TrainerRequest[]     @relation("TrainerRequestUser")
   reviewedTrainerRequests TrainerRequest[]     @relation("TrainerRequestReviewer")
   createdEvents           Event[]
+  transferredEvents       Event[]              @relation("EventTransferredFrom")
   createdRubrics          Rubric[]
   enrollments             Enrollment[]
   ledTeams                Team[]
@@ -102,6 +103,8 @@ model Organization {
   reviewedById         String?
   reviewedAt           DateTime?
   deactivatedAt        DateTime?
+  /// Alasan penonaktifan oleh Administrator, dikirim ke admin organisasi.
+  deactivationReason   String?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   logo                 File?                 @relation("OrganizationLogo", fields: [logoFileId], references: [id], onDelete: SetNull)
@@ -217,6 +220,9 @@ model Event {
   updatedAt             DateTime             @updatedAt
   organization          Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   creator               User                 @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  /// Pembuat sebelumnya, jika acara dialihkan (anggota dikeluarkan atau dialihkan admin).
+  transferredFromId     String?
+  transferredFrom       User?                @relation("EventTransferredFrom", fields: [transferredFromId], references: [id], onDelete: SetNull)
   field                 SubjectField?        @relation(fields: [fieldId], references: [id], onDelete: Restrict)
   certificateTemplate   CertificateTemplate? @relation(fields: [certificateTemplateId], references: [id], onDelete: SetNull)
   milestones            Milestone[]

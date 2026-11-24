@@ -24,6 +24,7 @@ function Header({
   breadcrumb,
   searchPlaceholder = "Cari acara atau peserta…",
   notificationCount = 0,
+  notifications,
   accountMenu,
 }: {
   access: Access;
@@ -32,6 +33,8 @@ function Header({
   breadcrumb?: React.ReactNode;
   searchPlaceholder?: string;
   notificationCount?: number;
+  /** Tombol + panel notifikasi; menggantikan lonceng statis `notificationCount`. */
+  notifications?: React.ReactNode;
   /** Isi menu akun (MenuItem Profil, Keluar, dll.). */
   accountMenu?: React.ReactNode;
 }) {
@@ -63,16 +66,18 @@ function Header({
         placeholder={searchPlaceholder}
         className="hidden w-65 md:block"
       />
-      <div className="relative">
-        <IconButton label="Notifikasi" className="border-transparent">
-          <BellIcon />
-        </IconButton>
-        {notificationCount > 0 && (
-          <span className="pointer-events-none absolute -top-1 -right-1 flex min-w-4.5 items-center justify-center rounded-full bg-danger-500 px-1 text-caption-strong text-inverse">
-            {notificationCount > 99 ? "99+" : notificationCount}
-          </span>
-        )}
-      </div>
+      {notifications ?? (
+        <div className="relative">
+          <IconButton label="Notifikasi" className="border-transparent">
+            <BellIcon />
+          </IconButton>
+          {notificationCount > 0 && (
+            <span className="pointer-events-none absolute -top-1 -right-1 flex min-w-4.5 items-center justify-center rounded-full bg-danger-500 px-1 text-caption-strong text-inverse">
+              {notificationCount > 99 ? "99+" : notificationCount}
+            </span>
+          )}
+        </div>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-2.5 rounded-lg p-1 outline-none focus-visible:shadow-focus-ring">
           <Avatar>
