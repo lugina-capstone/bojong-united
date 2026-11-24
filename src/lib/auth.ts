@@ -139,3 +139,7 @@ export const auth = betterAuth({
     nextCookies(),
   ],
 });
+
+export const googleEnabled = Boolean(
+  env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET,
+);
