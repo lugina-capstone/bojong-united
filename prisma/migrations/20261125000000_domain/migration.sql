@@ -99,7 +99,7 @@ CREATE TABLE "events" (
     "creatorId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT,
-    "category" TEXT,
+    "fieldId" TEXT,
     "participantType" "EventParticipantType" NOT NULL DEFAULT 'INDIVIDUAL',
     "maxTeamMembers" INTEGER,
     "kkm" INTEGER NOT NULL DEFAULT 75,
@@ -157,7 +157,7 @@ CREATE TABLE "rubrics" (
     "organizationId" TEXT NOT NULL,
     "creatorId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
-    "category" TEXT NOT NULL,
+    "fieldId" TEXT NOT NULL,
     "description" TEXT,
     "sourceRubricId" TEXT,
     "version" INTEGER NOT NULL DEFAULT 1,
@@ -338,6 +338,17 @@ CREATE TABLE "certificates" (
     "issuedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "certificates_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "subject_fields" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT,
+    "name" TEXT NOT NULL,
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "subject_fields_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -524,6 +535,15 @@ CREATE UNIQUE INDEX "certificates_enrollmentId_key" ON "certificates"("enrollmen
 CREATE UNIQUE INDEX "certificates_number_key" ON "certificates"("number");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "subject_fields_organizationId_name_key" ON "subject_fields"("organizationId", "name");
+
+-- CreateIndex
+CREATE INDEX "events_fieldId_idx" ON "events"("fieldId");
+
+-- CreateIndex
+CREATE INDEX "rubrics_fieldId_idx" ON "rubrics"("fieldId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "material_categories_organizationId_name_key" ON "material_categories"("organizationId", "name");
 
 -- CreateIndex
@@ -698,6 +718,15 @@ ALTER TABLE "certificates" ADD CONSTRAINT "certificates_enrollmentId_fkey" FOREI
 ALTER TABLE "certificates" ADD CONSTRAINT "certificates_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "certificate_templates"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "events" ADD CONSTRAINT "events_fieldId_fkey" FOREIGN KEY ("fieldId") REFERENCES "subject_fields"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "rubrics" ADD CONSTRAINT "rubrics_fieldId_fkey" FOREIGN KEY ("fieldId") REFERENCES "subject_fields"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "subject_fields" ADD CONSTRAINT "subject_fields_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "material_categories" ADD CONSTRAINT "material_categories_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -743,9 +772,26 @@ ALTER TABLE "events" ADD CONSTRAINT "events_team_size" CHECK (
   OR ("status" = 'DRAFT' AND "maxTeamMembers" IS NULL)
   OR COALESCE("maxTeamMembers" >= 2, false)
 );
+ALTER TABLE "events" ADD CONSTRAINT "events_field_required" CHECK ("status" = 'DRAFT' OR "fieldId" IS NOT NULL);
 ALTER TABLE "events" ADD CONSTRAINT "events_date_order" CHECK ("startsAt" IS NULL OR "endsAt" IS NULL OR "startsAt" <= "endsAt");
 ALTER TABLE "milestones" ADD CONSTRAINT "milestones_order_positive" CHECK ("order" >= 1);
 ALTER TABLE "submissions" ADD CONSTRAINT "submissions_version_positive" CHECK ("version" >= 1);
 ALTER TABLE "grade_scores" ADD CONSTRAINT "grade_scores_score_range" CHECK ("score" BETWEEN 1 AND 5);
 ALTER TABLE "grades" ADD CONSTRAINT "grades_score_range" CHECK ("score" BETWEEN 0 AND 100 AND "totalScore" BETWEEN 0 AND "maxScore");
 ALTER TABLE "material_enrollments" ADD CONSTRAINT "material_enrollments_progress_range" CHECK ("progress" BETWEEN 0 AND 100);
+
+-- Unique index biasa membolehkan nama ganda saat organizationId NULL (bawaan).
+CREATE UNIQUE INDEX "subject_fields_default_name_key" ON "subject_fields"("name") WHERE "organizationId" IS NULL;
+CREATE UNIQUE INDEX "material_categories_default_name_key" ON "material_categories"("name") WHERE "organizationId" IS NULL;
+
+-- Pilihan bawaan sesuai Figma (Bidang acara/rubrik) dan PRD-04 (kategori materi).
+INSERT INTO "subject_fields" ("id", "name", "isDefault") VALUES
+  ('field_uiux', 'UI/UX', true),
+  ('field_basis_data', 'Basis Data', true),
+  ('field_poster', 'Poster', true),
+  ('field_umum', 'Umum', true);
+INSERT INTO "material_categories" ("id", "name", "isDefault") VALUES
+  ('category_desain_produk', 'Desain Produk', true),
+  ('category_desain_komunikasi', 'Desain Komunikasi', true),
+  ('category_teknologi', 'Teknologi', true),
+  ('category_bisnis_data', 'Bisnis & Data', true);

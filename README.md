@@ -132,11 +132,12 @@ Model utama (lihat komentar di `prisma/schema.prisma` untuk detail tiap field):
 - `Organization`: `type` (jenis organisasi), kontak, `logo` (relasi ke `File`), `code` unik untuk bergabung beserta `codeCreatedAt`, `status` `PENDING`, `APPROVED`, `REJECTED`, atau `DISABLED`, `rejectionReason`, `reviewedBy`/`reviewedAt`, dan `deactivatedAt`.
 - `Membership`: peran `GURU`, `ASESOR`, atau `TRAINER`, flag `isAdmin` (Admin Organisasi), dan `status` `ACTIVE`/`REMOVED`. Satu user hanya bisa menjadi anggota satu organisasi. User tanpa membership aktif adalah Peserta. Guru dan Asesor memiliki akses yang sama, tetapi labelnya berbeda.
 - `TrainerRequest`: pengajuan Guru/Asesor menjadi Trainer, ditinjau Admin Organisasi.
+- `SubjectField`: Bidang acara dan rubrik. Pilihan bawaan (UI/UX, Basis Data, Poster, Umum) dibuat oleh migrasi; "+ Bidang lain" menyimpan bidang baru per organisasi.
 - Acara: `Event` (individu/tim, `maxTeamMembers`, `kkm`, sertifikat), `Milestone` (berurutan, format, tenggat, rubrik), `MilestoneAttachment`, `EventMaterial`, `Enrollment`, `Team`, dan `TeamInvite`.
 - Penilaian: `Rubric` dan `RubricCriterion` (deskripsi skor 1–5; perubahan rubrik yang sudah dipakai disimpan sebagai salinan lewat `sourceRubricId`), `Submission` (satu baris per versi), `RevisionRequest`, `Grade`, dan `GradeScore`.
 - Survei: `Survey` (satu per milestone), `SurveyQuestion`, `SurveyResponse`, dan `SurveyAnswer`.
 - Sertifikat: `CertificateTemplate` dan `Certificate`.
-- Materi: `MaterialCategory` (bawaan atau kategori custom per organisasi), `Material`, `MaterialSection`, `MaterialEnrollment`, dan `MaterialSectionProgress`.
+- Materi: `MaterialCategory` (bawaan dari migrasi atau kategori custom per organisasi), `Material`, `MaterialSection`, `MaterialEnrollment`, dan `MaterialSectionProgress`.
 - `Notification` (notifikasi in-app) dan `AuditLog` (disiapkan untuk log aktivitas).
 - `Session`, `Account`, dan `Verification`: tabel Better Auth untuk sesi, metode login (`credential` atau `google`), serta token verifikasi email dan reset password.
 - `File`: metadata file di object storage (key, nama asli, tipe, ukuran, pemilik, status `PENDING`/`UPLOADED`).
