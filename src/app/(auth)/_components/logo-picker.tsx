@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { OrgLogo } from "@/components/ui/org-logo";
 import { logoContentTypes, MAX_LOGO_SIZE } from "@/lib/validations/auth";
 
-async function isSquare(file: File) {
+export async function isSquare(file: File) {
   const bitmap = await createImageBitmap(file);
   const square = bitmap.width === bitmap.height;
   bitmap.close();

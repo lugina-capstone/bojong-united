@@ -69,6 +69,11 @@ const ORGANIZATION_SECTION: NavSection = {
       icon: IdCardIcon,
     },
     { label: "Anggota", href: "/organisasi/anggota", icon: UsersRoundIcon },
+    {
+      label: "Acara organisasi",
+      href: "/organisasi/acara",
+      icon: CalendarDaysIcon,
+    },
   ],
 };
 

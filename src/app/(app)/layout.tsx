@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { markNotificationsReadAction } from "@/app/(app)/notification-actions";
 import { AppShell } from "@/components/layout/app-shell";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { SignOutMenuItem } from "@/components/layout/sign-out-menu-item";
 import { SkeletonDashboard } from "@/components/ui/skeleton-patterns";
 import { destinationFor, destinationHref } from "@/lib/auth-routing";
+import { notificationsFor } from "@/lib/notifications";
 import { accessLabel } from "@/lib/rbac";
 import { requireUser } from "@/lib/session";
 
@@ -16,12 +19,23 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
     role: user.role,
     isOrganizationAdmin: user.isOrganizationAdmin,
   };
+  const { items, unread } = await notificationsFor(user.id);
   return (
     <AppShell
       access={access}
       workspace={user.membership?.organization.name ?? "Becraft"}
       user={{ name: user.name, roleLabel: accessLabel(access) }}
       accountMenu={<SignOutMenuItem />}
+      notifications={
+        <NotificationBell
+          items={items.map((item) => ({
+            ...item,
+            createdAt: item.createdAt.toISOString(),
+          }))}
+          unread={unread}
+          onMarkRead={markNotificationsReadAction}
+        />
+      }
     >
       {children}
     </AppShell>
