@@ -547,6 +547,16 @@ function MilestoneState({
             {latest.grade.feedback}
           </div>
         )}
+        {m.survey && !m.surveyDone && !readOnly && (
+          <Button
+            className="w-fit"
+            nativeButton={false}
+            render={<Link href={`/acara/${eventId}/survei/${m.id}`} />}
+          >
+            <ClipboardListIcon aria-hidden="true" />
+            Isi survei milestone {m.order}
+          </Button>
+        )}
       </section>
     );
   }
