@@ -4,6 +4,7 @@ import {
   canDeleteEvent,
   canInviteToTeam,
   canRemoveTeamMember,
+  certificateNumber,
   eventPhase,
   finalScore,
   milestoneScore,
@@ -131,5 +132,9 @@ describe("event rules", () => {
     expect(canDeleteEvent("DRAFT", 3).allowed).toBe(true);
     expect(canDeleteEvent("PUBLISHED", 0).allowed).toBe(true);
     expect(canDeleteEvent("PUBLISHED", 1).allowed).toBe(false);
+  });
+
+  it("nomor sertifikat memakai tahun terbit dan kode acak kapital", () => {
+    expect(certificateNumber("a1b2c3d4", now)).toBe("BCR-2026-A1B2C3D4");
   });
 });
