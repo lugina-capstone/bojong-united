@@ -25,15 +25,17 @@ function AuthPanel({
   return (
     <div className="flex min-h-dvh bg-card">
       <div className="relative hidden w-[41.6%] shrink-0 p-6 pr-0 lg:block">
-        <div className="sticky top-6 h-[calc(100dvh-3rem)] overflow-hidden rounded-4xl border border-primary-100">
-          <Image
-            src={visual}
-            alt=""
-            priority
-            fill
-            sizes="42vw"
-            className="object-cover"
-          />
+        <div className="sticky top-6 h-[calc(100dvh-3rem)]">
+          <div className="relative size-full overflow-hidden rounded-4xl border border-primary-100">
+            <Image
+              src={visual}
+              alt=""
+              priority
+              fill
+              sizes="42vw"
+              className="object-cover"
+            />
+          </div>
         </div>
       </div>
       <div className="flex min-w-0 flex-1 flex-col px-4 py-5 sm:px-8 lg:px-12 lg:py-7">
