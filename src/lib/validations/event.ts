@@ -137,6 +137,10 @@ export const editEventSchema = z.object({
   description: text(20, 3000, "Studi kasus dan tujuan"),
   guidelines: optionalText(3000, "Ketentuan dan arahan"),
   endsAt: date("Tanggal selesai"),
+  milestones: z
+    .array(z.object({ id: z.string(), dueAt: date("Tenggat") }))
+    .max(10)
+    .default([]),
 });
 
 export const gradeSchema = z.object({

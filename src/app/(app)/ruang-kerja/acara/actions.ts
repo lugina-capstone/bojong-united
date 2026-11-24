@@ -7,6 +7,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { publishIssues } from "@/lib/event-publish";
 import { canDeleteEvent } from "@/lib/event-rules";
+import { notify } from "@/lib/notifications";
 import { requireOwnEvent, requireTeacher } from "@/lib/teacher-access";
 import {
   certificateSchema,
@@ -363,7 +364,7 @@ export async function archiveEventAction(
   return { ok: true };
 }
 
-/** Edit terbatas acara terbit: judul, deskripsi, arahan, dan perpanjang tanggal selesai. */
+/** Edit terbatas acara terbit: teks, perpanjang tanggal selesai, dan tenggat milestone yang belum dikumpulkan. */
 export async function editPublishedEventAction(
   eventId: string,
   input: unknown,
@@ -378,14 +379,66 @@ export async function editPublishedEventAction(
       fieldErrors: fieldErrorsOf(parsed.error.issues),
     };
   }
-  if (event.endsAt && parsed.data.endsAt < event.endsAt) {
-    return {
-      fieldErrors: {
-        endsAt: "Tanggal selesai hanya bisa diperpanjang, tidak dimajukan",
-      },
-    };
+  const { milestones: dues, ...data } = parsed.data;
+  const fieldErrors: Record<string, string> = {};
+  if (event.endsAt && data.endsAt < event.endsAt) {
+    fieldErrors.endsAt =
+      "Tanggal selesai hanya bisa diperpanjang, tidak dimajukan";
   }
-  await db.event.update({ where: { id: eventId }, data: parsed.data });
+  const current = await db.milestone.findMany({
+    where: { eventId },
+    select: {
+      id: true,
+      order: true,
+      title: true,
+      dueAt: true,
+      _count: { select: { submissions: true } },
+    },
+  });
+  const changed: { id: string; dueAt: Date; title: string }[] = [];
+  for (const due of dues) {
+    const index = current.findIndex((m) => m.id === due.id);
+    const milestone = current[index];
+    if (!milestone) return { error: "Milestone tidak ditemukan." };
+    if (milestone.dueAt && due.dueAt.getTime() === milestone.dueAt.getTime())
+      continue;
+    const key = `milestones.${index}.dueAt`;
+    if (milestone._count.submissions > 0)
+      fieldErrors[key] = "Milestone yang sudah dikumpulkan terkunci";
+    else if (milestone.dueAt && due.dueAt < milestone.dueAt)
+      fieldErrors[key] = "Tenggat hanya bisa diperpanjang";
+    else if (due.dueAt > data.endsAt)
+      fieldErrors[key] = "Tenggat melewati tanggal selesai acara";
+    else changed.push({ id: due.id, dueAt: due.dueAt, title: milestone.title });
+  }
+  if (Object.keys(fieldErrors).length > 0) {
+    return { error: "Periksa kembali isian yang ditandai.", fieldErrors };
+  }
+  await db.$transaction([
+    db.event.update({ where: { id: eventId }, data }),
+    ...changed.map((m) =>
+      db.milestone.update({ where: { id: m.id }, data: { dueAt: m.dueAt } }),
+    ),
+  ]);
+  const extended = event.endsAt && data.endsAt > event.endsAt;
+  if (changed.length > 0 || extended) {
+    const participants = await db.enrollment.findMany({
+      where: { eventId },
+      select: { userId: true },
+    });
+    await notify(
+      participants.map((p) => p.userId),
+      "event.updated",
+      {
+        eventId,
+        eventTitle: data.title,
+        change:
+          changed.length > 0
+            ? `Tenggat ${changed.map((m) => m.title).join(", ")} diperpanjang`
+            : "Tanggal selesai diperpanjang",
+      },
+    );
+  }
   refresh();
   return { ok: true };
 }

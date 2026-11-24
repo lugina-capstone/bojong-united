@@ -22,6 +22,7 @@ export const notificationTypes = [
   "grade.published",
   "certificate.issued",
   "milestone.unlocked",
+  "event.updated",
   "team.invited",
   "team.invite-accepted",
   "team.invite-rejected",
@@ -222,6 +223,14 @@ export function describeNotification(
         href: `/sertifikat/${payload.certificateNumber}`,
         icon: "award",
         tone: "success",
+      };
+    case "event.updated":
+      return {
+        title: "Acara diperbarui",
+        body: `${payload.eventTitle ?? "Acara"} · ${payload.change ?? "Ada perubahan jadwal"}`,
+        href: `/acara/${payload.eventId}`,
+        icon: "calendar",
+        tone: "warning",
       };
     case "milestone.unlocked":
       return {
