@@ -5,8 +5,8 @@ import { createDownloadUrl } from "@/lib/storage";
 
 /**
  * Download: redirect ke URL storage sementara.
- * Saat ini hanya pemilik dan Administrator. Akses lain (peserta acara, Guru penilai)
- * ditambahkan bersama relasi file ke materi, tugas, dan sertifikat.
+ * Boleh dibaca: pemilik, Administrator, peserta acara (lampiran milestone),
+ * dan anggota aktif organisasi penyelenggara (lampiran dan karya peserta).
  */
 export async function GET(
   _request: Request,
@@ -19,10 +19,29 @@ export async function GET(
 
   const { id } = await ctx.params;
   const file = await db.file.findUnique({ where: { id } });
+  if (!file || file.status !== "UPLOADED")
+    return apiError(404, "not_found", "File tidak ditemukan");
+  const isOrgMember = {
+    organization: {
+      memberships: { some: { userId: user.id, status: "ACTIVE" as const } },
+    },
+  };
   const canRead =
-    file &&
-    file.status === "UPLOADED" &&
-    (file.ownerId === user.id || user.role === "ADMINISTRATOR");
+    file.ownerId === user.id ||
+    user.role === "ADMINISTRATOR" ||
+    (await db.milestoneAttachment.count({
+      where: {
+        fileId: id,
+        milestone: {
+          event: {
+            OR: [{ enrollments: { some: { userId: user.id } } }, isOrgMember],
+          },
+        },
+      },
+    })) > 0 ||
+    (await db.submission.count({
+      where: { fileId: id, milestone: { event: isOrgMember } },
+    })) > 0;
   if (!canRead) return apiError(404, "not_found", "File tidak ditemukan");
 
   return Response.redirect(await createDownloadUrl(file), 302);

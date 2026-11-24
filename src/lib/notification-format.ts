@@ -16,6 +16,17 @@ export const notificationTypes = [
   "trainer-request.approved",
   "trainer-request.rejected",
   "event.transferred",
+  "submission.new",
+  "submission.revised",
+  "revision.requested",
+  "grade.published",
+  "certificate.issued",
+  "milestone.unlocked",
+  "event.updated",
+  "team.invited",
+  "team.invite-accepted",
+  "team.invite-rejected",
+  "team.removed",
 ] as const;
 
 export type NotificationType = (typeof notificationTypes)[number];
@@ -31,7 +42,10 @@ export type NotificationIcon =
   | "shield"
   | "book"
   | "power"
-  | "calendar";
+  | "calendar"
+  | "file"
+  | "award"
+  | "users";
 
 export type NotificationTone = "primary" | "success" | "warning" | "danger";
 
@@ -169,6 +183,94 @@ export function describeNotification(
         href: "/organisasi/acara",
         icon: "calendar",
         tone: "primary",
+      };
+    case "submission.new":
+      return {
+        title: "Pengumpulan baru",
+        body: `${name} mengumpulkan ${payload.milestoneTitle ?? "tugas"} · ${payload.eventTitle ?? ""}`,
+        href: `/ruang-kerja/acara/${payload.eventId}/nilai/${payload.submissionId}`,
+        icon: "file",
+        tone: "primary",
+      };
+    case "submission.revised":
+      return {
+        title: "Revisi masuk",
+        body: `${name} mengirim revisi ${payload.milestoneTitle ?? ""} · ${payload.eventTitle ?? ""}`,
+        href: `/ruang-kerja/acara/${payload.eventId}/nilai/${payload.submissionId}`,
+        icon: "refresh",
+        tone: "primary",
+      };
+    case "revision.requested":
+      return {
+        title: "Revisi diminta",
+        body: `${payload.milestoneTitle ?? "Tugas"} · ${payload.eventTitle ?? ""} perlu diperbaiki.`,
+        href: `/acara/${payload.eventId}?m=${payload.milestoneOrder ?? 1}`,
+        icon: "refresh",
+        tone: "warning",
+      };
+    case "grade.published":
+      return {
+        title: "Nilai terbit",
+        body: `${payload.milestoneTitle ?? "Milestone"} · ${payload.eventTitle ?? ""}: ${payload.score ?? ""}`,
+        href: `/acara/${payload.eventId}?m=${payload.milestoneOrder ?? 1}`,
+        icon: "check",
+        tone: "success",
+      };
+    case "certificate.issued":
+      return {
+        title: "Sertifikat terbit",
+        body: `Selamat! Sertifikat ${payload.eventTitle ?? "acara"} sudah tersedia.`,
+        href: `/sertifikat/${payload.certificateNumber}`,
+        icon: "award",
+        tone: "success",
+      };
+    case "event.updated":
+      return {
+        title: "Acara diperbarui",
+        body: `${payload.eventTitle ?? "Acara"} · ${payload.change ?? "Ada perubahan jadwal"}`,
+        href: `/acara/${payload.eventId}`,
+        icon: "calendar",
+        tone: "warning",
+      };
+    case "milestone.unlocked":
+      return {
+        title: "Milestone baru terbuka",
+        body: `${payload.milestoneTitle ?? "Milestone berikutnya"} · ${payload.eventTitle ?? ""}`,
+        href: `/acara/${payload.eventId}?m=${payload.milestoneOrder ?? 1}`,
+        icon: "calendar",
+        tone: "primary",
+      };
+    case "team.invited":
+      return {
+        title: "Undangan tim",
+        body: `${name} mengundang Anda ke ${payload.teamName ?? "tim"} · ${payload.eventTitle ?? ""}`,
+        href: `/beranda?undangan=${payload.inviteId}`,
+        icon: "users",
+        tone: "primary",
+      };
+    case "team.invite-accepted":
+      return {
+        title: "Undangan diterima",
+        body: `${name} bergabung ke ${payload.teamName ?? "tim"}.`,
+        href: `/jelajah/${payload.eventId}`,
+        icon: "user-plus",
+        tone: "success",
+      };
+    case "team.invite-rejected":
+      return {
+        title: "Undangan ditolak",
+        body: `${name} menolak undangan ${payload.teamName ?? "tim"}.`,
+        href: `/jelajah/${payload.eventId}`,
+        icon: "x",
+        tone: "warning",
+      };
+    case "team.removed":
+      return {
+        title: "Dikeluarkan dari tim",
+        body: `Anda tidak lagi menjadi anggota ${payload.teamName ?? "tim"} · ${payload.eventTitle ?? ""}`,
+        href: `/jelajah/${payload.eventId}`,
+        icon: "x",
+        tone: "danger",
       };
     default:
       return {

@@ -92,3 +92,13 @@ export function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toLocaleString("id-ID", { maximumFractionDigits: 1 })} MB`;
 }
+
+/** Date dari nilai `datetime-local` yang diisi dalam WIB. */
+export function parseWibInput(value: string) {
+  return new Date(`${value}:00+07:00`);
+}
+
+/** Nilai 0–100 dibulatkan 2 desimal (mis. 55.00000000000001 → "55"). */
+export function formatScore(value: number) {
+  return String(Math.round(value * 100) / 100);
+}

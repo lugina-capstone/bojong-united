@@ -5,7 +5,10 @@ import {
   BellIcon,
   BookOpenIcon,
   Building2Icon,
+  AwardIcon,
   CalendarIcon,
+  FileTextIcon,
+  UsersIcon,
   CircleCheckIcon,
   CircleXIcon,
   PowerIcon,
@@ -35,6 +38,9 @@ const ICONS: Record<NotificationIcon, LucideIcon> = {
   book: BookOpenIcon,
   power: PowerIcon,
   calendar: CalendarIcon,
+  file: FileTextIcon,
+  award: AwardIcon,
+  users: UsersIcon,
 };
 
 export type NotificationBellItem = NotificationView & {
