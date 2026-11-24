@@ -10,7 +10,11 @@ import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { env } from "@/lib/env";
 import { OTP_LENGTH } from "@/lib/otp";
-import { LOCK_MINUTES, nextLoginFailure } from "@/lib/login-lock";
+import {
+  LOCK_MINUTES,
+  lockAfterFailure,
+  MAX_FAILED_LOGINS,
+} from "@/lib/login-lock";
 
 function sendLinkEmail(
   to: string,
@@ -28,6 +32,17 @@ function sendLinkEmail(
     console.error(`Gagal mengirim email "${subject}"`, error);
   });
 }
+
+/** Endpoint emailOTP yang tidak dipakai Becraft (masuk/reset/ganti email lewat OTP). */
+const UNUSED_OTP_PATHS = new Set([
+  "/sign-in/email-otp",
+  "/forget-password/email-otp",
+  "/email-otp/request-password-reset",
+  "/email-otp/reset-password",
+  "/email-otp/check-verification-otp",
+  "/email-otp/request-email-change",
+  "/email-otp/change-email",
+]);
 
 export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
@@ -64,18 +79,32 @@ export const auth = betterAuth({
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      if (ctx.path !== "/sign-in/email") return;
+      if (UNUSED_OTP_PATHS.has(ctx.path))
+        throw new APIError("NOT_FOUND", { message: "Not found" });
+      if (
+        ctx.path !== "/sign-in/email" &&
+        ctx.path !== "/email-otp/verify-email"
+      )
+        return;
       const email = String(ctx.body?.email ?? "")
         .trim()
         .toLowerCase();
       const user = await db.user.findUnique({
         where: { email },
-        select: { lockedUntil: true, status: true },
+        select: { lockedUntil: true, emailVerified: true },
       });
       if (user?.lockedUntil && user.lockedUntil > new Date()) {
         throw new APIError("FORBIDDEN", {
           code: "ACCOUNT_LOCKED",
           message: `Akun dikunci ${LOCK_MINUTES} menit karena terlalu banyak percobaan masuk`,
+        });
+      }
+      // OTP verifikasi hanya untuk email yang belum terverifikasi, agar tidak menjadi jalur masuk
+      // tanpa kata sandi.
+      if (ctx.path === "/email-otp/verify-email" && user?.emailVerified) {
+        throw new APIError("BAD_REQUEST", {
+          code: "INVALID_OTP",
+          message: "Kode salah atau sudah kedaluwarsa",
         });
       }
     }),
@@ -88,19 +117,30 @@ export const auth = betterAuth({
       const failed =
         returned instanceof APIError &&
         returned.body?.code === "INVALID_EMAIL_OR_PASSWORD";
-      const user = await db.user.findUnique({
-        where: { email },
-        select: { id: true, failedLoginCount: true },
-      });
-      if (!user) return;
       if (failed) {
-        await db.user.update({
-          where: { id: user.id },
-          data: nextLoginFailure(user.failedLoginCount, new Date()),
+        // Increment atomik agar percobaan bersamaan tidak saling menimpa hitungan.
+        const updated = await db.user.updateMany({
+          where: { email },
+          data: { failedLoginCount: { increment: 1 } },
         });
-      } else if (!(returned instanceof APIError) && user.failedLoginCount > 0) {
-        await db.user.update({
-          where: { id: user.id },
+        if (updated.count === 0) return;
+        const user = await db.user.findUnique({
+          where: { email },
+          select: { failedLoginCount: true },
+        });
+        const lockedUntil = lockAfterFailure(
+          user?.failedLoginCount ?? 0,
+          new Date(),
+        );
+        if (lockedUntil) {
+          await db.user.updateMany({
+            where: { email, failedLoginCount: { gte: MAX_FAILED_LOGINS } },
+            data: { failedLoginCount: 0, lockedUntil },
+          });
+        }
+      } else if (!(returned instanceof APIError)) {
+        await db.user.updateMany({
+          where: { email, failedLoginCount: { gt: 0 } },
           data: { failedLoginCount: 0, lockedUntil: null },
         });
       }
@@ -126,6 +166,11 @@ export const auth = betterAuth({
       overrideDefaultEmailVerification: true,
       async sendVerificationOTP({ email, otp, type }) {
         if (type !== "email-verification") return;
+        const user = await db.user.findUnique({
+          where: { email },
+          select: { emailVerified: true },
+        });
+        if (!user || user.emailVerified) return;
         void sendEmail({
           to: email,
           subject: `Kode verifikasi Becraft: ${otp}`,
