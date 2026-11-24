@@ -11,63 +11,675 @@ enum OrganizationStatus {
   PENDING
   APPROVED
   REJECTED
+  /// Dinonaktifkan Administrator. Acaranya dijeda untuk peserta.
   DISABLED
 }
 
+enum OrganizationType {
+  SEKOLAH_UNIVERSITAS
+  LEMBAGA
+  PERUSAHAAN
+  INSTANSI_LAINNYA
+}
+
 /// Peran di dalam organisasi. Guru dan Asesor memiliki akses yang sama, tetapi labelnya berbeda.
-/// User tanpa membership adalah Peserta.
+/// Admin Organisasi adalah flag `Membership.isAdmin`, bukan peran. User tanpa membership aktif adalah Peserta.
 enum MemberRole {
   GURU
   ASESOR
   TRAINER
-  ADMIN_ORGANISASI
+}
+
+enum MembershipStatus {
+  ACTIVE
+  /// Dikeluarkan Admin Organisasi. User melihat layar "dikeluarkan" sampai memilih langkah berikutnya.
+  REMOVED
+}
+
+enum UserStatus {
+  ACTIVE
+  DELETED
 }
 
 model User {
-  id              String      @id @default(cuid())
+  id               String      @id @default(cuid())
   /// Wajib huruf kecil (CHECK users_email_lowercase). Satu email untuk satu akun.
-  email           String      @unique
-  name            String
-  emailVerified   Boolean     @default(false)
-  image           String?
+  email            String      @unique
+  name             String
+  emailVerified    Boolean     @default(false)
+  image            String?
   /// Administrator platform (global), bukan peran organisasi.
-  isAdministrator Boolean     @default(false)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  membership      Membership?
-  sessions        Session[]
-  accounts        Account[]
-  files           File[]
+  isAdministrator  Boolean     @default(false)
+  status           UserStatus  @default(ACTIVE)
+  deletedAt        DateTime?
+  /// Jumlah kata sandi salah berturut-turut. Direset setelah login berhasil.
+  failedLoginCount Int         @default(0)
+  /// Akun dikunci 15 menit setelah 5 kali kata sandi salah.
+  lockedUntil      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  membership       Membership?
+  sessions         Session[]
+  accounts         Account[]
+  files            File[]
 
+  reviewedOrganizations   Organization[]       @relation("OrganizationReviewer")
+  trainerRequests         TrainerRequest[]     @relation("TrainerRequestUser")
+  reviewedTrainerRequests TrainerRequest[]     @relation("TrainerRequestReviewer")
+  createdEvents           Event[]
+  createdRubrics          Rubric[]
+  enrollments             Enrollment[]
+  ledTeams                Team[]
+  teamInvitesReceived     TeamInvite[]         @relation("TeamInviteInvitee")
+  teamInvitesSent         TeamInvite[]         @relation("TeamInviteInviter")
+  submissions             Submission[]
+  revisionRequests        RevisionRequest[]
+  grades                  Grade[]
+  surveyResponses         SurveyResponse[]
+  materials               Material[]
+  materialEnrollments     MaterialEnrollment[]
+  notifications           Notification[]
+  auditLogs               AuditLog[]
+
+  @@index([status])
   @@map("users")
 }
 
 model Organization {
-  id        String             @id @default(cuid())
-  name      String
+  id                   String                @id @default(cuid())
+  name                 String
+  type                 OrganizationType
+  contactEmail         String?
+  contactPhone         String?
+  address              String?
+  /// Logo PNG/JPG, maks. 2 MB, rasio 1:1. Tanpa logo, UI menampilkan inisial.
+  logoFileId           String?               @unique
   /// Kode untuk bergabung ke organisasi.
-  code      String             @unique
-  status    OrganizationStatus @default(PENDING)
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
-  members   Membership[]
+  code                 String                @unique
+  codeCreatedAt        DateTime              @default(now())
+  status               OrganizationStatus    @default(PENDING)
+  rejectionReason      String?
+  reviewedById         String?
+  reviewedAt           DateTime?
+  deactivatedAt        DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  logo                 File?                 @relation("OrganizationLogo", fields: [logoFileId], references: [id], onDelete: SetNull)
+  reviewedBy           User?                 @relation("OrganizationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  members              Membership[]
+  trainerRequests      TrainerRequest[]
+  events               Event[]
+  rubrics              Rubric[]
+  materials            Material[]
+  materialCategories   MaterialCategory[]
+  certificateTemplates CertificateTemplate[]
 
+  @@index([status])
   @@map("organizations")
 }
 
 /// Satu user hanya bisa menjadi anggota satu organisasi.
 model Membership {
-  id             String       @id @default(cuid())
-  userId         String       @unique
+  id             String           @id @default(cuid())
+  userId         String           @unique
   organizationId String
   role           MemberRole
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Admin Organisasi. Setiap organisasi minimal punya satu admin aktif.
+  isAdmin        Boolean          @default(false)
+  status         MembershipStatus @default(ACTIVE)
+  removedAt      DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+  @@map("memberships")
+}
+
+enum TrainerRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/// Pengajuan Guru/Asesor untuk menjadi Trainer, ditinjau Admin Organisasi.
+model TrainerRequest {
+  id              String               @id @default(cuid())
+  userId          String
+  organizationId  String
+  /// Materi yang rencananya akan diunggah.
+  plannedMaterial String
+  status          TrainerRequestStatus @default(PENDING)
+  rejectionReason String?
+  reviewedById    String?
+  reviewedAt      DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  user            User                 @relation("TrainerRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reviewedBy      User?                @relation("TrainerRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([userId])
+  @@map("trainer_requests")
+}
+
+// Acara (Event) dan penilaian.
+
+enum EventParticipantType {
+  INDIVIDUAL
+  TEAM
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  /// Ditutup lebih awal oleh pembuat.
+  CLOSED
+  ARCHIVED
+}
+
+enum SubmissionFormat {
+  PDF
+  IMAGE
+  TEXT
+  LINK
+}
+
+model Event {
+  id                    String               @id @default(cuid())
+  organizationId        String
+  /// Pembuat acara. Dialihkan ke Admin Organisasi saat pembuatnya dikeluarkan.
+  creatorId             String
+  title                 String
+  description           String?
+  category              String?
+  participantType       EventParticipantType @default(INDIVIDUAL)
+  /// Wajib untuk acara tim (termasuk ketua).
+  maxTeamMembers        Int?
+  /// Kriteria ketuntasan minimal, 0–100.
+  kkm                   Int                  @default(75)
+  startsAt              DateTime?
+  endsAt                DateTime?
+  status                EventStatus          @default(DRAFT)
+  /// Langkah wizard terakhir yang disimpan (1–5), untuk melanjutkan draf.
+  draftStep             Int                  @default(1)
+  certificateEnabled    Boolean              @default(false)
+  certificateTemplateId String?
+  publishedAt           DateTime?
+  closedAt              DateTime?
+  archivedAt            DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  organization          Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator               User                 @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  certificateTemplate   CertificateTemplate? @relation(fields: [certificateTemplateId], references: [id], onDelete: SetNull)
+  milestones            Milestone[]
+  materials             EventMaterial[]
+  enrollments           Enrollment[]
+  teams                 Team[]
+
+  @@index([organizationId, status])
+  @@index([creatorId, status])
+  @@map("events")
+}
+
+/// Milestone berurutan. Milestone berikutnya terbuka setelah tugas dikumpulkan dan survei diisi.
+model Milestone {
+  id           String                @id @default(cuid())
+  eventId      String
+  /// Urutan mulai dari 1.
+  order        Int
+  title        String
+  instructions String?
+  formats      SubmissionFormat[]
+  dueAt        DateTime?
+  rubricId     String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  event        Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  rubric       Rubric?               @relation(fields: [rubricId], references: [id], onDelete: Restrict)
+  attachments  MilestoneAttachment[]
+  survey       Survey?
+  submissions  Submission[]
+
+  @@unique([eventId, order])
+  @@index([rubricId])
+  @@map("milestones")
+}
+
+/// Berkas pendukung milestone (maks. 10 MB per berkas).
+model MilestoneAttachment {
+  milestoneId String
+  fileId      String    @unique
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  file        File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@id([milestoneId, fileId])
+  @@map("milestone_attachments")
+}
+
+/// Materi Trainer (organisasi yang sama) yang dilampirkan sebagai Materi Pendukung acara.
+model EventMaterial {
+  eventId    String
+  materialId String
+  createdAt  DateTime @default(now())
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, materialId])
+  @@index([materialId])
+  @@map("event_materials")
+}
+
+/// Rubrik penilaian skala 1–5. Rubrik yang sudah dipakai menilai tidak diubah langsung:
+/// perubahannya disimpan sebagai salinan baru (`sourceRubricId` menunjuk rubrik asal).
+model Rubric {
+  id             String            @id @default(cuid())
+  organizationId String
+  creatorId      String
+  title          String
+  /// Kategori dari daftar pilihan yang tersedia, tanpa isian bebas.
+  category       String
+  description    String?
+  sourceRubricId String?
+  version        Int               @default(1)
+  archivedAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator        User              @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  source         Rubric?           @relation("RubricRevision", fields: [sourceRubricId], references: [id], onDelete: SetNull)
+  revisions      Rubric[]          @relation("RubricRevision")
+  criteria       RubricCriterion[]
+  milestones     Milestone[]
 
   @@index([organizationId])
-  @@map("memberships")
+  @@index([sourceRubricId])
+  @@map("rubrics")
+}
+
+/// Kriteria rubrik. Kelima deskripsi tingkat skor wajib diisi.
+model RubricCriterion {
+  id          String       @id @default(cuid())
+  rubricId    String
+  order       Int
+  name        String
+  description String?
+  level1      String
+  level2      String
+  level3      String
+  level4      String
+  level5      String
+  rubric      Rubric       @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  scores      GradeScore[]
+
+  @@unique([rubricId, order])
+  @@map("rubric_criteria")
+}
+
+/// Peserta yang mengikuti acara. Untuk acara tim, `teamId` terisi setelah membuat atau bergabung ke tim.
+model Enrollment {
+  id          String       @id @default(cuid())
+  eventId     String
+  userId      String
+  teamId      String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team        Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  certificate Certificate?
+
+  @@unique([eventId, userId])
+  @@index([userId])
+  @@index([teamId])
+  @@map("enrollments")
+}
+
+/// Kelompok di acara tim. Peserta pertama menjadi ketua; nama default "Kelompok <nama ketua>".
+model Team {
+  id        String       @id @default(cuid())
+  eventId   String
+  leaderId  String
+  name      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  event     Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  leader    User         @relation(fields: [leaderId], references: [id], onDelete: Cascade)
+  members   Enrollment[]
+  invites   TeamInvite[]
+
+  @@unique([eventId, leaderId])
+  @@map("teams")
+}
+
+enum TeamInviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+model TeamInvite {
+  id          String           @id @default(cuid())
+  teamId      String
+  inviteeId   String
+  inviterId   String
+  status      TeamInviteStatus @default(PENDING)
+  respondedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  team        Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitee     User             @relation("TeamInviteInvitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+  inviter     User             @relation("TeamInviteInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, status])
+  @@index([inviteeId, status])
+  @@map("team_invites")
+}
+
+enum SubmissionStatus {
+  /// Menunggu dinilai. Versi > 1 berarti revisi masuk.
+  SUBMITTED
+  REVISION_REQUESTED
+  GRADED
+}
+
+/// Satu baris per versi pengumpulan. Revisi membuat versi baru.
+model Submission {
+  id              String           @id @default(cuid())
+  milestoneId     String
+  userId          String
+  version         Int              @default(1)
+  fileId          String?          @unique
+  link            String?
+  text            String?
+  status          SubmissionStatus @default(SUBMITTED)
+  submittedAt     DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  milestone       Milestone        @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file            File?            @relation("SubmissionFile", fields: [fileId], references: [id], onDelete: SetNull)
+  revisionRequest RevisionRequest?
+  grade           Grade?
+
+  @@unique([milestoneId, userId, version])
+  @@index([userId])
+  @@index([status])
+  @@map("submissions")
+}
+
+model RevisionRequest {
+  id            String     @id @default(cuid())
+  submissionId  String     @unique
+  requestedById String
+  note          String
+  createdAt     DateTime   @default(now())
+  submission    Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  requestedBy   User       @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+
+  @@map("revision_requests")
+}
+
+/// Nilai = (totalScore ÷ maxScore) × 100, tanpa bobot kriteria.
+model Grade {
+  id           String       @id @default(cuid())
+  submissionId String       @unique
+  graderId     String
+  totalScore   Int
+  maxScore     Int
+  score        Float
+  feedback     String?
+  gradedAt     DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  submission   Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  grader       User         @relation(fields: [graderId], references: [id], onDelete: Restrict)
+  scores       GradeScore[]
+
+  @@index([graderId])
+  @@map("grades")
+}
+
+/// Skor 1–5 untuk satu kriteria rubrik.
+model GradeScore {
+  gradeId     String
+  criterionId String
+  score       Int
+  grade       Grade           @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  criterion   RubricCriterion @relation(fields: [criterionId], references: [id], onDelete: Restrict)
+
+  @@id([gradeId, criterionId])
+  @@map("grade_scores")
+}
+
+enum SurveyQuestionType {
+  /// Skala 1–5.
+  RATING
+  SINGLE_CHOICE
+  TEXT
+}
+
+/// Survei per milestone. Wajib diisi sebelum milestone berikutnya terbuka.
+model Survey {
+  id          String           @id @default(cuid())
+  milestoneId String           @unique
+  title       String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  milestone   Milestone        @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  questions   SurveyQuestion[]
+  responses   SurveyResponse[]
+
+  @@map("surveys")
+}
+
+model SurveyQuestion {
+  id       String             @id @default(cuid())
+  surveyId String
+  order    Int
+  text     String
+  type     SurveyQuestionType
+  /// Pilihan jawaban untuk SINGLE_CHOICE.
+  options  String[]
+  required Boolean            @default(true)
+  survey   Survey             @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers  SurveyAnswer[]
+
+  @@unique([surveyId, order])
+  @@map("survey_questions")
+}
+
+model SurveyResponse {
+  id          String         @id @default(cuid())
+  surveyId    String
+  userId      String
+  submittedAt DateTime       @default(now())
+  survey      Survey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers     SurveyAnswer[]
+
+  @@unique([surveyId, userId])
+  @@index([userId])
+  @@map("survey_responses")
+}
+
+model SurveyAnswer {
+  responseId String
+  questionId String
+  value      String
+  response   SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([responseId, questionId])
+  @@map("survey_answers")
+}
+
+/// Templat sertifikat. `organizationId` kosong berarti templat bawaan sistem.
+model CertificateTemplate {
+  id             String        @id @default(cuid())
+  organizationId String?
+  name           String
+  /// Kunci layout yang dirender aplikasi.
+  layout         String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  events         Event[]
+  certificates   Certificate[]
+
+  @@index([organizationId])
+  @@map("certificate_templates")
+}
+
+/// Terbit otomatis jika nilai akhir (rata-rata nilai milestone) ≥ KKM.
+model Certificate {
+  id           String               @id @default(cuid())
+  enrollmentId String               @unique
+  templateId   String?
+  number       String               @unique
+  finalScore   Float
+  issuedAt     DateTime             @default(now())
+  enrollment   Enrollment           @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  template     CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@map("certificates")
+}
+
+// Materi (Trainer).
+
+enum MaterialLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum MaterialStatus {
+  DRAFT
+  PUBLISHED
+  /// Materi yang sudah diikuti peserta diarsipkan, bukan dihapus.
+  ARCHIVED
+}
+
+/// Kategori bidang materi. `organizationId` kosong = kategori bawaan;
+/// kategori "Lainnya" yang diisi Trainer tersimpan per organisasi.
+model MaterialCategory {
+  id             String        @id @default(cuid())
+  organizationId String?
+  name           String
+  isDefault      Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  materials      Material[]
+
+  @@unique([organizationId, name])
+  @@map("material_categories")
+}
+
+model Material {
+  id             String               @id @default(cuid())
+  organizationId String
+  trainerId      String
+  categoryId     String
+  title          String
+  description    String?
+  level          MaterialLevel
+  /// Nama token warna sampul (mis. "sage").
+  coverColor     String
+  status         MaterialStatus       @default(DRAFT)
+  publishedAt    DateTime?
+  archivedAt     DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  trainer        User                 @relation(fields: [trainerId], references: [id], onDelete: Restrict)
+  category       MaterialCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  sections       MaterialSection[]
+  enrollments    MaterialEnrollment[]
+  events         EventMaterial[]
+
+  @@index([organizationId, status])
+  @@index([trainerId])
+  @@map("materials")
+}
+
+model MaterialSection {
+  id         String                    @id @default(cuid())
+  materialId String
+  order      Int
+  title      String
+  content    String?
+  fileId     String?                   @unique
+  link       String?
+  material   Material                  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  file       File?                     @relation("MaterialSectionFile", fields: [fileId], references: [id], onDelete: SetNull)
+  progress   MaterialSectionProgress[]
+
+  @@unique([materialId, order])
+  @@map("material_sections")
+}
+
+/// Peserta mengikuti materi sendiri. Materi selesai tercatat di Riwayat Belajar.
+model MaterialEnrollment {
+  id          String                    @id @default(cuid())
+  materialId  String
+  userId      String
+  /// Persentase bagian yang selesai, 0–100.
+  progress    Int                       @default(0)
+  completedAt DateTime?
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  material    Material                  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections    MaterialSectionProgress[]
+
+  @@unique([materialId, userId])
+  @@index([userId])
+  @@map("material_enrollments")
+}
+
+model MaterialSectionProgress {
+  enrollmentId String
+  sectionId    String
+  completedAt  DateTime           @default(now())
+  enrollment   MaterialEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  section      MaterialSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@id([enrollmentId, sectionId])
+  @@map("material_section_progress")
+}
+
+/// Notifikasi in-app. `type` memakai kunci seperti "team_invite" atau "trainer_request_rejected";
+/// data tambahan (id acara, alasan, dll.) disimpan di `payload`.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  payload   Json      @default("{}")
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+/// Disiapkan untuk Log aktivitas Administrator (scope berikutnya).
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 // Tabel Better Auth. Nama field mengikuti skema bawaan Better Auth.
@@ -145,6 +757,11 @@ model File {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   owner       User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  organizationLogo    Organization?        @relation("OrganizationLogo")
+  milestoneAttachment MilestoneAttachment?
+  submission          Submission?          @relation("SubmissionFile")
+  materialSection     MaterialSection?     @relation("MaterialSectionFile")
 
   @@index([ownerId])
   @@map("files")

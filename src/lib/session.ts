@@ -6,10 +6,10 @@ import { cache } from "react";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { hasPermission, resolveRole, type Permission } from "@/lib/rbac";
+import { hasPermission, resolveAccess, type Permission } from "@/lib/rbac";
 
 /**
- * User yang sedang login beserta peran efektifnya, atau null.
+ * User yang sedang login beserta akses efektifnya (`role`, `isOrganizationAdmin`), atau null.
  * Membership dibaca dari database di setiap request agar perubahan peran langsung berlaku.
  * Membaca header request, jadi komponen pemanggilnya harus berada di dalam <Suspense>.
  */
@@ -25,17 +25,20 @@ export const getCurrentUser = cache(async () => {
       email: true,
       image: true,
       isAdministrator: true,
+      status: true,
       membership: {
         select: {
           role: true,
+          isAdmin: true,
+          status: true,
           organization: { select: { id: true, name: true, status: true } },
         },
       },
     },
   });
-  if (!user) return null;
+  if (!user || user.status !== "ACTIVE") return null;
 
-  return { ...user, role: resolveRole(user) };
+  return { ...user, ...resolveAccess(user) };
 });
 
 export type CurrentUser = NonNullable<
@@ -53,6 +56,6 @@ export async function requirePermission(
   permission: Permission,
 ): Promise<CurrentUser> {
   const user = await requireUser();
-  if (!hasPermission(user.role, permission)) notFound();
+  if (!hasPermission(user, permission)) notFound();
   return user;
 }

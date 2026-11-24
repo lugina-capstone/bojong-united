@@ -5,6 +5,7 @@ import { hashPassword } from "better-auth/crypto";
 
 import { PrismaClient } from "../src/generated/prisma/client";
 import { signUpSchema } from "../src/lib/validations/auth";
+import { seedDemo } from "./seed-demo";
 
 const admin = signUpSchema.safeParse({
   name: process.env["ADMIN_NAME"] || "Administrator",
@@ -50,6 +51,19 @@ async function main() {
   });
 
   console.log(`Administrator siap: ${email}`);
+
+  const demoPassword = process.env["DEMO_PASSWORD"] ?? "";
+  if (!demoPassword) {
+    console.log("DEMO_PASSWORD kosong, data demo dilewati.");
+    return;
+  }
+  if (process.env["NODE_ENV"] === "production") {
+    throw new Error("Data demo tidak boleh dibuat di production.");
+  }
+  if (demoPassword.length < 8) {
+    throw new Error("DEMO_PASSWORD minimal 8 karakter.");
+  }
+  await seedDemo(db, { password: demoPassword, administratorId: user.id });
 }
 
 main().finally(() => db.$disconnect());
