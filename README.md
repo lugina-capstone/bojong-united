@@ -115,23 +115,29 @@ Layanan lokal berjalan lewat Docker Compose (`compose.yaml`). Nilai di `.env.exa
 | SeaweedFS (S3-compatible) | `http://localhost:8333`, bucket `bojong-united`      | Upload materi, tugas, sertifikat. Production memakai R2 atau S3 |
 | Mailpit                   | SMTP `localhost:1025`, inbox `http://localhost:8025` | Menangkap email verifikasi dan undangan                         |
 
-| Script                      | Fungsi                                                               |
-| --------------------------- | -------------------------------------------------------------------- |
-| `npm run db:up` / `db:down` | Menyalakan atau mematikan layanan lokal                              |
-| `npm run db:migrate`        | Membuat dan menerapkan migrasi dari perubahan `prisma/schema.prisma` |
-| `npm run db:deploy`         | Menerapkan migrasi yang sudah ada (staging/production)               |
-| `npm run db:seed`           | Membuat atau memperbarui akun Administrator dari `ADMIN_*` di `.env` |
-| `npm run db:studio`         | Membuka Prisma Studio                                                |
-| `npm run db:generate`       | Membuat ulang Prisma Client                                          |
+| Script                      | Fungsi                                                                                                          |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `npm run db:up` / `db:down` | Menyalakan atau mematikan layanan lokal                                                                         |
+| `npm run db:migrate`        | Membuat dan menerapkan migrasi dari perubahan `prisma/schema.prisma`                                            |
+| `npm run db:deploy`         | Menerapkan migrasi yang sudah ada (staging/production)                                                          |
+| `npm run db:seed`           | Membuat atau memperbarui akun Administrator dari `ADMIN_*` di `.env`, lalu data demo jika `DEMO_PASSWORD` diisi |
+| `npm run db:studio`         | Membuka Prisma Studio                                                                                           |
+| `npm run db:generate`       | Membuat ulang Prisma Client                                                                                     |
 
 Gunakan `db` dari `@/lib/db` untuk query, dan `env` dari `@/lib/env` untuk environment variable. Keduanya hanya bisa diimpor di kode server. App langsung error dengan daftar variable yang kurang jika `.env` tidak lengkap.
 
-Model awal:
+Model utama (lihat komentar di `prisma/schema.prisma` untuk detail tiap field):
 
-- `User`: email unik dan wajib huruf kecil (dijaga constraint database). `isAdministrator` menandai Administrator platform.
-- `Organization`: `code` unik untuk bergabung, `status` `PENDING`, `APPROVED`, `REJECTED`, atau `DISABLED`.
-- `Membership`: peran `GURU`, `ASESOR`, `TRAINER`, atau `ADMIN_ORGANISASI`. Satu user hanya bisa menjadi anggota satu organisasi. User tanpa membership adalah Peserta. Guru dan Asesor memiliki akses yang sama, tetapi labelnya berbeda.
-
+- `User`: email unik dan wajib huruf kecil (dijaga constraint database). `isAdministrator` menandai Administrator platform. `status` `ACTIVE`/`DELETED`, serta `failedLoginCount` dan `lockedUntil` untuk kunci 15 menit setelah 5 kali kata sandi salah.
+- `Organization`: `type` (jenis organisasi), kontak, `logo` (relasi ke `File`), `code` unik untuk bergabung beserta `codeCreatedAt`, `status` `PENDING`, `APPROVED`, `REJECTED`, atau `DISABLED`, `rejectionReason`, `reviewedBy`/`reviewedAt`, dan `deactivatedAt`.
+- `Membership`: peran `GURU`, `ASESOR`, atau `TRAINER`, flag `isAdmin` (Admin Organisasi), dan `status` `ACTIVE`/`REMOVED`. Satu user hanya bisa menjadi anggota satu organisasi. User tanpa membership aktif adalah Peserta. Guru dan Asesor memiliki akses yang sama, tetapi labelnya berbeda.
+- `TrainerRequest`: pengajuan Guru/Asesor menjadi Trainer, ditinjau Admin Organisasi.
+- Acara: `Event` (individu/tim, `maxTeamMembers`, `kkm`, sertifikat), `Milestone` (berurutan, format, tenggat, rubrik), `MilestoneAttachment`, `EventMaterial`, `Enrollment`, `Team`, dan `TeamInvite`.
+- Penilaian: `Rubric` dan `RubricCriterion` (deskripsi skor 1–5; perubahan rubrik yang sudah dipakai disimpan sebagai salinan lewat `sourceRubricId`), `Submission` (satu baris per versi), `RevisionRequest`, `Grade`, dan `GradeScore`.
+- Survei: `Survey` (satu per milestone), `SurveyQuestion`, `SurveyResponse`, dan `SurveyAnswer`.
+- Sertifikat: `CertificateTemplate` dan `Certificate`.
+- Materi: `MaterialCategory` (bawaan atau kategori custom per organisasi), `Material`, `MaterialSection`, `MaterialEnrollment`, dan `MaterialSectionProgress`.
+- `Notification` (notifikasi in-app) dan `AuditLog` (disiapkan untuk log aktivitas).
 - `Session`, `Account`, dan `Verification`: tabel Better Auth untuk sesi, metode login (`credential` atau `google`), serta token verifikasi email dan reset password.
 - `File`: metadata file di object storage (key, nama asli, tipe, ukuran, pemilik, status `PENDING`/`UPLOADED`).
 - `ApiClient` dan `ApiRateLimit`: aplikasi integrasi (FOMO, COMMIT), hash API key, scope, batas request per menit, dan hitungan request per menit.
@@ -143,30 +149,49 @@ Autentikasi memakai [Better Auth](https://www.better-auth.com) dengan sesi di da
 - **Email + password:** password di-hash dengan scrypt, minimal 8 karakter. Email wajib diverifikasi sebelum bisa login. Email verifikasi dan reset password dikirim lewat SMTP; di lokal, buka inbox Mailpit di `http://localhost:8025`.
 - **Google:** aktif jika `GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_SECRET` diisi. Redirect URI: `<BETTER_AUTH_URL>/api/auth/callback/google`. Akun Google dengan email yang sama otomatis ditautkan ke akun yang emailnya sudah terverifikasi.
 - **Administrator pertama:** isi `ADMIN_EMAIL` dan `ADMIN_PASSWORD` di `.env`, lalu jalankan `npm run db:seed`.
+- **Data demo (lokal saja):** isi `DEMO_PASSWORD` sebelum `npm run db:seed` untuk membuat organisasi dengan semua status, akun semua role, acara individu dan tim, revisi, nilai di bawah KKM, sertifikat, materi, dan pengajuan Trainer. Semua akun memakai kata sandi `DEMO_PASSWORD` dan email `@becraft.test`:
+
+  | Email                           | Peran / kondisi                                      |
+  | ------------------------------- | ---------------------------------------------------- |
+  | `admin.organisasi@becraft.test` | Trainer + Admin Organisasi, SMK Lugina Rancaekek     |
+  | `guru@becraft.test`             | Guru, punya pengajuan Trainer yang menunggu          |
+  | `asesor@becraft.test`           | Asesor, pengajuan Trainer ditolak, pembuat acara tim |
+  | `trainer@becraft.test`          | Trainer, pemilik materi                              |
+  | `peserta@becraft.test`          | Peserta, lulus dan bersertifikat, ketua kelompok     |
+  | `ayu@becraft.test`              | Peserta, revisi versi 2 menunggu pemeriksaan         |
+  | `rizky@becraft.test`            | Peserta, nilai di bawah KKM, punya undangan tim      |
+  | `nanda@becraft.test`            | Peserta, anggota kelompok                            |
+  | `galih@becraft.test`            | Peserta, survei milestone belum diisi                |
+  | `peserta.baru@becraft.test`     | Peserta tanpa acara                                  |
+  | `dikeluarkan@becraft.test`      | Anggota yang dikeluarkan                             |
+  | `pemohon@becraft.test`          | Pemohon organisasi yang menunggu persetujuan         |
+  | `ditolak@becraft.test`          | Pemohon organisasi yang ditolak                      |
+  | `nonaktif@becraft.test`         | Admin organisasi yang dinonaktifkan                  |
 
 Di komponen client, gunakan `authClient` dari `@/lib/auth-client` (`signIn.email`, `signIn.social`, `signUp.email`, `signOut`, `requestPasswordReset`, `resetPassword`). Skema form ada di `@/lib/validations/auth`.
 
 Di server, gunakan helper dari `@/lib/session`:
 
-| Helper                          | Fungsi                                                                     |
-| ------------------------------- | -------------------------------------------------------------------------- |
-| `getCurrentUser()`              | User yang login beserta `role` efektif dan membership-nya, atau `null`     |
-| `requireUser()`                 | Sama, tetapi redirect ke `/masuk` jika belum login                         |
-| `requirePermission(permission)` | Seperti `requireUser`, lalu menampilkan 404 jika peran tidak memiliki izin |
+| Helper                          | Fungsi                                                                                 |
+| ------------------------------- | -------------------------------------------------------------------------------------- |
+| `getCurrentUser()`              | User yang login beserta `role`, `isOrganizationAdmin`, dan membership-nya, atau `null` |
+| `requireUser()`                 | Sama, tetapi redirect ke `/masuk` jika belum login                                     |
+| `requirePermission(permission)` | Seperti `requireUser`, lalu menampilkan 404 jika peran tidak memiliki izin             |
 
-Helper ini membaca header request, jadi komponen yang memanggilnya harus berada di dalam `<Suspense>` (Cache Components aktif). Peran dan membership dibaca ulang dari database di setiap request, sehingga perubahan peran atau anggota yang dikeluarkan langsung berlaku. Route Handler memakai `hasPermission(user.role, permission)` dari `@/lib/rbac` dan membalas 401/403 sendiri. `src/proxy.ts` hanya mengecek ada atau tidaknya cookie sesi, bukan pengganti pengecekan izin.
+Helper ini membaca header request, jadi komponen yang memanggilnya harus berada di dalam `<Suspense>` (Cache Components aktif). Peran dan membership dibaca ulang dari database di setiap request, sehingga perubahan peran atau anggota yang dikeluarkan langsung berlaku. Route Handler memakai `hasPermission(user, permission)` dari `@/lib/rbac` dan membalas 401/403 sendiri. `src/proxy.ts` hanya mengecek ada atau tidaknya cookie sesi, bukan pengganti pengecekan izin.
 
-Peran efektif (`role`) ditentukan oleh `resolveRole` di `@/lib/rbac`:
+Akses efektif (`role` dan `isOrganizationAdmin`) ditentukan oleh `resolveAccess` di `@/lib/rbac`. Membership hanya berlaku jika `status = ACTIVE` dan organisasinya `APPROVED`.
 
-| Peran            | Kondisi                                                                 | Izin                                                                        |
-| ---------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Administrator    | `isAdministrator = true`                                                | `organization:review`, `organization:manage`, `user:manage`                 |
-| Admin Organisasi | Membership `ADMIN_ORGANISASI` di organisasi `APPROVED`                  | Semua izin Trainer, `member:manage`, `organization:update`                  |
-| Trainer          | Membership `TRAINER` di organisasi `APPROVED`                           | Izin Guru ditambah `material:manage`                                        |
-| Guru / Asesor    | Membership `GURU` atau `ASESOR` di organisasi `APPROVED`                | `event:manage`, `assessment:manage`                                         |
-| Peserta          | Tanpa membership, atau organisasinya belum disetujui atau dinonaktifkan | `event:join`, `material:enroll`, `organization:create`, `organization:join` |
+| Peran         | Kondisi                                                                            | Izin                                                                        |
+| ------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Administrator | `isAdministrator = true`                                                           | `organization:review`, `organization:manage`, `user:manage`                 |
+| Trainer       | Membership `TRAINER`                                                               | `event:manage`, `assessment:manage`, `material:manage`                      |
+| Guru / Asesor | Membership `GURU` atau `ASESOR`                                                    | `event:manage`, `assessment:manage`, `trainer-request:create`               |
+| Peserta       | Tanpa membership aktif, atau organisasinya belum disetujui, ditolak, atau nonaktif | `event:join`, `material:enroll`, `organization:create`, `organization:join` |
 
-Label untuk UI tersedia di `roleLabels`. Tambahkan izin baru di `@/lib/rbac` bersama fiturnya, beserta unit test di `src/lib/rbac.test.ts`.
+Admin Organisasi bukan peran tersendiri: membership dengan `isAdmin = true` mendapat izin perannya ditambah `member:manage`, `organization:update`, dan `trainer-request:review` (lihat `permissionsOf`).
+
+Label untuk UI tersedia di `roleLabels`, `organizationAdminLabel`, dan `accessLabel`. Tambahkan izin baru di `@/lib/rbac` bersama fiturnya, beserta unit test di `src/lib/rbac.test.ts`.
 
 ## Upload file
 
