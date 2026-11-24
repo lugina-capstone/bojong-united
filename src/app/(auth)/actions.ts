@@ -363,6 +363,21 @@ export async function resetPasswordAction(
   return { ok: true };
 }
 
+/** Lengkapi Data Google (AA-03): akun Google baru mengisi nama lalu masuk sebagai Peserta. */
+export async function completeGoogleProfileAction(
+  input: unknown,
+): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/masuk");
+  const parsed = signUpSchema.pick({ name: true }).safeParse(input);
+  if (!parsed.success) return fieldErrorsOf(parsed.error);
+  await db.user.update({
+    where: { id: user.id },
+    data: { name: parsed.data.name },
+  });
+  redirect(destinationHref(destinationFor(user)));
+}
+
 /** Akun dikeluarkan memilih lanjut sebagai Peserta. */
 export async function continueAsPesertaAction() {
   const user = await getCurrentUser();
