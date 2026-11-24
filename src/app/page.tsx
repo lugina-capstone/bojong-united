@@ -15,9 +15,7 @@ export default function Home() {
             SMK Lugina Rancaekek
           </p>
         </div>
-        <Badge variant="outline" className="h-auto px-3 py-1 text-sm">
-          V2
-        </Badge>
+        <Badge tone="neutral">V2</Badge>
       </header>
 
       <main className="flex flex-1 flex-col justify-center py-16 sm:py-24">

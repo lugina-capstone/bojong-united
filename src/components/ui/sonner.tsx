@@ -26,14 +26,18 @@ function Toaster(props: ToasterProps) {
       }}
       style={
         {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
+          "--normal-bg": "var(--color-overlay)",
+          "--normal-text": "var(--color-inverse)",
+          "--normal-border": "var(--color-overlay)",
           "--border-radius": "var(--radius-xl)",
         } as React.CSSProperties
       }
       toastOptions={{
-        classNames: { toast: "cn-toast shadow-md text-body" },
+        classNames: {
+          toast: "cn-toast shadow-md text-small",
+          title: "text-small-strong",
+          description: "text-small text-input!",
+        },
       }}
       {...props}
     />

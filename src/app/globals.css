@@ -115,6 +115,16 @@
   --shadow-focus-ring: 0 0 0 3px rgb(37 99 235 / 0.18);
 
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-skeleton: skeleton 1.2s ease-in-out infinite alternate;
+  @keyframes skeleton {
+    from {
+      background-color: var(--color-muted);
+    }
+    to {
+      background-color: var(--color-border);
+    }
+  }
 }
 
 @theme inline {
