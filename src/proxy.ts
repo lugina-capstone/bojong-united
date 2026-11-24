@@ -14,7 +14,13 @@ const publicPaths = [
 // Otorisasi sebenarnya tetap di server lewat `requireUser`/`requirePermission`.
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  if (publicPaths.includes(pathname) || getSessionCookie(request)) {
+  const isDevTool =
+    process.env.NODE_ENV !== "production" && pathname.startsWith("/dev/");
+  if (
+    publicPaths.includes(pathname) ||
+    isDevTool ||
+    getSessionCookie(request)
+  ) {
     return NextResponse.next();
   }
 

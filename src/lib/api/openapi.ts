@@ -11,7 +11,7 @@ const error = (description: string) => ({
 export const openApiDocument = createDocument({
   openapi: "3.1.0",
   info: {
-    title: "Bojong United API",
+    title: "Becraft API",
     version: "1.0.0",
     description:
       "API integrasi untuk FOMO dan COMMIT. Semua endpoint memakai header `Authorization: Bearer <API key>` dan dibatasi per API key per menit (lihat header `X-RateLimit-*`).",
