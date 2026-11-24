@@ -52,8 +52,10 @@ export function SurveyForm({
   const [pending, startTransition] = React.useTransition();
   const required = questions.filter((q) => q.required);
   const filled = required.filter((q) => answers[q.id]?.trim()).length;
-  const set = (id: string, value: string) =>
+  const set = (id: string, value: string) => {
     setAnswers((a) => ({ ...a, [id]: value }));
+    setErrors((e) => ({ ...e, [id]: "" }));
+  };
 
   function submit() {
     const next: Record<string, string> = {};
