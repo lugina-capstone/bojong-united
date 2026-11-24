@@ -1,4 +1,4 @@
-# Bojong United V2
+# Becraft (Bojong United V2)
 
 Digital Portfolio & Assessment System untuk **SMK Lugina Rancaekek**.
 
@@ -310,7 +310,7 @@ Frame Figma 1440 px adalah acuan desktop, bukan lebar tetap.
 
 ## Status dan tahap berikutnya
 
-Halaman awal menampilkan identitas Bojong United, SMK Lugina Rancaekek, deskripsi sistem, dan status pengembangan. Frontend ini belum menyediakan login, navigasi Guru–Siswa, dashboard, atau assessment. Database, layanan lokal, autentikasi (API), RBAC, upload file, dan kerangka API integrasi FOMO dan COMMIT sudah tersedia; halaman login dan daftar dibuat saat slicing UI. Endpoint data untuk FOMO dan COMMIT dibuat bersama fiturnya, dan deployment dikerjakan pada tahap berikutnya.
+Halaman awal menampilkan identitas Becraft, SMK Lugina Rancaekek, deskripsi sistem, dan status pengembangan. Frontend ini belum menyediakan login, navigasi Guru–Siswa, dashboard, atau assessment. Database, layanan lokal, autentikasi (API), RBAC, upload file, dan kerangka API integrasi FOMO dan COMMIT sudah tersedia; halaman login dan daftar dibuat saat slicing UI. Endpoint data untuk FOMO dan COMMIT dibuat bersama fiturnya, dan deployment dikerjakan pada tahap berikutnya.
 
 Rencana frontend berikutnya, setelah kebutuhan serta cakupannya disetujui:
 

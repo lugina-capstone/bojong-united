@@ -48,7 +48,7 @@ export const auth = betterAuth({
     sendResetPassword: async ({ user, url }) => {
       sendLinkEmail(
         user.email,
-        "Reset password Bojong United",
+        "Reset kata sandi Becraft",
         "Klik tautan berikut untuk membuat password baru",
         url,
       );
@@ -61,7 +61,7 @@ export const auth = betterAuth({
     sendVerificationEmail: async ({ user, url }) => {
       sendLinkEmail(
         user.email,
-        "Verifikasi email Bojong United",
+        "Verifikasi email Becraft",
         "Klik tautan berikut untuk memverifikasi email Anda",
         url,
       );

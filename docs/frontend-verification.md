@@ -42,7 +42,7 @@ Pengujian dijalankan menggunakan Chromium headless melalui Playwright 1.65.0 yan
 
 Pemeriksaan pada masing-masing viewport:
 
-- Judul dokumen, bahasa `id`, satu landmark `main`, heading Bojong United, deskripsi sistem, dan status pengembangan sesuai.
+- Judul dokumen, bahasa `id`, satu landmark `main`, heading Becraft, deskripsi sistem, dan status pengembangan sesuai.
 - Komponen Card dan Badge shadcn berhasil dirender.
 - Geist benar-benar dimuat; computed font heading adalah `Geist, "Geist Fallback"`. Ukuran heading 72 px pada desktop/tablet dan 48 px pada mobile.
 - Radius Card terhitung 14 px, sesuai token Nova; CSS Tailwind diterapkan.

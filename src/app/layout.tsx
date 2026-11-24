@@ -8,9 +8,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Bojong United | SMK Lugina Rancaekek",
+  title: {
+    default: "Becraft | SMK Lugina Rancaekek",
+    template: "%s | Becraft",
+  },
   description:
-    "Bojong United — Digital Portfolio & Assessment System untuk SMK Lugina Rancaekek. Proyek sedang dalam tahap pengembangan.",
+    "Becraft — Digital Portfolio & Assessment System untuk SMK Lugina Rancaekek. Ikuti acara, kumpulkan karya, dan bangun portofolio.",
+  applicationName: "Becraft",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
