@@ -7,7 +7,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { signUpSchema } from "../src/lib/validations/auth";
 import { seedDemo } from "./seed-demo";
 
-const admin = signUpSchema.safeParse({
+const admin = signUpSchema.omit({ terms: true }).safeParse({
   name: process.env["ADMIN_NAME"] || "Administrator",
   email: process.env["ADMIN_EMAIL"] ?? "",
   password: process.env["ADMIN_PASSWORD"] ?? "",
