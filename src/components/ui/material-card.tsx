@@ -43,7 +43,7 @@ function MaterialCard({
     <article
       data-slot="material-card"
       className={cn(
-        "flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm sm:w-88",
+        "flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm sm:max-w-88",
         className,
       )}
     >

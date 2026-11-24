@@ -30,6 +30,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { InfoBox } from "@/components/ui/info-box";
 import { Input } from "@/components/ui/input";
 import { MaterialCard } from "@/components/ui/material-card";
+import { MilestoneCard } from "@/components/ui/milestone-card";
 import { MilestoneItem } from "@/components/ui/milestone-item";
 import { MilestoneProgressCell } from "@/components/ui/milestone-progress-cell";
 import { OrgLogo } from "@/components/ui/org-logo";
@@ -46,6 +47,7 @@ import {
 import { Progress, ProgressLegend } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { RubricCriterion, RubricScoreRow } from "@/components/ui/rubric";
+import { RubricPerMilestone } from "@/components/ui/rubric-per-milestone";
 import { ScoreLevel } from "@/components/ui/score-level";
 import { SearchInput } from "@/components/ui/search-input";
 import {
