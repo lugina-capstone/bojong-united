@@ -737,7 +737,12 @@ ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_actorId_fkey" FOREIGN KEY ("
 ALTER TABLE "users" ADD CONSTRAINT "users_failed_login_count_nonnegative" CHECK ("failedLoginCount" >= 0);
 ALTER TABLE "events" ADD CONSTRAINT "events_kkm_range" CHECK ("kkm" BETWEEN 0 AND 100);
 ALTER TABLE "events" ADD CONSTRAINT "events_draft_step_range" CHECK ("draftStep" BETWEEN 1 AND 5);
-ALTER TABLE "events" ADD CONSTRAINT "events_team_size" CHECK ("participantType" <> 'TEAM' OR "maxTeamMembers" >= 2);
+-- Acara tim wajib punya maxTeamMembers ≥ 2, kecuali draf yang belum mengisinya.
+ALTER TABLE "events" ADD CONSTRAINT "events_team_size" CHECK (
+  "participantType" <> 'TEAM'
+  OR ("status" = 'DRAFT' AND "maxTeamMembers" IS NULL)
+  OR COALESCE("maxTeamMembers" >= 2, false)
+);
 ALTER TABLE "events" ADD CONSTRAINT "events_date_order" CHECK ("startsAt" IS NULL OR "endsAt" IS NULL OR "startsAt" <= "endsAt");
 ALTER TABLE "milestones" ADD CONSTRAINT "milestones_order_positive" CHECK ("order" >= 1);
 ALTER TABLE "submissions" ADD CONSTRAINT "submissions_version_positive" CHECK ("version" >= 1);
