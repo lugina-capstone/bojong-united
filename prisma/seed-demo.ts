@@ -415,7 +415,7 @@ export async function seedDemo(
             order: 1,
             title: "Sketsa konsep",
             instructions: "Unggah 3 sketsa konsep poster.",
-            formats: ["PDF", "IMAGE"],
+            formats: ["PDF", "IMAGE", "LINK"],
             dueAt: daysFromNow(-7),
             rubricId: rubrikPoster.id,
             survey: {
