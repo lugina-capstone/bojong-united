@@ -446,6 +446,21 @@ async function Gallery({
             <MilestoneProgressCell status="revision" value="Dikumpulkan" />
             <MilestoneProgressCell status="empty" />
           </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <MilestoneCard
+              order={1}
+              title="Riset pengguna"
+              description="Wawancara 3 pengguna kantin dan rangkum temuan."
+              deadline="5 Des 2026"
+              formats={["PDF", "Tautan"]}
+              hasSurvey
+            />
+            <RubricPerMilestone
+              milestone="Milestone 2 · Wireframe"
+              rubric="Rubrik UI/UX Dasar"
+              criteria={["Konsistensi", "Kerapian", "Kejelasan alur"]}
+            />
+          </div>
           <FileItem
             name="wireframe-v2.pdf"
             meta="2,4 MB · Berkas siap dilampirkan"
