@@ -202,7 +202,7 @@ File disimpan di object storage (bucket privat), bukan di PostgreSQL. Browser me
 
 1. `POST /api/files` dengan `{ name, contentType, size }`. Server mengecek login, tipe, dan ukuran, lalu membalas `file.id` dan `upload` (`method`, `url`, `headers`).
 2. Browser mengirim `PUT` ke `upload.url` dengan body file dan header `Content-Type` yang sama.
-3. `POST /api/files/{id}/complete`. Server menyalin unggahan ke key final (`files/...`, tanpa URL upload sehingga tidak bisa ditimpa), lalu mengecek ukuran, tipe, dan byte awal salinan itu; jika tidak cocok, file dihapus dan dibalas 400.
+3. `POST /api/files/{id}/complete`. Server menyalin unggahan ke key final baru (`files/...`, tanpa URL upload sehingga tidak bisa ditimpa), lalu mengecek ukuran, tipe, dan byte awal salinan itu; jika tidak cocok, file dihapus dan dibalas 400.
 4. `GET /api/files/{id}` mengarahkan (302) ke URL download sementara. Saat ini hanya pemilik dan Administrator yang boleh mengunduh; akses lain ditambahkan bersama fitur materi, tugas, dan sertifikat.
 
 Tipe yang diterima: PDF, JPG, PNG, DOCX, PPTX, dan XLSX, maksimal 10 MB (`@/lib/validations/file`). Video dan file besar memakai link YouTube/Google Drive. Ekstensi nama file harus cocok dengan tipenya.

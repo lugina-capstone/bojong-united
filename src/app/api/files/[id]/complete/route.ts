@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { apiError } from "@/lib/api/response";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
@@ -30,33 +32,35 @@ export async function POST(
   if (!file) return apiError(404, "not_found", "File tidak ditemukan");
 
   if (file.status === "PENDING") {
-    if (!(await getObjectInfo(file.key))) {
-      return apiError(409, "not_uploaded", "File belum diupload ke storage");
-    }
-    const finalKey = `files/${file.ownerId}/${file.id}`;
-    await copyObject(file.key, finalKey);
-    const object = await getObjectInfo(finalKey);
-    const valid =
-      object?.size === file.size &&
-      object.contentType === file.contentType &&
-      matchesFileSignature(
-        file.contentType,
-        await readObjectHead(finalKey, FILE_SIGNATURE_LENGTH),
-      );
-    await deleteObject(file.key).catch(() => undefined);
-    if (!valid) {
+    // Key per percobaan: permintaan yang bersamaan tidak pernah menimpa atau menghapus salinan pemenang.
+    const finalKey = `files/${file.ownerId}/${randomUUID()}`;
+    const outcome = await finalize(file, finalKey).catch(async (error) => {
       await deleteObject(finalKey).catch(() => undefined);
-      await db.file.deleteMany({ where: { id: file.id, status: "PENDING" } });
-      return apiError(
-        400,
-        "file_mismatch",
-        "Isi file tidak sesuai dengan tipe atau ukuran yang didaftarkan",
-      );
-    }
-    await db.file.updateMany({
-      where: { id: file.id, status: "PENDING" },
-      data: { key: finalKey, status: "UPLOADED", uploadedAt: new Date() },
+      throw error;
     });
+    if (outcome !== "published") {
+      await deleteObject(finalKey).catch(() => undefined);
+      const current = await db.file.findUnique({
+        where: { id: file.id },
+        select: { status: true },
+      });
+      // Permintaan lain sudah menyelesaikan file ini.
+      if (current?.status !== "UPLOADED") {
+        if (outcome === "missing")
+          return apiError(
+            409,
+            "not_uploaded",
+            "File belum diupload ke storage",
+          );
+        await deleteObject(file.key).catch(() => undefined);
+        await db.file.deleteMany({ where: { id: file.id, status: "PENDING" } });
+        return apiError(
+          400,
+          "file_mismatch",
+          "Isi file tidak sesuai dengan tipe atau ukuran yang didaftarkan",
+        );
+      }
+    }
   }
 
   return Response.json({
@@ -68,4 +72,35 @@ export async function POST(
       status: "UPLOADED",
     },
   });
+}
+
+async function finalize(
+  file: { id: string; key: string; size: number; contentType: string },
+  finalKey: string,
+): Promise<"published" | "missing" | "invalid" | "lost"> {
+  if (!(await getObjectInfo(file.key))) return "missing";
+  try {
+    await copyObject(file.key, finalKey);
+  } catch (error) {
+    // Unggahan sudah dipindahkan permintaan lain di antara dua langkah di atas.
+    if (!(await getObjectInfo(file.key))) return "missing";
+    throw error;
+  }
+  const object = await getObjectInfo(finalKey);
+  const valid =
+    object?.size === file.size &&
+    object.contentType === file.contentType &&
+    matchesFileSignature(
+      file.contentType,
+      await readObjectHead(finalKey, FILE_SIGNATURE_LENGTH),
+    );
+  if (!valid) return "invalid";
+  const claimed = await db.file.updateMany({
+    where: { id: file.id, status: "PENDING" },
+    data: { key: finalKey, status: "UPLOADED", uploadedAt: new Date() },
+  });
+  if (claimed.count === 0) return "lost";
+  // Baru dihapus setelah tersimpan, agar percobaan ulang tetap bisa jika penyimpanan gagal.
+  await deleteObject(file.key).catch(() => undefined);
+  return "published";
 }
