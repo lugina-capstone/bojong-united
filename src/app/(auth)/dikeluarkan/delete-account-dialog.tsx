@@ -51,7 +51,8 @@ function DeleteAccountDialog({
   onOpenChange,
 }: {
   email: string;
-  organizationName: string;
+  /** Kosong untuk akun Peserta. */
+  organizationName?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -85,8 +86,9 @@ function DeleteAccountDialog({
           </DialogHeader>
           <ul className="flex flex-col gap-2">
             <Consequence icon={CircleCheckIcon} className="text-success-600">
-              Acara dan penilaian yang Anda buat tetap tersimpan di{" "}
-              {organizationName}.
+              {organizationName
+                ? `Acara dan penilaian yang Anda buat tetap tersimpan di ${organizationName}.`
+                : 'Kiriman, nilai, dan sertifikat Anda tetap tersimpan di acara atas nama "Akun dihapus".'}
             </Consequence>
             <Consequence icon={Trash2Icon} className="text-danger-500">
               Profil, portofolio pribadi, dan riwayat belajar ikut dihapus.

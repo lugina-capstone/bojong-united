@@ -4,6 +4,12 @@ const mocks = vi.hoisted(() => ({
   db: {
     organization: { findUnique: vi.fn(), create: vi.fn() },
     membership: { deleteMany: vi.fn(), create: vi.fn() },
+    materialEnrollment: { deleteMany: vi.fn() },
+    notification: { deleteMany: vi.fn() },
+    session: { deleteMany: vi.fn() },
+    account: { deleteMany: vi.fn() },
+    teamInvite: { updateMany: vi.fn() },
+    user: { update: vi.fn() },
     $transaction: vi.fn(),
   },
   requireUser: vi.fn(),
@@ -23,6 +29,7 @@ vi.mock("@/lib/storage", () => ({}));
 
 import {
   createOrganizationAction,
+  deleteAccountAction,
   joinOrganizationAction,
 } from "@/app/(auth)/actions";
 
@@ -60,5 +67,46 @@ describe("akun yang masih aktif di organisasi", () => {
     });
     const result = await joinOrganizationAction("ABC123");
     expect(result?.error).toBe("Akun ini masih tergabung di organisasi.");
+  });
+});
+
+describe("deleteAccountAction", () => {
+  const input = { email: "p@x.id", confirmed: true };
+
+  it("mengizinkan Peserta menghapus akunnya dan melepas emailnya", async () => {
+    mocks.requireUser.mockResolvedValue({
+      id: "peserta",
+      email: "p@x.id",
+      isAdministrator: false,
+      membership: null,
+    });
+    await deleteAccountAction(input);
+    expect(mocks.db.$transaction).toHaveBeenCalled();
+    expect(mocks.db.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "DELETED",
+          email: "deleted+peserta@becraft.invalid",
+        }),
+      }),
+    );
+  });
+
+  it("menolak anggota organisasi aktif dan Administrator", async () => {
+    mocks.requireUser.mockResolvedValue({
+      id: "guru",
+      email: "p@x.id",
+      isAdministrator: false,
+      membership: { status: "ACTIVE" },
+    });
+    expect((await deleteAccountAction(input))?.error).toMatch(/Hapus akun/);
+    mocks.requireUser.mockResolvedValue({
+      id: "admin",
+      email: "p@x.id",
+      isAdministrator: true,
+      membership: null,
+    });
+    expect((await deleteAccountAction(input))?.error).toMatch(/Hapus akun/);
+    expect(mocks.db.$transaction).not.toHaveBeenCalled();
   });
 });

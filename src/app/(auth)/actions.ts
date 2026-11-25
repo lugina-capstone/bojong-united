@@ -618,7 +618,7 @@ export async function continueAsPesertaAction() {
 }
 
 /**
- * Hapus akun (AA-10). Data pribadi dihapus; acara dan penilaian tetap di organisasi.
+ * Hapus akun (AA-10). Data pribadi dihapus; acara, kiriman, dan penilaian tetap tersimpan.
  * Email dianonimkan agar bisa dipakai mendaftar lagi.
  */
 export async function deleteAccountAction(input: {
@@ -626,9 +626,13 @@ export async function deleteAccountAction(input: {
   confirmed: boolean;
 }): Promise<FormState> {
   const user = await requireUser();
-  if (user.membership?.status !== "REMOVED")
+  // Hanya Peserta (tanpa organisasi) atau akun yang sudah keluar/dikeluarkan.
+  if (
+    user.isAdministrator ||
+    (user.membership && user.membership.status !== "REMOVED")
+  )
     return {
-      error: "Hapus akun hanya tersedia setelah dikeluarkan dari organisasi.",
+      error: "Hapus akun hanya tersedia setelah keluar dari organisasi.",
     };
   if (input.email.trim().toLowerCase() !== user.email || !input.confirmed)
     return { fieldErrors: { email: "Email tidak cocok dengan akun ini." } };
@@ -638,6 +642,13 @@ export async function deleteAccountAction(input: {
     db.session.deleteMany({ where: { userId: user.id } }),
     db.account.deleteMany({ where: { userId: user.id } }),
     db.membership.deleteMany({ where: { userId: user.id } }),
+    db.teamInvite.updateMany({
+      where: {
+        status: "PENDING",
+        OR: [{ inviteeId: user.id }, { inviterId: user.id }],
+      },
+      data: { status: "CANCELLED", respondedAt: new Date() },
+    }),
     db.user.update({
       where: { id: user.id },
       data: {
