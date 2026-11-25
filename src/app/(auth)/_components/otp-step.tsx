@@ -180,4 +180,7 @@ function OtpStep({
   );
 }
 
-export { OTP_FOOTER, OTP_ORGANIZATION_FOOTER, OtpStep };
+const REGISTERED_NOTICE =
+  "Akun untuk email ini sudah dibuat, jadi perubahan data belum tersimpan. Data yang dikirim sebelumnya tetap dipakai.";
+
+export { OTP_FOOTER, OTP_ORGANIZATION_FOOTER, OtpStep, REGISTERED_NOTICE };

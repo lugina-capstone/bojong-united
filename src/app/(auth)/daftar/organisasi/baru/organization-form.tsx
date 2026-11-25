@@ -15,6 +15,7 @@ import {
 import {
   OTP_ORGANIZATION_FOOTER,
   OtpStep,
+  REGISTERED_NOTICE,
 } from "@/app/(auth)/_components/otp-step";
 import { PersonalFields } from "@/app/(auth)/_components/personal-fields";
 import { StepBadge } from "@/app/(auth)/_components/step-badge";
@@ -69,6 +70,11 @@ function OrganizationForm() {
   const [logo, setLogo] = React.useState<File | null>(null);
   const [state, setState] = React.useState<FormState>({});
   const [step, setStep] = React.useState<"form" | "otp" | "done">("form");
+  const [registered, setRegistered] = React.useState<{
+    personal: typeof personal;
+    organization: OrganizationValues;
+    terms: boolean;
+  }>();
   const [pending, startTransition] = React.useTransition();
   const errors = state.fieldErrors ?? {};
 
@@ -125,8 +131,19 @@ function OrganizationForm() {
         onSubmit={(event) => {
           event.preventDefault();
           // Akun untuk email ini sudah dibuat sebelum kembali dari OTP: lanjutkan verifikasinya.
-          if (state.ok && personal.email.trim().toLowerCase() === state.email)
+          if (
+            registered &&
+            personal.email.trim().toLowerCase() === state.email
+          ) {
+            const current = { personal, organization, terms };
+            if (JSON.stringify(current) !== JSON.stringify(registered)) {
+              setPersonal(registered.personal);
+              setOrganization(registered.organization);
+              setTerms(registered.terms);
+              toast.info(REGISTERED_NOTICE);
+            }
             return setStep("otp");
+          }
           startTransition(async () => {
             const result = await registerOrganizationAction({
               ...personal,
@@ -134,7 +151,10 @@ function OrganizationForm() {
               terms,
             });
             setState(result);
-            if (result.ok) setStep("otp");
+            if (result.ok) {
+              setRegistered({ personal, organization, terms });
+              setStep("otp");
+            }
           });
         }}
       >
