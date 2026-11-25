@@ -634,6 +634,7 @@ model Material {
   categoryId     String
   title          String
   description    String?
+  outcomes       String[]             @default([])
   level          MaterialLevel
   /// Nama token warna sampul (mis. "sage").
   coverColor     String

@@ -109,6 +109,7 @@ export async function saveMaterialInfoAction(
   const values = {
     title: data.title,
     description: data.description,
+    outcomes: data.outcomes,
     categoryId: category.id,
     level: data.level,
     coverColor: data.coverColor,

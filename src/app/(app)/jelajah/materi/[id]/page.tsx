@@ -2,6 +2,7 @@ import {
   ArrowRightIcon,
   BookOpenIcon,
   CalendarIcon,
+  CircleCheckIcon,
   InfoIcon,
   LockIcon,
   PaperclipIcon,
@@ -141,6 +142,27 @@ export default async function MaterialDetailPage({
             <p className="text-body whitespace-pre-line text-label">
               {material.description}
             </p>
+            {material.outcomes.length > 0 && (
+              <div className="flex flex-col gap-3 rounded-xl bg-muted p-4">
+                <h3 className="text-small-strong text-foreground">
+                  Yang akan Anda pelajari
+                </h3>
+                <ul className="flex flex-col gap-2">
+                  {material.outcomes.map((outcome) => (
+                    <li
+                      key={outcome}
+                      className="flex items-start gap-2 text-small text-label"
+                    >
+                      <CircleCheckIcon
+                        aria-hidden="true"
+                        className="mt-0.5 size-4 shrink-0 text-success-600"
+                      />
+                      {outcome}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </section>
           <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 sm:p-6">
             <div className="flex flex-col gap-0.5">

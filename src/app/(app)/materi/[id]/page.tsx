@@ -250,11 +250,20 @@ export default async function LearnPage({
                   Buka tautan materi
                 </WebLink>
               )}
-              {current.file && !current.content && (
-                <p className="text-small text-muted-foreground">
-                  Unduh berkas untuk mempelajari bagian ini, lalu tandai
-                  selesai.
-                </p>
+              {current.file?.contentType === "application/pdf" ? (
+                <iframe
+                  src={`/api/files/${current.file.id}?pratinjau=1`}
+                  title={`Pratinjau ${current.file.name}`}
+                  className="h-[70vh] min-h-96 w-full rounded-lg border border-border bg-card"
+                />
+              ) : (
+                current.file &&
+                !current.content && (
+                  <p className="text-small text-muted-foreground">
+                    Unduh berkas untuk mempelajari bagian ini, lalu tandai
+                    selesai.
+                  </p>
+                )
               )}
             </div>
             <SectionActions

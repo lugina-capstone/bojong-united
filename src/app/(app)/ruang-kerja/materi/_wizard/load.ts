@@ -87,6 +87,7 @@ export async function loadMaterialWizard(input: {
     info: {
       title: material?.title ?? "",
       description: material?.description ?? "",
+      outcomes: (material?.outcomes ?? []).join("\n"),
       categoryId: material?.categoryId ?? categories[0]?.id ?? "",
       newCategory: "",
       level: material?.level ?? ("BEGINNER" as const),
