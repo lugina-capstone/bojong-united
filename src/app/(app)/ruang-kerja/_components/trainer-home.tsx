@@ -21,6 +21,15 @@ import { daysAgo, formatDate, formatRelative, greeting } from "@/lib/format";
 
 const linkClass = "flex items-center gap-1 text-small-strong text-primary-600";
 
+const ACTIVITY_LIMIT = 5;
+const activitySelect = {
+  id: true,
+  createdAt: true,
+  completedAt: true,
+  user: { select: { name: true } },
+  material: { select: { id: true, title: true } },
+} as const;
+
 /** Beranda Trainer: acara miliknya seperti Guru, ditambah ringkasan materi belajar mandiri. */
 export async function TrainerHome({
   userId,
@@ -45,7 +54,8 @@ export async function TrainerHome({
     learners,
     newLearners,
     popular,
-    activity,
+    joins,
+    completions,
   ] = await Promise.all([
     db.event.findMany({
       where: { ...ownEvent, status: { not: "DRAFT" } },
@@ -87,17 +97,24 @@ export async function TrainerHome({
     }),
     db.materialEnrollment.findMany({
       where: { material: ownMaterial },
-      orderBy: { updatedAt: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        completedAt: true,
-        updatedAt: true,
-        user: { select: { name: true } },
-        material: { select: { id: true, title: true } },
-      },
+      orderBy: { createdAt: "desc" },
+      take: ACTIVITY_LIMIT,
+      select: activitySelect,
+    }),
+    db.materialEnrollment.findMany({
+      where: { material: ownMaterial, completedAt: { not: null } },
+      orderBy: { completedAt: "desc" },
+      take: ACTIVITY_LIMIT,
+      select: activitySelect,
     }),
   ]);
+  // Memakai createdAt dan completedAt, bukan updatedAt: updatedAt ikut berubah saat Trainer mengedit bagian materi.
+  const activity = [
+    ...joins.map((e) => ({ ...e, done: false, at: e.createdAt })),
+    ...completions.map((e) => ({ ...e, done: true, at: e.completedAt! })),
+  ]
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, ACTIVITY_LIMIT);
 
   return (
     <div className="flex flex-col gap-6">
@@ -317,11 +334,14 @@ export async function TrainerHome({
             ) : (
               <ul className="flex flex-col gap-3">
                 {activity.map((a) => (
-                  <li key={a.id} className="flex items-start gap-3">
+                  <li
+                    key={`${a.id}-${a.done}`}
+                    className="flex items-start gap-3"
+                  >
                     <span
                       aria-hidden="true"
                       className={
-                        a.completedAt
+                        a.done
                           ? "mt-1.5 size-2 shrink-0 rounded-full bg-success-500"
                           : "mt-1.5 size-2 shrink-0 rounded-full bg-primary-500"
                       }
@@ -329,11 +349,11 @@ export async function TrainerHome({
                     <div className="flex min-w-0 flex-col">
                       <span className="text-small text-foreground">
                         {a.user.name}{" "}
-                        {a.completedAt ? "menyelesaikan" : "sedang mempelajari"}{" "}
-                        “{a.material.title}”
+                        {a.done ? "menyelesaikan" : "mulai mengikuti"} “
+                        {a.material.title}”
                       </span>
                       <span className="text-caption text-muted-foreground">
-                        {formatRelative(a.completedAt ?? a.updatedAt)}
+                        {formatRelative(a.at)}
                       </span>
                     </div>
                   </li>
