@@ -1,22 +1,20 @@
 import {
   BookOpenIcon,
-  BriefcaseBusinessIcon,
   Building2Icon,
   CalendarDaysIcon,
-  ChartColumnIcon,
+  ChartLineIcon,
   ClipboardCheckIcon,
   CompassIcon,
-  HouseIcon,
-  IdCardIcon,
-  ImagesIcon,
+  FolderOpenIcon,
+  LandmarkIcon,
   LayoutDashboardIcon,
   ListChecksIcon,
-  MessageSquareTextIcon,
+  MessagesSquareIcon,
+  PanelsTopLeftIcon,
   Settings2Icon,
   ShieldCheckIcon,
   UserRoundIcon,
   UsersIcon,
-  UsersRoundIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -30,8 +28,8 @@ const PESERTA_NAV: NavSection[] = [
     label: "Ruang belajar",
     items: [
       { label: "Jelajah", href: "/jelajah", icon: CompassIcon },
-      { label: "Beranda", href: "/beranda", icon: HouseIcon },
-      { label: "Portofolio", href: "/portofolio", icon: BriefcaseBusinessIcon },
+      { label: "Beranda", href: "/beranda", icon: LayoutDashboardIcon },
+      { label: "Portofolio", href: "/portofolio", icon: FolderOpenIcon },
     ],
   },
   {
@@ -62,13 +60,13 @@ const ADMINISTRATOR_NAV: NavSection[] = [
 const ORGANIZATION_SECTION: NavSection = {
   label: "Organisasi",
   items: [
-    { label: "Beranda Organisasi", href: "/organisasi", icon: Building2Icon },
+    { label: "Beranda Organisasi", href: "/organisasi", icon: LandmarkIcon },
     {
       label: "Profil organisasi",
       href: "/organisasi/profil",
-      icon: IdCardIcon,
+      icon: Building2Icon,
     },
-    { label: "Anggota", href: "/organisasi/anggota", icon: UsersRoundIcon },
+    { label: "Anggota", href: "/organisasi/anggota", icon: UsersIcon },
     {
       label: "Acara organisasi",
       href: "/organisasi/acara",
@@ -96,21 +94,31 @@ function workspaceNav(isTrainer: boolean): NavSection {
         href: "/ruang-kerja/tugas",
         icon: ClipboardCheckIcon,
       },
-      { label: "Laporan", href: "/ruang-kerja/laporan", icon: ChartColumnIcon },
-      { label: "Galeri Karya", href: "/ruang-kerja/galeri", icon: ImagesIcon },
-      {
-        label: "Rubrik Penilaian",
-        href: "/ruang-kerja/rubrik",
-        icon: ListChecksIcon,
-      },
-      {
-        label: "Survei",
-        href: "/ruang-kerja/survei",
-        icon: MessageSquareTextIcon,
-      },
+      { label: "Laporan", href: "/ruang-kerja/laporan", icon: ChartLineIcon },
     ],
   };
 }
+
+const LIBRARY_SECTION: NavSection = {
+  label: "Pustaka",
+  items: [
+    {
+      label: "Galeri Karya",
+      href: "/ruang-kerja/galeri",
+      icon: PanelsTopLeftIcon,
+    },
+    {
+      label: "Rubrik Penilaian",
+      href: "/ruang-kerja/rubrik",
+      icon: ListChecksIcon,
+    },
+    {
+      label: "Survei",
+      href: "/ruang-kerja/survei",
+      icon: MessagesSquareIcon,
+    },
+  ],
+};
 
 /** Menu sidebar sesuai Figma: Peserta, Guru/Asesor, Trainer, Admin Organisasi, Administrator. */
 function navFor({ role, isOrganizationAdmin }: Access): NavSection[] {
@@ -118,6 +126,7 @@ function navFor({ role, isOrganizationAdmin }: Access): NavSection[] {
   if (role === "ADMINISTRATOR") return ADMINISTRATOR_NAV;
   return [
     workspaceNav(role === "TRAINER"),
+    LIBRARY_SECTION,
     ...(isOrganizationAdmin ? [ORGANIZATION_SECTION] : []),
     {
       label: "Akun",

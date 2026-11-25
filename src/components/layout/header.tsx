@@ -54,6 +54,7 @@ function Header({
           <SidebarContent
             access={access}
             workspace={workspace}
+            user={user}
             onNavigate={() => setDrawerOpen(false)}
           />
         </SheetContent>
