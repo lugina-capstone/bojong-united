@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -96,6 +97,17 @@ export async function readObjectHead(key: string, length: number) {
   );
   const bytes = await object.Body?.transformToByteArray();
   return (bytes ?? new Uint8Array()).subarray(0, length);
+}
+
+/** Salin objek di dalam bucket. Dipakai untuk memindahkan unggahan ke key yang tidak punya URL upload. */
+export async function copyObject(fromKey: string, toKey: string) {
+  await s3.send(
+    new CopyObjectCommand({
+      Bucket: env.S3_BUCKET,
+      Key: toKey,
+      CopySource: `${env.S3_BUCKET}/${fromKey.split("/").map(encodeURIComponent).join("/")}`,
+    }),
+  );
 }
 
 export async function deleteObject(key: string) {

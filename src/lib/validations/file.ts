@@ -57,3 +57,38 @@ export const uploadRequestSchema = z
   );
 
 export type UploadRequest = z.infer<typeof uploadRequestSchema>;
+
+const ZIP = [0x50, 0x4b, 0x03, 0x04];
+const OLE = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
+
+/** Tanda byte awal tiap tipe; `offset` untuk tanda yang tidak dimulai dari byte pertama. */
+const signatures: Record<
+  AllowedFileType,
+  { bytes: number[]; offset?: number }
+> = {
+  "application/pdf": { bytes: [0x25, 0x50, 0x44, 0x46, 0x2d] },
+  "image/jpeg": { bytes: [0xff, 0xd8, 0xff] },
+  "image/png": { bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+    bytes: ZIP,
+  },
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": {
+    bytes: ZIP,
+  },
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+    bytes: ZIP,
+  },
+  "application/msword": { bytes: OLE },
+  "application/vnd.ms-powerpoint": { bytes: OLE },
+  "video/mp4": { bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 },
+};
+
+export const FILE_SIGNATURE_LENGTH = 12;
+
+/** Apakah byte awal berkas cocok dengan tipe yang dilaporkan saat unggah. */
+export function matchesFileSignature(contentType: string, head: Uint8Array) {
+  const signature = signatures[contentType as AllowedFileType];
+  if (!signature) return false;
+  const offset = signature.offset ?? 0;
+  return signature.bytes.every((byte, i) => head[offset + i] === byte);
+}
