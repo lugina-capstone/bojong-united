@@ -1,6 +1,6 @@
 import { hashPassword } from "better-auth/crypto";
 
-import type { PrismaClient } from "../src/generated/prisma/client";
+import type { Prisma } from "../src/generated/prisma/client";
 import type {
   MemberRole,
   OrganizationStatus,
@@ -29,7 +29,7 @@ const levels = (name: string) => ({
  * Semua akun demo memakai email @becraft.test dan kata sandi dari `DEMO_PASSWORD`.
  */
 export async function seedDemo(
-  db: PrismaClient,
+  db: Prisma.TransactionClient,
   { password, administratorId }: { password: string; administratorId: string },
 ) {
   const existing = await db.organization.findFirst({

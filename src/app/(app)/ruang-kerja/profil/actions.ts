@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 import { z } from "zod";
 
+import { isUniqueViolation } from "@/lib/db-errors";
 import { db } from "@/lib/db";
 import { notifyOrganizationAdmins } from "@/lib/notifications";
 import { requireUser } from "@/lib/session";
@@ -42,9 +43,15 @@ export async function requestTrainerAction(
   if (pending) {
     return { ok: false, error: "Pengajuan Anda masih menunggu persetujuan." };
   }
-  await db.trainerRequest.create({
-    data: { userId: user.id, organizationId, plannedMaterial: parsed.data },
-  });
+  try {
+    await db.trainerRequest.create({
+      data: { userId: user.id, organizationId, plannedMaterial: parsed.data },
+    });
+  } catch (error) {
+    // Dua pengajuan bersamaan: index unik PENDING menolak yang kedua.
+    if (!isUniqueViolation(error)) throw error;
+    return { ok: false, error: "Pengajuan Anda masih menunggu persetujuan." };
+  }
   await notifyOrganizationAdmins(
     organizationId,
     "trainer-request.submitted",
