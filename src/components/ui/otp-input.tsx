@@ -47,6 +47,7 @@ function OtpInput({
       pattern={REGEXP_ONLY_DIGITS}
       inputMode="numeric"
       autoComplete="one-time-code"
+      pushPasswordManagerStrategy="none"
       aria-invalid={invalid || undefined}
       containerClassName={cn("flex w-full max-w-101.5 gap-2.5", className)}
       {...props}

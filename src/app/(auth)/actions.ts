@@ -7,6 +7,7 @@ import type { z } from "zod";
 
 import { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
+import { limitAuthAction } from "@/lib/auth-rate-limit";
 import { destinationFor, destinationHref } from "@/lib/auth-routing";
 import { db } from "@/lib/db";
 import {
@@ -57,29 +58,45 @@ const EMAIL_TAKEN: FormState = {
   fieldErrors: { email: "Email ini sudah terdaftar." },
 };
 
+/** Buat akun; mengembalikan id user, atau FormState error jika Better Auth menolak. */
 async function signUpUser(input: {
   name: string;
   email: string;
   password: string;
-}) {
-  const result = await auth.api.signUpEmail({
-    body: { name: input.name, email: input.email, password: input.password },
-    headers: await headers(),
-  });
-  return result.user.id;
+}): Promise<string | FormState> {
+  try {
+    const result = await auth.api.signUpEmail({
+      body: { name: input.name, email: input.email, password: input.password },
+      headers: await headers(),
+    });
+    return result.user.id;
+  } catch (error) {
+    if (!isAPIError(error)) throw error;
+    // Dua pendaftaran bersamaan dengan email yang sama: yang kalah mendapat pesan yang sama.
+    if (await emailTaken(input.email)) return EMAIL_TAKEN;
+    return { error: error.message };
+  }
+}
+
+/** Akun yang baru dibuat dihapus lagi bila langkah lanjutannya gagal, agar email bisa dipakai ulang. */
+async function rollbackSignUp(
+  userId: string,
+  error: unknown,
+): Promise<FormState> {
+  console.error("Pendaftaran dibatalkan", error);
+  await db.user.delete({ where: { id: userId } });
+  return { error: "Pendaftaran gagal diproses. Coba lagi." };
 }
 
 /** Daftar Peserta (AA-01). Berhasil → layar OTP di sisi client. */
 export async function signUpAction(input: unknown): Promise<FormState> {
   const parsed = signUpSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
+  const limited = await limitAuthAction("signUp");
+  if (limited) return { error: limited };
   if (await emailTaken(parsed.data.email)) return EMAIL_TAKEN;
-  try {
-    await signUpUser(parsed.data);
-  } catch (error) {
-    if (isAPIError(error)) return { error: error.message };
-    throw error;
-  }
+  const created = await signUpUser(parsed.data);
+  if (typeof created !== "string") return created;
   return { ok: true, email: parsed.data.email };
 }
 
@@ -87,6 +104,8 @@ export async function signUpAction(input: unknown): Promise<FormState> {
 export async function checkOrganizationCodeAction(code: string) {
   const parsed = organizationCodeSchema.safeParse(code);
   if (!parsed.success) return { valid: false as const };
+  if (await limitAuthAction("organizationCode"))
+    return { valid: false as const };
   const organization = await db.organization.findUnique({
     where: { code: parsed.data },
     select: { name: true, type: true, status: true },
@@ -104,6 +123,8 @@ export async function checkOrganizationCodeAction(code: string) {
 export async function registerMemberAction(input: unknown): Promise<FormState> {
   const parsed = joinOrganizationSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
+  const limited = await limitAuthAction("signUp");
+  if (limited) return { error: limited };
   const organization = await db.organization.findUnique({
     where: { code: parsed.data.code },
     select: { id: true, status: true },
@@ -114,9 +135,14 @@ export async function registerMemberAction(input: unknown): Promise<FormState> {
     };
   if (await emailTaken(parsed.data.email)) return EMAIL_TAKEN;
   const userId = await signUpUser(parsed.data);
-  await db.membership.create({
-    data: { userId, organizationId: organization.id, role: "GURU" },
-  });
+  if (typeof userId !== "string") return userId;
+  try {
+    await db.membership.create({
+      data: { userId, organizationId: organization.id, role: "GURU" },
+    });
+  } catch (error) {
+    return rollbackSignUp(userId, error);
+  }
   return { ok: true, email: parsed.data.email };
 }
 
@@ -156,9 +182,16 @@ export async function registerOrganizationAction(
 ): Promise<FormState> {
   const parsed = registerOrganizationSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
+  const limited = await limitAuthAction("signUp");
+  if (limited) return { error: limited };
   if (await emailTaken(parsed.data.email)) return EMAIL_TAKEN;
   const userId = await signUpUser(parsed.data);
-  await createOrganization(userId, parsed.data, parsed.data.email);
+  if (typeof userId !== "string") return userId;
+  try {
+    await createOrganization(userId, parsed.data, parsed.data.email);
+  } catch (error) {
+    return rollbackSignUp(userId, error);
+  }
   return { ok: true, email: parsed.data.email };
 }
 
@@ -276,6 +309,8 @@ export async function setOrganizationLogoAction(fileId: string) {
 export async function verifyOtpAction(input: unknown): Promise<FormState> {
   const parsed = otpSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
+  const limited = await limitAuthAction("verifyOtp");
+  if (limited) return { code: "RATE_LIMITED", error: limited };
   try {
     await auth.api.verifyEmailOTP({
       body: parsed.data,
@@ -344,6 +379,8 @@ const WAIT_RESEND = "Tunggu sebentar sebelum meminta kode baru.";
 export async function resendOtpAction(email: string): Promise<FormState> {
   const parsed = forgotPasswordSchema.safeParse({ email });
   if (!parsed.success) return fieldErrorsOf(parsed.error);
+  const limited = await limitAuthAction("resendOtp");
+  if (limited) return { error: limited };
   // Penanda dibuat setiap kode dikirim (lihat `sendVerificationOTP` di auth.ts).
   const waiting = await db.verification.count({
     where: {
@@ -375,6 +412,8 @@ export async function signInAction(input: unknown): Promise<FormState> {
   const parsed = signInSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
   const { email } = parsed.data;
+  const limited = await limitAuthAction("signIn");
+  if (limited) return { code: "RATE_LIMITED", email, error: limited };
   try {
     await auth.api.signInEmail({ body: parsed.data, headers: await headers() });
   } catch (error) {
@@ -416,6 +455,8 @@ export async function signOutAction() {
 export async function forgotPasswordAction(input: unknown): Promise<FormState> {
   const parsed = forgotPasswordSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
+  const limited = await limitAuthAction("forgotPassword");
+  if (limited) return { error: limited };
   const user = await db.user.findUnique({
     where: { email: parsed.data.email },
     select: { id: true },
@@ -440,6 +481,8 @@ export async function resetPasswordAction(
 ): Promise<FormState> {
   const parsed = resetPasswordSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
+  const limited = await limitAuthAction("resetPassword");
+  if (limited) return { error: limited };
   try {
     await auth.api.resetPassword({
       body: { token, newPassword: parsed.data.password },
@@ -504,6 +547,7 @@ export async function deleteAccountAction(input: {
         email: `deleted+${user.id.toLowerCase()}@becraft.invalid`,
         name: "Akun dihapus",
         image: null,
+        phone: null,
       },
     }),
   ]);
