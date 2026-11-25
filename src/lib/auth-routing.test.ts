@@ -66,6 +66,8 @@ describe("safeCallbackPath", () => {
     "https://evil.test/x",
     "//evil.test/x",
     "/\\evil.test/x",
+    "/a/..//evil.test/x",
+    "/a/../\\evil.test/x",
     "acara",
     "/masuk?status=menunggu",
     "/daftar/google",

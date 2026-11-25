@@ -57,7 +57,9 @@ export function safeCallbackPath(value: unknown) {
   }
   if (url.origin !== ORIGIN) return undefined;
   if (/^\/(masuk|daftar|api)(\/|$)/.test(url.pathname)) return undefined;
-  return url.pathname + url.search;
+  // Normalisasi bisa menghasilkan "//host" (mis. "/a/..//host"), yang dibaca browser sebagai situs lain.
+  const path = url.pathname + url.search;
+  return /^\/[^/\\]/.test(path) ? path : undefined;
 }
 
 /** Tujuan setelah masuk: alamat semula hanya untuk akun yang memang boleh ke berandanya. */
