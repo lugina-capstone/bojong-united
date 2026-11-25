@@ -155,7 +155,7 @@ export default async function ParticipantsPage({
                 <TableHead>Status survei</TableHead>
                 <TableHead>Skor instrumen</TableHead>
                 <TableHead>Dikirim</TableHead>
-                <TableHead className="text-right">Tindakan</TableHead>
+                <TableHead className="text-center">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -202,11 +202,11 @@ export default async function ParticipantsPage({
                       ? formatDateTime(cell.response.submittedAt)
                       : "—"}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-center">
                     <Link
                       href={
                         cell.latest
-                          ? `/ruang-kerja/acara/${event.id}/nilai/${cell.latest.id}`
+                          ? `/ruang-kerja/tugas/${event.id}/nilai/${cell.latest.id}`
                           : `/ruang-kerja/galeri/${event.id}/${row.userId}`
                       }
                       className={buttonVariants({

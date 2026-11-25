@@ -234,6 +234,51 @@ export default async function TasksPage({
         />
       </div>
 
+      <SectionCard
+        title="Pantau progres per acara"
+        description="Buka tabel peserta × milestone untuk menilai dan memantau setiap acara."
+      >
+        {events.length === 0 ? (
+          <p className="px-4 pb-5 text-small text-muted-foreground sm:px-5">
+            Belum ada acara terbit.
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-border">
+            {events.map((ev) => {
+              const pending = rows.filter(
+                (r) => r.eventId === ev.id && r.tab === "perlu",
+              ).length;
+              return (
+                <li
+                  key={ev.id}
+                  className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                >
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="truncate text-small-strong text-foreground">
+                      {ev.title}
+                    </span>
+                    <span className="text-caption text-muted-foreground">
+                      {ev.enrollments.length} peserta · {ev.milestones.length}{" "}
+                      milestone · {pending} perlu dinilai
+                    </span>
+                  </div>
+                  <Link
+                    href={`${PATH}/${ev.id}`}
+                    className={buttonVariants({
+                      variant: "secondary",
+                      size: "sm",
+                      className: "w-fit shrink-0",
+                    })}
+                  >
+                    Pantau progres
+                    <ArrowUpRightIcon aria-hidden="true" />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </SectionCard>
       <SectionCard>
         <div className="flex flex-col gap-3 px-4 pt-4 sm:px-5">
           <LinkTabs
@@ -283,7 +328,7 @@ export default async function TasksPage({
                 <TableHead>Acara · Milestone</TableHead>
                 <TableHead>{timeLabel}</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Tindakan</TableHead>
+                <TableHead className="text-center">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -350,12 +395,12 @@ export default async function TasksPage({
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-center">
                     <Link
                       href={
                         r.submissionId
-                          ? `/ruang-kerja/acara/${r.eventId}/nilai/${r.submissionId}`
-                          : `/ruang-kerja/acara/${r.eventId}`
+                          ? `/ruang-kerja/tugas/${r.eventId}/nilai/${r.submissionId}`
+                          : `/ruang-kerja/tugas/${r.eventId}`
                       }
                       className={buttonVariants({
                         size: "sm",

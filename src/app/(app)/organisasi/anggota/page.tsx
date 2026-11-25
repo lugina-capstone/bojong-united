@@ -284,7 +284,7 @@ export default async function MembersPage({
                   <TableHead>Peran sekarang</TableHead>
                   <TableHead>Materi yang akan diunggah</TableHead>
                   <TableHead>Diajukan</TableHead>
-                  <TableHead className="text-right">Tindakan</TableHead>
+                  <TableHead className="text-center">Tindakan</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -308,7 +308,7 @@ export default async function MembersPage({
                       <TableCell className="whitespace-nowrap">
                         {formatDate(request.createdAt)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <TrainerRequestActions
                           requestId={request.id}
                           name={request.user.name}
@@ -336,7 +336,7 @@ export default async function MembersPage({
                 <TableHead>Peran</TableHead>
                 <TableHead>Bergabung</TableHead>
                 <TableHead>Acara dibuat</TableHead>
-                <TableHead className="text-right">Tindakan</TableHead>
+                <TableHead className="text-center">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -361,7 +361,7 @@ export default async function MembersPage({
                   <TableCell className="text-body-strong">
                     {formatNumber(member.user._count.createdEvents)}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-center">
                     <MemberActions
                       organizationName={organization.name}
                       adminCount={adminCount}

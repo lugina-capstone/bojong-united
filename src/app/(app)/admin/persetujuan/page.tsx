@@ -262,7 +262,7 @@ export default async function ApprovalQueuePage({
                 {showReason && <TableHead>Alasan penolakan</TableHead>}
                 <TableHead>{showReason ? "Ditolak" : "Diajukan"}</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Tindakan</TableHead>
+                <TableHead className="text-center">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -332,7 +332,7 @@ export default async function ApprovalQueuePage({
                         }
                       />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <Link
                         href={`${PATH}/${organization.id}`}
                         className={buttonVariants({

@@ -182,12 +182,17 @@ function RubricForm({
                 <FormField
                   key={key}
                   id={`${idPrefix}-c${index}-${key}`}
-                  label={`Skor ${level + 1} · ${SCORE_LEVELS[(level + 1) as 1].label}`}
+                  label={
+                    <span className="block sm:min-h-[2lh]">
+                      Skor {level + 1} · {SCORE_LEVELS[(level + 1) as 1].label}
+                    </span>
+                  }
                   error={errors[`criteria.${index}.${key}`]}
                 >
                   <Textarea
                     id={`${idPrefix}-c${index}-${key}`}
                     rows={2}
+                    className="field-sizing-fixed"
                     maxLength={300}
                     value={criterion[key]}
                     onChange={(e) =>

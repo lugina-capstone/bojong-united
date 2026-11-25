@@ -193,7 +193,7 @@ export default async function ManageOrganizationsPage({
                 <TableHead>Anggota</TableHead>
                 <TableHead>Acara</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Tindakan</TableHead>
+                <TableHead className="text-center">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -243,7 +243,7 @@ export default async function ManageOrganizationsPage({
                     <TableCell>
                       <OrgStatusBadge status={organization.status} />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <Link
                         href={`${PATH}/${organization.id}`}
                         className={buttonVariants({

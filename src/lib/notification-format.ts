@@ -188,7 +188,7 @@ export function describeNotification(
       return {
         title: "Pengumpulan baru",
         body: `${name} mengumpulkan ${payload.milestoneTitle ?? "tugas"} · ${payload.eventTitle ?? ""}`,
-        href: `/ruang-kerja/acara/${payload.eventId}/nilai/${payload.submissionId}`,
+        href: `/ruang-kerja/tugas/${payload.eventId}/nilai/${payload.submissionId}`,
         icon: "file",
         tone: "primary",
       };
@@ -196,7 +196,7 @@ export function describeNotification(
       return {
         title: "Revisi masuk",
         body: `${name} mengirim revisi ${payload.milestoneTitle ?? ""} · ${payload.eventTitle ?? ""}`,
-        href: `/ruang-kerja/acara/${payload.eventId}/nilai/${payload.submissionId}`,
+        href: `/ruang-kerja/tugas/${payload.eventId}/nilai/${payload.submissionId}`,
         icon: "refresh",
         tone: "primary",
       };

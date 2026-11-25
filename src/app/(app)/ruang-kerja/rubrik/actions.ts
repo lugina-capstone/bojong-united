@@ -157,3 +157,29 @@ export async function copyRubricAction(
   refresh();
   return { ok: true, rubricId: copy.id };
 }
+
+/**
+ * Hapus rubrik yang belum dipakai milestone. Rubrik yang sudah dipakai acara diarsipkan
+ * agar nilai yang sudah ada tetap utuh.
+ */
+export async function deleteRubricAction(
+  rubricId: string,
+): Promise<RubricActionState & { archived?: boolean }> {
+  const { organizationId } = await requireTeacher();
+  const rubric = await db.rubric.findFirst({
+    where: { id: rubricId, organizationId, archivedAt: null },
+    select: { id: true, _count: { select: { milestones: true } } },
+  });
+  if (!rubric) return { error: "Rubrik tidak ditemukan." };
+  if (rubric._count.milestones > 0) {
+    await db.rubric.update({
+      where: { id: rubricId },
+      data: { archivedAt: new Date() },
+    });
+    refresh();
+    return { ok: true, archived: true };
+  }
+  await db.rubric.delete({ where: { id: rubricId } });
+  refresh();
+  return { ok: true };
+}

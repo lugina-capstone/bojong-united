@@ -323,7 +323,7 @@ export default async function UsersPage({
                 <TableHead>Terdaftar</TableHead>
                 <TableHead>Terakhir aktif</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Tindakan</TableHead>
+                <TableHead className="text-center">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -353,7 +353,7 @@ export default async function UsersPage({
                   <TableCell>
                     <StatusBadge user={user} />
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-center">
                     <Link
                       href={hrefWith(PATH, params, { detail: user.id })}
                       scroll={false}
