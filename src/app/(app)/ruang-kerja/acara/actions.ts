@@ -392,7 +392,16 @@ export async function deleteEventAction(
     where: { eventId },
     select: { materialId: true },
   });
-  await db.event.delete({ where: { id: eventId } });
+  // Syarat "tanpa peserta" ikut dicek saat menghapus, supaya pendaftaran yang masuk bersamaan tidak ikut terhapus.
+  const deleted = await db.event.deleteMany({
+    where: { id: eventId, enrollments: { none: {} } },
+  });
+  if (deleted.count === 0) {
+    return {
+      error:
+        "Acara baru saja diikuti peserta dan tidak bisa dihapus. Arsipkan saja.",
+    };
+  }
   await notifyUnreachableMaterials(
     attached.map((m) => m.materialId),
     event.title,
