@@ -433,9 +433,18 @@ export default async function PortfolioPage({
                   <TableRow key={m.id}>
                     <TableCell>
                       <div className="flex min-w-56 flex-col">
-                        <span className="text-small-strong text-foreground">
-                          {m.material.title}
-                        </span>
+                        {m.completedAt ? (
+                          <Link
+                            href={`/materi/${m.material.id}/selesai`}
+                            className="text-small-strong text-foreground hover:text-primary-600"
+                          >
+                            {m.material.title}
+                          </Link>
+                        ) : (
+                          <span className="text-small-strong text-foreground">
+                            {m.material.title}
+                          </span>
+                        )}
                         <span className="text-caption text-muted-foreground">
                           {m.material.category.name} ·{" "}
                           {m.completedAt
