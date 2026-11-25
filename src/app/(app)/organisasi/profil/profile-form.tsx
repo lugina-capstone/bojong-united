@@ -11,7 +11,7 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import {
-  isSquare,
+  logoImageError,
   uploadOrganizationLogo,
 } from "@/app/(auth)/_components/logo-picker";
 import {
@@ -77,8 +77,8 @@ function ProfileForm({
       return setLogoError(
         `Berkas ${file.name} ${formatFileSize(file.size)} melebihi batas 2 MB. Pilih berkas lain.`,
       );
-    if (!(await isSquare(file)))
-      return setLogoError("Logo harus persegi (rasio 1:1). Pilih berkas lain.");
+    const imageError = await logoImageError(file);
+    if (imageError) return setLogoError(imageError);
     setUploading(true);
     const ok = await uploadOrganizationLogo(file, (id) =>
       updateOrganizationLogoAction(id).then((result) => ({
