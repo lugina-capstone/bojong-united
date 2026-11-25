@@ -637,18 +637,6 @@ export async function deleteAccountAction(input: {
   if (input.email.trim().toLowerCase() !== user.email || !input.confirmed)
     return { fieldErrors: { email: "Email tidak cocok dengan akun ini." } };
   await db.$transaction(async (tx) => {
-    // Lebih dulu, agar baris user terkunci dan penerbitan sertifikat yang bersamaan menunggu.
-    await tx.user.update({
-      where: { id: user.id },
-      data: {
-        status: "DELETED",
-        deletedAt: new Date(),
-        email: `deleted+${user.id.toLowerCase()}@becraft.invalid`,
-        name: "Akun dihapus",
-        image: null,
-        phone: null,
-      },
-    });
     // Acara yang belum mulai: lepaskan slot tim dan alihkan ketua agar tim tidak terkunci.
     const notStarted = {
       OR: [{ startsAt: null }, { startsAt: { gt: new Date() } }],
@@ -661,6 +649,19 @@ export async function deleteAccountAction(input: {
     const teamIds = upcoming.flatMap((e) => (e.team ? [e.team.id] : [])).sort();
     for (const id of teamIds)
       await tx.team.updateMany({ where: { id }, data: { id } });
+    // Setelah kunci tim (hindari deadlock dengan pengalihan ketua) dan sebelum hapus sertifikat,
+    // agar penerbitan sertifikat yang bersamaan menunggu baris user ini.
+    await tx.user.update({
+      where: { id: user.id },
+      data: {
+        status: "DELETED",
+        deletedAt: new Date(),
+        email: `deleted+${user.id.toLowerCase()}@becraft.invalid`,
+        name: "Akun dihapus",
+        image: null,
+        phone: null,
+      },
+    });
     await tx.enrollment.deleteMany({
       where: { id: { in: upcoming.map((e) => e.id) } },
     });
