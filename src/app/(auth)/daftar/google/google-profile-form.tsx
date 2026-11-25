@@ -20,12 +20,14 @@ import { initialsOf } from "@/components/ui/org-logo";
 function GoogleProfileForm({
   name: initialName,
   email,
+  phone: initialPhone,
 }: {
   name: string;
   email: string;
+  phone: string;
 }) {
   const [name, setName] = React.useState(initialName);
-  const [phone, setPhone] = React.useState("");
+  const [phone, setPhone] = React.useState(initialPhone);
   const [state, setState] = React.useState<FormState>({});
   const [pending, startTransition] = React.useTransition();
   const error = state.fieldErrors?.name;
