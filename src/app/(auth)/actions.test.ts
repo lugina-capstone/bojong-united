@@ -10,6 +10,12 @@ const mocks = vi.hoisted(() => ({
     account: { deleteMany: vi.fn() },
     teamInvite: { updateMany: vi.fn() },
     user: { update: vi.fn() },
+    enrollment: {
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+    team: { update: vi.fn(), delete: vi.fn() },
     $transaction: vi.fn(),
   },
   requireUser: vi.fn(),
@@ -33,7 +39,13 @@ import {
   joinOrganizationAction,
 } from "@/app/(auth)/actions";
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.db.$transaction.mockImplementation(
+    (run: (tx: typeof mocks.db) => unknown) => run(mocks.db),
+  );
+  mocks.db.enrollment.findMany.mockResolvedValue([]);
+});
 
 describe("akun Peserta tanpa riwayat organisasi", () => {
   beforeEach(() =>
@@ -90,6 +102,35 @@ describe("deleteAccountAction", () => {
         }),
       }),
     );
+  });
+
+  it("melepas slot tim dan mengalihkan ketua di acara yang belum mulai", async () => {
+    mocks.requireUser.mockResolvedValue({
+      id: "peserta",
+      email: "p@x.id",
+      isAdministrator: false,
+      membership: null,
+    });
+    mocks.db.enrollment.findMany.mockResolvedValue([
+      { id: "e1", team: { id: "tim-1", leaderId: "peserta" } },
+      { id: "e2", team: { id: "tim-2", leaderId: "peserta" } },
+      { id: "e3", team: { id: "tim-3", leaderId: "orang-lain" } },
+    ]);
+    mocks.db.enrollment.findFirst
+      .mockResolvedValueOnce({ userId: "anggota" })
+      .mockResolvedValueOnce(null);
+    await deleteAccountAction(input);
+    expect(mocks.db.enrollment.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ["e1", "e2", "e3"] } },
+    });
+    expect(mocks.db.team.update).toHaveBeenCalledWith({
+      where: { id: "tim-1" },
+      data: { leaderId: "anggota" },
+    });
+    expect(mocks.db.team.delete).toHaveBeenCalledWith({
+      where: { id: "tim-2" },
+    });
+    expect(mocks.db.team.update).toHaveBeenCalledTimes(1);
   });
 
   it("menolak anggota organisasi aktif dan Administrator", async () => {

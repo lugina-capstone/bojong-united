@@ -636,20 +636,45 @@ export async function deleteAccountAction(input: {
     };
   if (input.email.trim().toLowerCase() !== user.email || !input.confirmed)
     return { fieldErrors: { email: "Email tidak cocok dengan akun ini." } };
-  await db.$transaction([
-    db.materialEnrollment.deleteMany({ where: { userId: user.id } }),
-    db.notification.deleteMany({ where: { userId: user.id } }),
-    db.session.deleteMany({ where: { userId: user.id } }),
-    db.account.deleteMany({ where: { userId: user.id } }),
-    db.membership.deleteMany({ where: { userId: user.id } }),
-    db.teamInvite.updateMany({
+  await db.$transaction(async (tx) => {
+    // Acara yang belum mulai: lepaskan slot tim dan alihkan ketua agar tim tidak terkunci.
+    const notStarted = {
+      OR: [{ startsAt: null }, { startsAt: { gt: new Date() } }],
+    };
+    const upcoming = await tx.enrollment.findMany({
+      where: { userId: user.id, event: notStarted },
+      select: { id: true, team: { select: { id: true, leaderId: true } } },
+    });
+    await tx.enrollment.deleteMany({
+      where: { id: { in: upcoming.map((e) => e.id) } },
+    });
+    for (const { team } of upcoming) {
+      if (team?.leaderId !== user.id) continue;
+      const next = await tx.enrollment.findFirst({
+        where: { teamId: team.id },
+        orderBy: { createdAt: "asc" },
+        select: { userId: true },
+      });
+      if (next)
+        await tx.team.update({
+          where: { id: team.id },
+          data: { leaderId: next.userId },
+        });
+      else await tx.team.delete({ where: { id: team.id } });
+    }
+    await tx.materialEnrollment.deleteMany({ where: { userId: user.id } });
+    await tx.notification.deleteMany({ where: { userId: user.id } });
+    await tx.session.deleteMany({ where: { userId: user.id } });
+    await tx.account.deleteMany({ where: { userId: user.id } });
+    await tx.membership.deleteMany({ where: { userId: user.id } });
+    await tx.teamInvite.updateMany({
       where: {
         status: "PENDING",
         OR: [{ inviteeId: user.id }, { inviterId: user.id }],
       },
       data: { status: "CANCELLED", respondedAt: new Date() },
-    }),
-    db.user.update({
+    });
+    await tx.user.update({
       where: { id: user.id },
       data: {
         status: "DELETED",
@@ -659,7 +684,7 @@ export async function deleteAccountAction(input: {
         image: null,
         phone: null,
       },
-    }),
-  ]);
+    });
+  });
   redirect("/akun-dihapus");
 }
