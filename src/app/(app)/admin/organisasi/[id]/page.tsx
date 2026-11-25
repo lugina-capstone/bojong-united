@@ -15,6 +15,8 @@ import {
   orgTypeLabel,
 } from "@/app/(app)/_components/badges";
 import { InfoRows } from "@/app/(app)/_components/info-rows";
+import { param, type SearchParams } from "@/app/(app)/_components/href";
+import { SearchParamInput } from "@/app/(app)/_components/list-controls";
 import { SectionCard } from "@/app/(app)/_components/section-card";
 import { OrganizationStatusCard } from "@/app/(app)/admin/organisasi/[id]/status-actions";
 import { applicantSelect } from "@/app/(app)/admin/queries";
@@ -40,9 +42,11 @@ export const metadata: Metadata = { title: "Detail organisasi" };
 
 export default async function OrganizationDetailPage({
   params,
+  searchParams,
 }: PageProps<"/admin/organisasi/[id]">) {
   await requirePermission("organization:manage");
   const { id } = await params;
+  const q = param((await searchParams) as SearchParams, "q");
   const organization = await db.organization.findUnique({
     where: { id },
     select: {
@@ -74,7 +78,20 @@ export default async function OrganizationDetailPage({
     logoUrl,
   ] = await Promise.all([
     db.membership.findMany({
-      where: { organizationId: id, status: "ACTIVE" },
+      where: {
+        organizationId: id,
+        status: "ACTIVE",
+        ...(q
+          ? {
+              user: {
+                OR: [
+                  { name: { contains: q, mode: "insensitive" } },
+                  { email: { contains: q.toLowerCase() } },
+                ],
+              },
+            }
+          : {}),
+      },
       orderBy: [{ isAdmin: "desc" }, { createdAt: "asc" }],
       take: 5,
       select: {
@@ -156,8 +173,19 @@ export default async function OrganizationDetailPage({
         <SectionCard
           title="Anggota organisasi"
           description="Peran anggota dikelola oleh Admin Organisasi."
+          action={
+            <SearchParamInput
+              label="Cari anggota"
+              placeholder="Cari anggota…"
+            />
+          }
         >
-          <Table>
+          {members.length === 0 && (
+            <p className="px-4 pb-4 text-small text-muted-foreground sm:px-5">
+              Tidak ada anggota yang cocok.
+            </p>
+          )}
+          <Table className={members.length === 0 ? "hidden" : undefined}>
             <TableHeader>
               <TableRow>
                 <TableHead>Nama</TableHead>
@@ -189,7 +217,7 @@ export default async function OrganizationDetailPage({
               ))}
             </TableBody>
           </Table>
-          {memberCount > members.length && (
+          {!q && memberCount > members.length && (
             <Link
               href={`/admin/pengguna?organisasi=${organization.id}`}
               className="flex items-center gap-1.5 border-t border-border px-4 py-3.5 text-small-strong text-primary-500 hover:underline sm:px-5"

@@ -102,6 +102,8 @@ model Organization {
   logoFileId           String?               @unique
   /// Kode untuk bergabung ke organisasi.
   code                 String                @unique
+  /// Nomor urut pengajuan; ditampilkan sebagai "ORG-<tahun>-<nomor>".
+  applicationNumber    Int                   @unique @default(autoincrement())
   codeCreatedAt        DateTime              @default(now())
   status               OrganizationStatus    @default(PENDING)
   rejectionReason      String?
