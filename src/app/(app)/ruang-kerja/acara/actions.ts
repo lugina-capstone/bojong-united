@@ -142,7 +142,7 @@ export async function saveEventInfoAction(
       data: { ...values, draftStep: Math.max(event.draftStep, 2) },
     }),
     db.eventMaterial.deleteMany({
-      where: { eventId: event.id, material: { status: "PUBLISHED" } },
+      where: { eventId: event.id, material: { status: { not: "DRAFT" } } },
     }),
     db.eventMaterial.createMany({
       data: materials.map((m) => ({ eventId: event.id, materialId: m.id })),
