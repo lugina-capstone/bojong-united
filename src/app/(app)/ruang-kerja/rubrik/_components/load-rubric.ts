@@ -2,17 +2,11 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { lockedRubricWhere } from "@/lib/rubric-access";
+import { subjectFieldOptions } from "@/lib/subject-fields";
 
 /** Bidang bawaan + bidang organisasi untuk form rubrik. */
 export function rubricFields(organizationId: string) {
-  return db.subjectField.findMany({
-    where: { OR: [{ organizationId }, { organizationId: null }] },
-    orderBy: [
-      { organizationId: { sort: "asc", nulls: "first" } },
-      { name: "asc" },
-    ],
-    select: { id: true, name: true },
-  });
+  return subjectFieldOptions(organizationId);
 }
 
 /** Rubrik organisasi beserta kriteria, status terkunci, dan acara pemakai. */

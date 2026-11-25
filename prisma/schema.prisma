@@ -174,6 +174,7 @@ model TrainerRequest {
   organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   reviewedBy      User?                @relation("TrainerRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
+  // Index unik parsial (userId, organizationId) WHERE status = 'PENDING' dibuat lewat SQL migrasi.
   @@index([organizationId, status])
   @@index([userId])
   @@map("trainer_requests")
@@ -605,11 +606,14 @@ model SubjectField {
   organizationId String?
   name           String
   isDefault      Boolean       @default(false)
+  /// Urutan chip bidang bawaan; bidang organisasi memakai 0 dan diurutkan menurut nama.
+  position       Int           @default(0)
   createdAt      DateTime      @default(now())
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   events         Event[]
   rubrics        Rubric[]
 
+  // Index unik (organizationId, lower(name)) untuk bidang organisasi dibuat lewat SQL migrasi.
   @@unique([organizationId, name])
   @@map("subject_fields")
 }

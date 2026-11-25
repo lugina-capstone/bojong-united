@@ -10,6 +10,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { SCORE_LEVELS } from "@/components/ui/score-level";
 import { Textarea } from "@/components/ui/textarea";
+import type { SubjectFieldOption } from "@/lib/subject-fields";
 
 export type RubricFormValue = {
   title: string;
@@ -49,14 +50,14 @@ function RubricForm({
   value,
   onChange,
   fields,
-  onFieldCreated,
+  onFieldsChange,
   errors,
   idPrefix = "rubric",
 }: {
   value: RubricFormValue;
   onChange: (value: RubricFormValue) => void;
-  fields: { id: string; name: string }[];
-  onFieldCreated: (field: { id: string; name: string }) => void;
+  fields: SubjectFieldOption[];
+  onFieldsChange: (fields: SubjectFieldOption[]) => void;
   errors: Record<string, string>;
   idPrefix?: string;
 }) {
@@ -90,8 +91,9 @@ function RubricForm({
       </FormField>
       <FormField
         id={`${idPrefix}-field`}
-        label="Bidang"
+        label="Kategori bidang"
         required
+        description="Pilih bidang agar rubrik mudah ditemukan."
         error={errors.fieldId}
       >
         <SubjectFieldPicker
@@ -100,7 +102,7 @@ function RubricForm({
           value={value.fieldId}
           onChange={(fieldId) => onChange({ ...value, fieldId })}
           fields={fields}
-          onFieldCreated={onFieldCreated}
+          onFieldsChange={onFieldsChange}
         />
       </FormField>
       <FormField

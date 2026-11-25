@@ -7,11 +7,17 @@ import { Button } from "@/components/ui/button";
 import { OrgLogo } from "@/components/ui/org-logo";
 import { logoContentTypes, MAX_LOGO_SIZE } from "@/lib/validations/auth";
 
-export async function isSquare(file: File) {
-  const bitmap = await createImageBitmap(file);
+/** Pesan bila berkas bukan gambar yang bisa dibaca atau tidak persegi; `null` bila lolos. */
+export async function logoImageError(file: File) {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    return `Berkas ${file.name} bukan gambar PNG atau JPG yang valid. Pilih berkas lain.`;
+  }
   const square = bitmap.width === bitmap.height;
   bitmap.close();
-  return square;
+  return square ? null : "Logo harus persegi (rasio 1:1). Pilih berkas lain.";
 }
 
 /** Logo organisasi opsional: PNG/JPG, maks. 2 MB, rasio 1:1. Diupload setelah email terverifikasi. */
@@ -44,8 +50,8 @@ function LogoPicker({
       return setError("Logo harus berformat PNG atau JPG.");
     if (selected.size > MAX_LOGO_SIZE)
       return setError("Ukuran logo maksimal 2 MB.");
-    if (!(await isSquare(selected)))
-      return setError("Logo harus persegi (rasio 1:1).");
+    const imageError = await logoImageError(selected);
+    if (imageError) return setError(imageError);
     onChange(selected);
   }
 

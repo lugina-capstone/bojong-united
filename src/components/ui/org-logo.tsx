@@ -8,7 +8,7 @@ const orgLogoVariants = cva(
     variants: {
       size: {
         sm: "size-5 rounded-xs text-[8px]",
-        md: "size-11 rounded-lg text-[15px]",
+        md: "size-11 rounded-lg text-h3",
         lg: "size-24 rounded-3xl text-[32px]",
       },
     },

@@ -63,7 +63,11 @@ async function main() {
   if (demoPassword.length < 8) {
     throw new Error("DEMO_PASSWORD minimal 8 karakter.");
   }
-  await seedDemo(db, { password: demoPassword, administratorId: user.id });
+  // Satu transaksi: seed yang gagal di tengah tidak meninggalkan data demo setengah jadi.
+  await db.$transaction(
+    (tx) => seedDemo(tx, { password: demoPassword, administratorId: user.id }),
+    { maxWait: 10_000, timeout: 120_000 },
+  );
 }
 
 main().finally(() => db.$disconnect());

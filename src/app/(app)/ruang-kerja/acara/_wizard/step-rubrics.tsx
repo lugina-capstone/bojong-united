@@ -7,7 +7,6 @@ import { SectionCard } from "@/app/(app)/_components/section-card";
 import type { Errors } from "@/app/(app)/ruang-kerja/acara/_wizard/event-wizard";
 import type {
   WizardMilestone,
-  WizardOption,
   WizardRubric,
 } from "@/app/(app)/ruang-kerja/acara/_wizard/load";
 import { RubricDialog } from "@/app/(app)/ruang-kerja/rubrik/_components/rubric-dialog";
@@ -25,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import type { SubjectFieldOption } from "@/lib/subject-fields";
 
 /** Langkah 3: pilih rubrik (satu untuk semua milestone atau per milestone). */
 function StepRubrics({
@@ -33,15 +33,15 @@ function StepRubrics({
   rubrics,
   onRubricCreated,
   fields,
-  onFieldCreated,
+  onFieldsChange,
   errors,
 }: {
   milestones: WizardMilestone[];
   onChange: (value: WizardMilestone[]) => void;
   rubrics: WizardRubric[];
   onRubricCreated: (rubric: WizardRubric) => void;
-  fields: WizardOption[];
-  onFieldCreated: (field: WizardOption) => void;
+  fields: SubjectFieldOption[];
+  onFieldsChange: (fields: SubjectFieldOption[]) => void;
   errors: Errors;
 }) {
   const ids = new Set(milestones.map((m) => m.rubricId));
@@ -249,7 +249,7 @@ function StepRubrics({
         open={dialog}
         onOpenChange={setDialog}
         fields={fields}
-        onFieldCreated={onFieldCreated}
+        onFieldsChange={onFieldsChange}
         defaultFieldId={field || undefined}
         onCreated={(rubric) => {
           onRubricCreated(rubric);
