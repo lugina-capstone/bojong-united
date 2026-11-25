@@ -7,7 +7,13 @@ import { GoogleButton } from "@/components/ui/google-button";
 import { authClient } from "@/lib/auth-client";
 
 /** Tombol Google; akun baru diarahkan ke "Lengkapi Data Google" (AA-03). */
-function GoogleSignIn({ label }: { label: string }) {
+function GoogleSignIn({
+  label,
+  callbackURL,
+}: {
+  label: string;
+  callbackURL?: string;
+}) {
   const [pending, setPending] = React.useState(false);
   return (
     <>
@@ -19,7 +25,9 @@ function GoogleSignIn({ label }: { label: string }) {
           setPending(true);
           const { error } = await authClient.signIn.social({
             provider: "google",
-            callbackURL: "/masuk/lanjut",
+            callbackURL: callbackURL
+              ? `/masuk/lanjut?callbackURL=${encodeURIComponent(callbackURL)}`
+              : "/masuk/lanjut",
             newUserCallbackURL: "/daftar/google",
             errorCallbackURL: "/masuk",
           });

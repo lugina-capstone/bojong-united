@@ -7,6 +7,7 @@ import { SignInForm } from "@/app/(auth)/masuk/sign-in-form";
 import { Alert } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { googleEnabled } from "@/lib/auth";
+import { safeCallbackPath } from "@/lib/auth-routing";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 
@@ -45,6 +46,15 @@ async function RejectedAlert() {
   );
 }
 
+function GoogleErrorAlert() {
+  return (
+    <Alert tone="danger" title="Masuk dengan Google gagal">
+      Proses masuk dengan Google tidak selesai. Coba lagi, atau masuk dengan
+      email dan kata sandi.
+    </Alert>
+  );
+}
+
 function StatusAlert({ status }: { status?: string }) {
   switch (status) {
     case "menunggu":
@@ -77,7 +87,10 @@ async function MasukContent({ searchParams }: PageProps<"/masuk">) {
     <SignInForm
       googleEnabled={googleEnabled}
       defaultEmail={email}
-      statusAlert={<StatusAlert status={status} />}
+      callbackURL={safeCallbackPath(params.callbackURL)}
+      statusAlert={
+        params.error ? <GoogleErrorAlert /> : <StatusAlert status={status} />
+      }
     />
   );
 }

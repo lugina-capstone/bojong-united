@@ -75,14 +75,20 @@ function JoinForm() {
     values: typeof values;
   }>();
   const [pending, startTransition] = React.useTransition();
+  // Transisi terpisah agar pengecekan kode tidak menonaktifkan tombol kirim di tengah klik.
+  const [, startCodeCheck] = React.useTransition();
   const errors: Record<string, string> = {
     ...state.fieldErrors,
     ...(check?.valid === false && { code: INVALID_CODE }),
   };
 
+  const checkTimer = React.useRef<ReturnType<typeof setTimeout>>(undefined);
+  React.useEffect(() => () => clearTimeout(checkTimer.current), []);
+
   function checkCode(code: string) {
+    clearTimeout(checkTimer.current);
     if (code.trim().length < 4) return setCheck(undefined);
-    startTransition(async () =>
+    startCodeCheck(async () =>
       setCheck(await checkOrganizationCodeAction(code)),
     );
   }
@@ -163,10 +169,16 @@ function JoinForm() {
             placeholder="Contoh: SMKN4BDG"
             value={values.code}
             onChange={(event) => {
-              setValues({ ...values, code: event.target.value.toUpperCase() });
+              const code = event.target.value.toUpperCase();
+              setValues({ ...values, code });
               setCheck(undefined);
+              // Dicek saat mengetik agar pratinjau sudah tampil sebelum tombol kirim diklik.
+              clearTimeout(checkTimer.current);
+              checkTimer.current = setTimeout(() => checkCode(code), 500);
             }}
-            onBlur={(event) => checkCode(event.target.value)}
+            onBlur={(event) => {
+              if (!check) checkCode(event.target.value);
+            }}
             aria-invalid={Boolean(errors.code)}
             aria-describedby={fieldDescribedBy("code", { error: errors.code })}
           />
