@@ -80,7 +80,7 @@ function SubjectFieldPicker({
             maxLength={40}
             onChange={(e) => setNewField(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                 e.preventDefault();
                 addField();
               }
