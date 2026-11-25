@@ -843,3 +843,15 @@ model ApiRateLimit {
   @@id([clientId, windowStart])
   @@map("api_rate_limits")
 }
+
+/// Hitungan percobaan aksi akses akun per alamat IP per menit (lihat `@/lib/auth-rate-limit`).
+model AuthRateLimit {
+  /// `<aksi>:<ip>`.
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
+  @@map("auth_rate_limits")
+}

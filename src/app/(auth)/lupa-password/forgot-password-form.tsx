@@ -16,12 +16,18 @@ function ForgotPasswordForm() {
   const [email, setEmail] = React.useState("");
   const [state, setState] = React.useState<FormState>({});
   const [pending, startTransition] = React.useTransition();
-  const error = state.fieldErrors?.email;
+  const error = state.fieldErrors?.email ?? state.error;
 
   function submit() {
-    startTransition(async () =>
-      setState(await forgotPasswordAction({ email })),
-    );
+    startTransition(async () => {
+      const result = await forgotPasswordAction({ email });
+      // Kirim ulang yang ditolak tetap di layar "Cek email Anda".
+      setState((previous) =>
+        previous.ok && !result.ok
+          ? { ...previous, error: result.error }
+          : result,
+      );
+    });
   }
 
   if (state.ok) {
@@ -41,6 +47,11 @@ function ForgotPasswordForm() {
             </>
           }
         />
+        {state.error && (
+          <p role="alert" className="text-small text-danger-500">
+            {state.error}
+          </p>
+        )}
         <Button
           type="button"
           variant="secondary"

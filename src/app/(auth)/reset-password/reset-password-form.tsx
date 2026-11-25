@@ -107,6 +107,11 @@ function ResetPasswordForm({ token }: { token?: string }) {
             })}
           />
         </FormField>
+        {state.error && (
+          <p role="alert" className="text-small text-danger-500">
+            {state.error}
+          </p>
+        )}
         <Button type="submit" size="lg" disabled={pending}>
           Simpan kata sandi
         </Button>

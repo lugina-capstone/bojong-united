@@ -150,6 +150,11 @@ function JoinForm() {
           onCheckedChange={(terms) => setValues({ ...values, terms })}
           error={errors.terms}
         />
+        {state.error && (
+          <p role="alert" className="text-small text-danger-500">
+            {state.error}
+          </p>
+        )}
         <Button type="submit" size="lg" disabled={pending}>
           Lanjut verifikasi email
           <ArrowRightIcon aria-hidden="true" />
