@@ -52,7 +52,7 @@ export default async function EventDetailPage({
       milestones: {
         orderBy: { order: "asc" },
         include: {
-          rubric: { select: { id: true, title: true } },
+          rubric: { select: { id: true, title: true, archivedAt: true } },
           survey: { select: { id: true } },
         },
       },
@@ -186,7 +186,11 @@ export default async function EventDetailPage({
                 formats={m.formats.map((f) => formatLabels[f])}
                 hasSurvey={Boolean(m.survey)}
                 status={
-                  m.rubric ? (
+                  m.rubric?.archivedAt ? (
+                    <span className="text-caption text-muted-foreground">
+                      Rubrik: {m.rubric.title} (diarsipkan)
+                    </span>
+                  ) : m.rubric ? (
                     <Link
                       href={`/ruang-kerja/rubrik/${m.rubric.id}`}
                       className="text-caption text-primary-600 hover:underline"
