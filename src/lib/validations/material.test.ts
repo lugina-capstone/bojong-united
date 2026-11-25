@@ -11,23 +11,16 @@ const info = {
 };
 
 describe("outcomes materi", () => {
-  it("memecah per baris dan membuang tanda daftar serta baris kosong", () => {
-    expect(parseOutcomes("- Hierarki visual\n\n• Warna & kontras \n")).toEqual([
+  it("memecah per baris, membuang baris kosong, dan tidak mengubah isi poin", () => {
+    const parsed = parseOutcomes(
+      " Hierarki visual\n\n-5 °C suhu simpan \n•OH radikal\n",
+    );
+    expect(parsed).toEqual([
       "Hierarki visual",
-      "Warna & kontras",
+      "-5 °C suhu simpan",
+      "•OH radikal",
     ]);
-  });
-
-  it("mempertahankan tanda minus yang bukan tanda daftar", () => {
-    expect(parseOutcomes("-5 °C sebagai suhu simpan")).toEqual([
-      "-5 °C sebagai suhu simpan",
-    ]);
-  });
-
-  it("membuang tanda daftar tanpa isi dan • yang menempel pada teks", () => {
-    expect(parseOutcomes("•Hierarki visual\n-\n• \n*")).toEqual([
-      "Hierarki visual",
-    ]);
+    expect(parseOutcomes(parsed.join("\n"))).toEqual(parsed);
   });
 
   it("opsional", () => {

@@ -12,11 +12,11 @@ const text = (label: string, min: number, max: number) =>
 
 export const MAX_OUTCOMES = 6;
 
-/** "Yang akan dipelajari": satu poin per baris; baris kosong dan tanda daftar di awal diabaikan. */
+/** "Yang akan dipelajari": satu poin per baris, disimpan apa adanya; baris kosong diabaikan. */
 export function parseOutcomes(value: string) {
   return value
     .split("\n")
-    .map((line) => line.replace(/^\s*(?:•\s*|[-*](?:\s+|$))/, "").trim())
+    .map((line) => line.trim())
     .filter(Boolean);
 }
 
