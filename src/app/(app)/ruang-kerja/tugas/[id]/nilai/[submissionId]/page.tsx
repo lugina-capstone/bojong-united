@@ -1,3 +1,4 @@
+import { WebLink } from "@/components/ui/web-link";
 import {
   ArrowLeftIcon,
   CheckCircle2Icon,
@@ -173,14 +174,10 @@ export default async function GradePage({
                 />
               )}
               {v.link && (
-                <a
+                <WebLink
                   href={v.link}
-                  target="_blank"
-                  rel="noreferrer"
                   className="truncate text-small text-primary-600 underline"
-                >
-                  {v.link}
-                </a>
+                />
               )}
               {v.text && (
                 <p className="text-small whitespace-pre-line text-label">

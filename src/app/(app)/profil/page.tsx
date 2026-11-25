@@ -17,6 +17,7 @@ import { formatDate } from "@/lib/format";
 import { formatPhone } from "@/lib/validations/profile";
 
 import { CertificatePreview } from "./_components/certificate-preview";
+import { DeleteAccountButton } from "./_components/delete-account-button";
 import { ChangePasswordDialog } from "./_components/change-password-dialog";
 import { loadParticipantProfile } from "./_components/load-profile";
 
@@ -231,6 +232,25 @@ export default async function ParticipantProfilePage({
             title="Tampilan di e-sertifikat"
             name={profile.name}
           />
+          <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
+            <h2 className="text-h3 text-foreground">Hapus akun</h2>
+            <p className="text-small text-muted-foreground">
+              Akun Peserta tidak bisa bergabung ke organisasi. Untuk mendaftar
+              sebagai anggota atau organisasi baru dengan email ini, hapus akun
+              ini terlebih dahulu.
+            </p>
+            {profile.unfinishedEvents > 0 && (
+              <p className="text-small text-muted-foreground">
+                Anda masih terdaftar di {profile.unfinishedEvents} acara yang
+                belum selesai. Akun baru bisa dihapus setelah semua acara itu
+                berakhir.
+              </p>
+            )}
+            <DeleteAccountButton
+              email={profile.email}
+              disabled={profile.unfinishedEvents > 0}
+            />
+          </section>
         </aside>
       </div>
     </div>

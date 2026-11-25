@@ -19,7 +19,7 @@ import { TeamCard } from "@/app/(app)/jelajah/[id]/_components/team-card";
 import { OrgLogo } from "@/components/ui/org-logo";
 import { db } from "@/lib/db";
 import { visibleEventWhere } from "@/lib/event-query";
-import { eventPhase } from "@/lib/event-rules";
+import { eventPhase, maskEmail } from "@/lib/event-rules";
 import { formatDateTime } from "@/lib/format";
 import { logoUrlOf } from "@/lib/organization-access";
 import { hasStarted, requireParticipant } from "@/lib/participant-access";
@@ -192,7 +192,7 @@ export default async function EventDetailPage({
               invites={team.invites.map((i) => ({
                 id: i.id,
                 name: i.invitee.name,
-                email: i.invitee.email,
+                email: maskEmail(i.invitee.email),
                 status: i.status as "PENDING" | "REJECTED",
               }))}
             />

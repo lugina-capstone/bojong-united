@@ -86,7 +86,7 @@ export function SubmissionForm({
     if (!fileId && !text.trim() && !link.trim())
       next.form = "Lampirkan berkas, tautan, atau teks jawaban.";
     if (link.trim() && !/^https?:\/\/\S+$/.test(link.trim()))
-      next.link = "Tautan tidak valid. Awali dengan https://";
+      next.link = "Tautan harus diawali http:// atau https://";
     if (upload.status === "uploading") next.form = "Tunggu unggahan selesai.";
     setErrors(next);
     return Object.keys(next).length === 0;

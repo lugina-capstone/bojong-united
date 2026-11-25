@@ -28,6 +28,14 @@ export function eventPhase(
   return "ongoing";
 }
 
+/** Filter Prisma untuk acara yang belum berakhir (fase `upcoming` atau `ongoing`). */
+export function unfinishedEventWhere(now = new Date()) {
+  return {
+    status: "PUBLISHED" as const,
+    OR: [{ endsAt: null }, { endsAt: { gte: now } }],
+  };
+}
+
 /** Nilai milestone 0–100 = total skor ÷ skor maksimum × 100, tanpa bobot. */
 export function milestoneScore(scores: number[]) {
   const total = scores.reduce((sum, score) => sum + score, 0);
@@ -135,4 +143,11 @@ export function canDeleteEvent(status: string, participantCount: number): Rule {
 /** Nomor sertifikat: BCR-<tahun>-<6 karakter acak>. */
 export function certificateNumber(random: string, now = new Date()) {
   return `BCR-${now.getFullYear()}-${random.toUpperCase()}`;
+}
+
+/** Samarkan email untuk ditampilkan ke peserta lain: "dimas@x.id" → "di***@x.id". */
+export function maskEmail(email: string) {
+  const at = email.lastIndexOf("@");
+  if (at < 1) return "***";
+  return `${email.slice(0, Math.min(2, at - 1) || 1)}***${email.slice(at)}`;
 }

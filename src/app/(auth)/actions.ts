@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import type { z } from "zod";
 
 import { Prisma } from "@/generated/prisma/client";
+import { unfinishedEventWhere } from "@/lib/event-rules";
 import { auth } from "@/lib/auth";
 import { limitAuthAction } from "@/lib/auth-rate-limit";
 import {
@@ -20,7 +21,7 @@ import {
 } from "@/lib/notifications";
 import { generateOrganizationCode } from "@/lib/organization-code";
 import { OTP_RESEND_SECONDS, OTP_VALID_MINUTES, otpResendKey } from "@/lib/otp";
-import { requireUser } from "@/lib/session";
+import { type CurrentUser, requireUser } from "@/lib/session";
 import {
   forgotPasswordSchema,
   joinOrganizationSchema,
@@ -256,15 +257,27 @@ export async function registerOrganizationAction(
   return { ok: true, email: parsed.data.email };
 }
 
-/** Akun yang sedang masuk (dikeluarkan atau Peserta) membuat organisasi baru. */
+/**
+ * Hanya akun yang baru keluar/dikeluarkan dari organisasi yang boleh pindah organisasi.
+ * Akun Peserta harus dihapus dulu, lalu mendaftar ulang sebagai organisasi.
+ */
+function organizationChoiceBlocked(user: CurrentUser) {
+  if (user.membership?.status === "ACTIVE")
+    return "Akun ini masih tergabung di organisasi.";
+  if (user.membership?.status !== "REMOVED")
+    return "Akun Peserta tidak bisa bergabung ke organisasi. Hapus akun ini, lalu daftar ulang sebagai organisasi.";
+  return null;
+}
+
+/** Akun yang baru keluar/dikeluarkan membuat organisasi baru. */
 export async function createOrganizationAction(
   input: unknown,
 ): Promise<FormState> {
   const user = await requireUser();
+  const blocked = organizationChoiceBlocked(user);
+  if (blocked) return { error: blocked };
   const parsed = organizationDataSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
-  if (user.membership?.status === "ACTIVE")
-    return { error: "Akun ini masih tergabung di organisasi." };
   await db.membership.deleteMany({ where: { userId: user.id } });
   const organization = await createOrganization(
     user.id,
@@ -279,11 +292,11 @@ export async function createOrganizationAction(
   return { ok: true };
 }
 
-/** Akun yang sedang masuk (dikeluarkan atau Peserta) bergabung dengan kode. */
+/** Akun yang baru keluar/dikeluarkan bergabung dengan kode. */
 export async function joinOrganizationAction(code: string): Promise<FormState> {
   const user = await requireUser();
-  if (user.membership?.status === "ACTIVE")
-    return { error: "Akun ini masih tergabung di organisasi." };
+  const blocked = organizationChoiceBlocked(user);
+  if (blocked) return { error: blocked };
   const parsed = organizationCodeSchema.safeParse(code);
   const organization = parsed.success
     ? await db.organization.findUnique({
@@ -606,7 +619,7 @@ export async function continueAsPesertaAction() {
 }
 
 /**
- * Hapus akun (AA-10). Data pribadi dihapus; acara dan penilaian tetap di organisasi.
+ * Hapus akun (AA-10). Data pribadi dan sertifikat dihapus; acara, kiriman, dan penilaian tetap tersimpan.
  * Email dianonimkan agar bisa dipakai mendaftar lagi.
  */
 export async function deleteAccountAction(input: {
@@ -614,19 +627,27 @@ export async function deleteAccountAction(input: {
   confirmed: boolean;
 }): Promise<FormState> {
   const user = await requireUser();
-  if (user.membership?.status !== "REMOVED")
+  // Hanya Peserta (tanpa organisasi) atau akun yang sudah keluar/dikeluarkan.
+  if (
+    user.isAdministrator ||
+    (user.membership && user.membership.status !== "REMOVED")
+  )
     return {
-      error: "Hapus akun hanya tersedia setelah dikeluarkan dari organisasi.",
+      error: "Hapus akun hanya tersedia setelah keluar dari organisasi.",
     };
   if (input.email.trim().toLowerCase() !== user.email || !input.confirmed)
     return { fieldErrors: { email: "Email tidak cocok dengan akun ini." } };
-  await db.$transaction([
-    db.materialEnrollment.deleteMany({ where: { userId: user.id } }),
-    db.notification.deleteMany({ where: { userId: user.id } }),
-    db.session.deleteMany({ where: { userId: user.id } }),
-    db.account.deleteMany({ where: { userId: user.id } }),
-    db.membership.deleteMany({ where: { userId: user.id } }),
-    db.user.update({
+  const unfinished = await db.enrollment.count({
+    where: { userId: user.id, event: unfinishedEventWhere() },
+  });
+  if (unfinished > 0)
+    return {
+      error:
+        "Akun belum bisa dihapus karena Anda masih terdaftar di acara yang belum selesai.",
+    };
+  await db.$transaction(async (tx) => {
+    // Lebih dulu, agar penerbitan sertifikat yang bersamaan menunggu baris user ini.
+    await tx.user.update({
       where: { id: user.id },
       data: {
         status: "DELETED",
@@ -636,7 +657,23 @@ export async function deleteAccountAction(input: {
         image: null,
         phone: null,
       },
-    }),
-  ]);
+    });
+    // Sertifikat memuat nama asli penerima, jadi ikut dihapus.
+    await tx.certificate.deleteMany({
+      where: { enrollment: { userId: user.id } },
+    });
+    await tx.materialEnrollment.deleteMany({ where: { userId: user.id } });
+    await tx.notification.deleteMany({ where: { userId: user.id } });
+    await tx.session.deleteMany({ where: { userId: user.id } });
+    await tx.account.deleteMany({ where: { userId: user.id } });
+    await tx.membership.deleteMany({ where: { userId: user.id } });
+    await tx.teamInvite.updateMany({
+      where: {
+        status: "PENDING",
+        OR: [{ inviteeId: user.id }, { inviterId: user.id }],
+      },
+      data: { status: "CANCELLED", respondedAt: new Date() },
+    });
+  });
   redirect("/akun-dihapus");
 }

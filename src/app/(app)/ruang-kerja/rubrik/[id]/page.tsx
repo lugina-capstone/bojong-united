@@ -14,6 +14,7 @@ import { SCORE_LEVELS } from "@/components/ui/score-level";
 import { formatDate } from "@/lib/format";
 import { eventPhaseLabels } from "@/lib/event-rules";
 import { PageHeader } from "@/components/ui/page-header";
+import { canManageRubric } from "@/lib/rubric-access";
 import { requireTeacher } from "@/lib/teacher-access";
 
 export const metadata: Metadata = { title: "Detail rubrik" };
@@ -24,7 +25,7 @@ export default async function RubricDetailPage({
   params,
 }: PageProps<"/ruang-kerja/rubrik/[id]">) {
   const { id } = await params;
-  const { organizationId } = await requireTeacher();
+  const { user, organizationId } = await requireTeacher();
   const rubric = await loadRubric(id, organizationId);
   if (!rubric) notFound();
 
@@ -47,20 +48,23 @@ export default async function RubricDetailPage({
         actions={
           <div className="flex flex-wrap gap-2">
             <CopyRubricButton rubricId={rubric.id} size="md" />
-            {rubric.locked ? (
-              <DeleteRubricButton
-                rubricId={rubric.id}
-                title={rubric.title}
-                usedInEvents={rubric.milestones.length}
-              />
-            ) : (
-              <Link
-                href={`/ruang-kerja/rubrik/${rubric.id}/edit`}
-                className={buttonVariants()}
-              >
-                <PencilIcon aria-hidden="true" />
-                Edit rubrik
-              </Link>
+            {canManageRubric(rubric, user) && (
+              <>
+                {rubric.locked && (
+                  <DeleteRubricButton
+                    rubricId={rubric.id}
+                    title={rubric.title}
+                    usedInEvents={rubric.milestones.length}
+                  />
+                )}
+                <Link
+                  href={`/ruang-kerja/rubrik/${rubric.id}/edit`}
+                  className={buttonVariants()}
+                >
+                  <PencilIcon aria-hidden="true" />
+                  {rubric.locked ? "Buat versi baru" : "Edit rubrik"}
+                </Link>
+              </>
             )}
           </div>
         }
@@ -69,7 +73,7 @@ export default async function RubricDetailPage({
         {rubric.locked ? (
           <Badge tone="warning">
             <LockIcon aria-hidden="true" />
-            Terkunci · sudah dipakai menilai
+            Terkunci · sudah dipakai acara terbit
           </Badge>
         ) : (
           <Badge tone="success">

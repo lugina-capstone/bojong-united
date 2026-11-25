@@ -1,3 +1,4 @@
+import { WebLink } from "@/components/ui/web-link";
 import { ExternalLinkIcon, LockIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -121,14 +122,10 @@ export default async function WorkDetailPage({
                   </a>
                 )}
                 {c.latest.link && (
-                  <a
+                  <WebLink
                     href={c.latest.link}
-                    target="_blank"
-                    rel="noreferrer"
                     className="truncate text-small text-primary-600 hover:underline"
-                  >
-                    {c.latest.link}
-                  </a>
+                  />
                 )}
                 {c.latest.text && (
                   <p className="text-small whitespace-pre-line text-label">

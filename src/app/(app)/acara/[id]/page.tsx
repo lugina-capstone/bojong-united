@@ -1,3 +1,4 @@
+import { WebLink } from "@/components/ui/web-link";
 import {
   ArrowLeftIcon,
   BookOpenIcon,
@@ -691,14 +692,10 @@ function History({ m }: { m: MilestoneView }) {
             />
           )}
           {s.link && (
-            <a
+            <WebLink
               href={s.link}
-              target="_blank"
-              rel="noreferrer"
               className="truncate text-small text-primary-600 underline"
-            >
-              {s.link}
-            </a>
+            />
           )}
           {s.text && (
             <p className="text-small whitespace-pre-line text-label">
