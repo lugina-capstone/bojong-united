@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DeleteRubricButton } from "@/app/(app)/ruang-kerja/rubrik/_components/delete-rubric-button";
+
 import { SectionCard } from "@/app/(app)/_components/section-card";
 import { CopyRubricButton } from "@/app/(app)/ruang-kerja/rubrik/_components/copy-rubric-button";
 import { loadRubric } from "@/app/(app)/ruang-kerja/rubrik/_components/load-rubric";
@@ -45,7 +47,13 @@ export default async function RubricDetailPage({
         actions={
           <div className="flex flex-wrap gap-2">
             <CopyRubricButton rubricId={rubric.id} size="md" />
-            {!rubric.locked && (
+            {rubric.locked ? (
+              <DeleteRubricButton
+                rubricId={rubric.id}
+                title={rubric.title}
+                usedInEvents={rubric.milestones.length}
+              />
+            ) : (
               <Link
                 href={`/ruang-kerja/rubrik/${rubric.id}/edit`}
                 className={buttonVariants()}
