@@ -14,11 +14,13 @@ import {
 } from "@/app/(app)/_components/list-controls";
 import { ListFooter } from "@/app/(app)/_components/list-footer";
 import { ExploreCard } from "@/app/(app)/jelajah/_components/explore-card";
+import { MaterialExplore } from "@/app/(app)/jelajah/_components/material-explore";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { phaseWhere, visibleEventWhere } from "@/lib/event-query";
 import { eventPhase } from "@/lib/event-rules";
+import { visibleMaterialWhere } from "@/lib/material-access";
 import { logoUrlOf } from "@/lib/organization-access";
 import { requireParticipant } from "@/lib/participant-access";
 
@@ -38,6 +40,9 @@ export default async function JelajahPage({
 }: PageProps<"/jelajah">) {
   const user = await requireParticipant();
   const params = (await searchParams) as SearchParams;
+  if (param(params, "tab") === "materi") {
+    return <MaterialExplore userId={user.id} params={params} />;
+  }
   const tab = param(params, "tab") === "diikuti" ? "diikuti" : "acara";
   const q = param(params, "q");
   const orgId = param(params, "org");
@@ -67,41 +72,51 @@ export default async function JelajahPage({
     AND: [filters, phaseWhere(status, now), tab === "diikuti" ? joined : {}],
   };
 
-  const [total, totalAll, joinedAll, events, organizations, fields] =
-    await Promise.all([
-      db.event.count({ where }),
-      db.event.count({ where: visibleEventWhere }),
-      db.event.count({ where: { AND: [visibleEventWhere, joined] } }),
-      db.event.findMany({
-        where,
-        orderBy: [{ startsAt: "desc" }, { createdAt: "desc" }],
-        skip: (page - 1) * PAGE_SIZE,
-        take: PAGE_SIZE,
-        include: {
-          field: { select: { name: true } },
-          creator: { select: { name: true } },
-          organization: {
-            select: {
-              name: true,
-              type: true,
-              logo: { select: { key: true, name: true, contentType: true } },
-            },
+  const [
+    total,
+    totalAll,
+    joinedAll,
+    events,
+    organizations,
+    fields,
+    publicMaterials,
+  ] = await Promise.all([
+    db.event.count({ where }),
+    db.event.count({ where: visibleEventWhere }),
+    db.event.count({ where: { AND: [visibleEventWhere, joined] } }),
+    db.event.findMany({
+      where,
+      orderBy: [{ startsAt: "desc" }, { createdAt: "desc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      include: {
+        field: { select: { name: true } },
+        creator: { select: { name: true } },
+        organization: {
+          select: {
+            name: true,
+            type: true,
+            logo: { select: { key: true, name: true, contentType: true } },
           },
-          enrollments: { where: { userId: user.id }, select: { id: true } },
-          _count: { select: { milestones: true } },
         },
-      }),
-      db.organization.findMany({
-        where: { status: "APPROVED", events: { some: visibleEventWhere } },
-        orderBy: { name: "asc" },
-        select: { id: true, name: true },
-      }),
-      db.subjectField.findMany({
-        where: { events: { some: visibleEventWhere } },
-        orderBy: { name: "asc" },
-        select: { id: true, name: true },
-      }),
-    ]);
+        enrollments: { where: { userId: user.id }, select: { id: true } },
+        _count: { select: { milestones: true } },
+      },
+    }),
+    db.organization.findMany({
+      where: { status: "APPROVED", events: { some: visibleEventWhere } },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    db.subjectField.findMany({
+      where: { events: { some: visibleEventWhere } },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    db.material.count({
+      where: { ...visibleMaterialWhere, visibility: "PUBLIC" },
+    }),
+  ]);
   const logos = await Promise.all(
     events.map((e) => logoUrlOf(e.organization.logo)),
   );
@@ -177,6 +192,12 @@ export default async function JelajahPage({
             label: "Acara",
             count: totalAll,
             href: hrefWith(PATH, params, { tab: null, page: null }),
+          },
+          {
+            value: "materi",
+            label: "Materi",
+            count: publicMaterials,
+            href: hrefWith(PATH, {}, { tab: "materi" }),
           },
           {
             value: "diikuti",

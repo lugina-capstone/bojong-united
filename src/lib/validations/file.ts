@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-/** Tipe file yang boleh diupload beserta ekstensinya. Video dan file besar memakai link (YouTube/Drive). */
+/** Tipe file yang boleh diupload beserta ekstensinya. File di atas 10 MB memakai link (YouTube/Drive). */
 export const allowedFileTypes = {
   "application/pdf": ["pdf"],
   "image/jpeg": ["jpg", "jpeg"],
@@ -14,6 +14,9 @@ export const allowedFileTypes = {
     "pptx",
   ],
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ["xlsx"],
+  "application/msword": ["doc"],
+  "application/vnd.ms-powerpoint": ["ppt"],
+  "video/mp4": ["mp4"],
 } as const satisfies Record<string, readonly string[]>;
 
 export type AllowedFileType = keyof typeof allowedFileTypes;
@@ -37,7 +40,7 @@ export const uploadRequestSchema = z
       .max(255, { error: "Nama file maksimal 255 karakter" }),
     contentType: z.enum(contentTypes, {
       error:
-        "Tipe file tidak didukung. Gunakan PDF, JPG, PNG, DOCX, PPTX, atau XLSX",
+        "Tipe file tidak didukung. Gunakan PDF, JPG, PNG, DOC/DOCX, PPT/PPTX, XLSX, atau MP4",
     }),
     size: z
       .number()

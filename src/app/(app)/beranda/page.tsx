@@ -37,7 +37,7 @@ export default async function BerandaPage({
   const user = await requireHomeRole(["PESERTA"]);
   const sp = await searchParams;
   const tab = TABS.find((t) => t.value === param(sp, "tab")) ?? TABS[0]!;
-  const [enrollments, materialCount] = await Promise.all([
+  const [enrollments, materialCount, learning] = await Promise.all([
     db.enrollment.findMany({
       where: { userId: user.id, event: { status: { not: "DRAFT" } } },
       orderBy: { event: { startsAt: "desc" } },
@@ -69,6 +69,27 @@ export default async function BerandaPage({
       },
     }),
     db.materialEnrollment.count({ where: { userId: user.id } }),
+    db.materialEnrollment.findMany({
+      where: { userId: user.id, material: { status: { not: "DRAFT" } } },
+      orderBy: [
+        { completedAt: { sort: "asc", nulls: "first" } },
+        { updatedAt: "desc" },
+      ],
+      take: 4,
+      select: {
+        progress: true,
+        completedAt: true,
+        material: {
+          select: {
+            id: true,
+            title: true,
+            category: { select: { name: true } },
+            trainer: { select: { name: true } },
+            _count: { select: { sections: true } },
+          },
+        },
+      },
+    }),
   ]);
   const items = enrollments.map(({ event, certificate }) => {
     const latest = event.milestones.map((m) => m.submissions[0] ?? null);
@@ -207,6 +228,53 @@ export default async function BerandaPage({
                 </Link>
               </div>
             </article>
+          ))}
+        </div>
+      )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-h2 text-foreground">Materi yang Anda ikuti</h2>
+        <Link
+          href="/jelajah?tab=materi"
+          className={buttonVariants({
+            variant: "secondary",
+            className: "w-fit",
+          })}
+        >
+          Jelajah materi
+          <BookOpenIcon aria-hidden="true" />
+        </Link>
+      </div>
+      {learning.length === 0 ? (
+        <EmptyState
+          icon={BookOpenIcon}
+          title="Belum ada materi yang diikuti"
+          description="Belajar mandiri tanpa tugas dan nilai lewat Jelajah › Materi."
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {learning.map((l) => (
+            <Link
+              key={l.material.id}
+              href={`/materi/${l.material.id}`}
+              className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 hover:border-primary-200"
+            >
+              <span className="text-caption-strong text-primary-600 uppercase">
+                {l.material.category.name}
+              </span>
+              <span className="text-body-strong text-foreground">
+                {l.material.title}
+              </span>
+              <span className="text-caption text-muted-foreground">
+                {l.material.trainer.name} · {l.material._count.sections} bagian
+                {l.completedAt ? ` · Selesai ${formatDate(l.completedAt)}` : ""}
+              </span>
+              <div className="flex items-center gap-2">
+                <Progress value={l.progress} className="flex-1" />
+                <span className="text-caption-strong text-primary-600">
+                  {l.progress}%
+                </span>
+              </div>
+            </Link>
           ))}
         </div>
       )}

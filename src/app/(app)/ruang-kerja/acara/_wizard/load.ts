@@ -128,7 +128,10 @@ export async function loadWizard(input: {
               status: "DRAFT",
             },
             include: {
-              materials: { select: { materialId: true } },
+              materials: {
+                where: { material: { status: "PUBLISHED" } },
+                select: { materialId: true },
+              },
               milestones: {
                 orderBy: { order: "asc" },
                 include: {
