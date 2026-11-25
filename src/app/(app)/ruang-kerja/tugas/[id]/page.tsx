@@ -61,11 +61,11 @@ function initials(name: string) {
 export default async function ProgressPage({
   params,
   searchParams,
-}: PageProps<"/ruang-kerja/acara/[id]">) {
+}: PageProps<"/ruang-kerja/tugas/[id]">) {
   const { id } = await params;
   const { event } = await requireAssessableEvent(id);
   const sp = await searchParams;
-  const PATH = `/ruang-kerja/acara/${id}`;
+  const PATH = `/ruang-kerja/tugas/${id}`;
   const q = param(sp, "q").trim().toLowerCase();
   const tab = TABS.find((t) => t.value === param(sp, "tab"))?.value ?? "semua";
 
@@ -169,8 +169,8 @@ export default async function ProgressPage({
   return (
     <div className="flex flex-col gap-6">
       <nav className="text-small text-muted-foreground" aria-label="Breadcrumb">
-        <Link href="/ruang-kerja/acara" className="hover:text-foreground">
-          Acara Saya
+        <Link href="/ruang-kerja/tugas" className="hover:text-foreground">
+          Tugas &amp; Penilaian
         </Link>{" "}
         / {event.title} / Pantau progres
       </nav>
@@ -287,7 +287,7 @@ export default async function ProgressPage({
                   </TableHead>
                 ))}
                 <TableHead>Nilai akhir</TableHead>
-                <TableHead className="text-right">Tindakan</TableHead>
+                <TableHead className="text-center">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -395,7 +395,7 @@ export default async function ProgressPage({
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       {target ? (
                         <Link
                           href={`${PATH}/nilai/${target.id}`}

@@ -215,9 +215,15 @@ function EventMenu({
               <MenuItem
                 icon={status === "ARCHIVED" ? EyeIcon : UsersIcon}
                 label={
-                  status === "ARCHIVED" ? "Lihat rincian" : "Lihat peserta"
+                  status === "ARCHIVED" ? "Lihat rincian" : "Pantau progres"
                 }
-                onClick={() => router.push(`/ruang-kerja/acara/${id}`)}
+                onClick={() =>
+                  router.push(
+                    status === "ARCHIVED"
+                      ? `/ruang-kerja/acara/${id}`
+                      : `/ruang-kerja/tugas/${id}`,
+                  )
+                }
               />
               {status !== "ARCHIVED" && <DropdownMenuSeparator />}
               {status === "PUBLISHED" && (

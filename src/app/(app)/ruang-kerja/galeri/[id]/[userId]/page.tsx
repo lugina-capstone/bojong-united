@@ -141,7 +141,7 @@ export default async function WorkDetailPage({
                   </p>
                 )}
                 <Link
-                  href={`/ruang-kerja/acara/${id}/nilai/${c.latest.id}`}
+                  href={`/ruang-kerja/tugas/${id}/nilai/${c.latest.id}`}
                   className={buttonVariants({
                     variant: "link",
                     size: "sm",

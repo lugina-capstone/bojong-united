@@ -56,11 +56,11 @@ const KKM_TONE: Record<KkmStatus, "success" | "danger" | "neutral"> = {
 export default async function RecapPage({
   params,
   searchParams,
-}: PageProps<"/ruang-kerja/acara/[id]/rekap">) {
+}: PageProps<"/ruang-kerja/tugas/[id]/rekap">) {
   const { id } = await params;
   const { event } = await requireAssessableEvent(id);
   const sp = await searchParams;
-  const PATH = `/ruang-kerja/acara/${id}/rekap`;
+  const PATH = `/ruang-kerja/tugas/${id}/rekap`;
   const tab = TABS.find((t) => t.value === param(sp, "tab"))?.value ?? "semua";
   const { milestones, rows } = await loadEventResults(id, event.kkm);
   const count = (s: KkmStatus) => rows.filter((r) => r.kkmStatus === s).length;
@@ -72,12 +72,12 @@ export default async function RecapPage({
   return (
     <div className="flex flex-col gap-6">
       <nav className="text-small text-muted-foreground" aria-label="Breadcrumb">
-        <Link href="/ruang-kerja/acara" className="hover:text-foreground">
-          Acara Saya
+        <Link href="/ruang-kerja/tugas" className="hover:text-foreground">
+          Tugas &amp; Penilaian
         </Link>{" "}
         /{" "}
         <Link
-          href={`/ruang-kerja/acara/${id}`}
+          href={`/ruang-kerja/tugas/${id}`}
           className="hover:text-foreground"
         >
           {event.title}
@@ -150,7 +150,7 @@ export default async function RecapPage({
                 <TableHead>Nilai akhir</TableHead>
                 <TableHead>Status KKM</TableHead>
                 <TableHead>Sertifikat</TableHead>
-                <TableHead className="text-right">Tindakan</TableHead>
+                <TableHead className="text-center">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -209,7 +209,7 @@ export default async function RecapPage({
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-center">
                     <Link
                       href={`/ruang-kerja/galeri/${id}/${r.userId}`}
                       className={buttonVariants({

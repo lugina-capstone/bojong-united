@@ -146,7 +146,7 @@ export default async function RuangKerjaPage() {
                   {done} dari {tasks} tugas dikumpulkan
                 </span>
                 <Link
-                  href={`/ruang-kerja/acara/${e.id}`}
+                  href={`/ruang-kerja/tugas/${e.id}`}
                   className={buttonVariants({
                     variant: "link",
                     size: "sm",

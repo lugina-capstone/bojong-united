@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import {
   gradeSubmissionAction,
   requestRevisionAction,
-} from "@/app/(app)/ruang-kerja/acara/[id]/nilai/actions";
+} from "@/app/(app)/ruang-kerja/tugas/[id]/nilai/actions";
 import {
   AlertDialog,
   AlertDialogAction,

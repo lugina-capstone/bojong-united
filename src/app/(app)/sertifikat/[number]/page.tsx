@@ -19,7 +19,7 @@ export default async function CertificatePage({
   if (!data) notFound();
   const backHref = data.isOwner
     ? `/acara/${data.eventId}`
-    : `/ruang-kerja/acara/${data.eventId}`;
+    : `/ruang-kerja/tugas/${data.eventId}`;
 
   return (
     <div className="flex flex-col gap-6">

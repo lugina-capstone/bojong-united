@@ -187,7 +187,7 @@ export default async function ReportPage({
             </p>
           </div>
           <Link
-            href={`/ruang-kerja/acara/${event.id}/rekap`}
+            href={`/ruang-kerja/tugas/${event.id}/rekap`}
             className={buttonVariants({ className: "w-fit" })}
           >
             Lihat detail lengkap

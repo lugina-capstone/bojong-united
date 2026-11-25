@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { GradePanel } from "@/app/(app)/ruang-kerja/acara/[id]/nilai/[submissionId]/_components/grade-panel";
+import { GradePanel } from "@/app/(app)/ruang-kerja/tugas/[id]/nilai/[submissionId]/_components/grade-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FileItem } from "@/components/ui/file-item";
@@ -20,7 +20,7 @@ export const metadata: Metadata = { title: "Penilaian peserta" };
 
 export default async function GradePage({
   params,
-}: PageProps<"/ruang-kerja/acara/[id]/nilai/[submissionId]">) {
+}: PageProps<"/ruang-kerja/tugas/[id]/nilai/[submissionId]">) {
   const { id, submissionId } = await params;
   const { event } = await requireAssessableEvent(id);
   const submission = await db.submission.findFirst({
@@ -78,12 +78,12 @@ export default async function GradePage({
   return (
     <div className="flex flex-col gap-6">
       <nav className="text-small text-muted-foreground" aria-label="Breadcrumb">
-        <Link href="/ruang-kerja/acara" className="hover:text-foreground">
-          Acara Saya
+        <Link href="/ruang-kerja/tugas" className="hover:text-foreground">
+          Tugas &amp; Penilaian
         </Link>{" "}
         /{" "}
         <Link
-          href={`/ruang-kerja/acara/${id}`}
+          href={`/ruang-kerja/tugas/${id}`}
           className="hover:text-foreground"
         >
           {event.title}
@@ -273,7 +273,7 @@ export default async function GradePage({
         </aside>
       </div>
       <Link
-        href={`/ruang-kerja/acara/${id}`}
+        href={`/ruang-kerja/tugas/${id}`}
         className={buttonVariants({ variant: "secondary", className: "w-fit" })}
       >
         <ArrowLeftIcon aria-hidden="true" />
