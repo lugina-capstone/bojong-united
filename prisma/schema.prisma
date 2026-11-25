@@ -572,6 +572,12 @@ enum MaterialLevel {
   ADVANCED
 }
 
+/// Publik tampil di Jelajah; EVENT_ONLY hanya bisa diikuti lewat acara yang melampirkannya.
+enum MaterialVisibility {
+  PUBLIC
+  EVENT_ONLY
+}
+
 enum MaterialStatus {
   DRAFT
   PUBLISHED
@@ -621,6 +627,8 @@ model Material {
   /// Nama token warna sampul (mis. "sage").
   coverColor     String
   status         MaterialStatus       @default(DRAFT)
+  visibility     MaterialVisibility   @default(PUBLIC)
+  draftStep      Int                  @default(1)
   publishedAt    DateTime?
   archivedAt     DateTime?
   createdAt      DateTime             @default(now())
@@ -645,6 +653,8 @@ model MaterialSection {
   content    String?
   fileId     String?                   @unique
   link       String?
+  /// Estimasi durasi belajar bagian ini (menit).
+  durationMinutes Int?
   material   Material                  @relation(fields: [materialId], references: [id], onDelete: Cascade)
   file       File?                     @relation("MaterialSectionFile", fields: [fileId], references: [id], onDelete: SetNull)
   progress   MaterialSectionProgress[]

@@ -27,6 +27,9 @@ export const notificationTypes = [
   "team.invite-accepted",
   "team.invite-rejected",
   "team.removed",
+  "material.attached",
+  "material.enrolled",
+  "material.completed",
 ] as const;
 
 export type NotificationType = (typeof notificationTypes)[number];
@@ -183,6 +186,30 @@ export function describeNotification(
         href: "/organisasi/acara",
         icon: "calendar",
         tone: "primary",
+      };
+    case "material.attached":
+      return {
+        title: "Materi pendukung baru",
+        body: `${payload.materialTitle ?? "Materi"} dilampirkan ke ${payload.eventTitle ?? "acara Anda"}.`,
+        href: `/ruang-kerja/acara/${payload.eventId}`,
+        icon: "book",
+        tone: "primary",
+      };
+    case "material.enrolled":
+      return {
+        title: "Peserta mengikuti materi",
+        body: `${payload.count ?? "1"} peserta kini mengikuti ${payload.materialTitle ?? "materi Anda"}.`,
+        href: `/ruang-kerja/materi/${payload.materialId}`,
+        icon: "users",
+        tone: "primary",
+      };
+    case "material.completed":
+      return {
+        title: "Materi selesai",
+        body: `${payload.materialTitle ?? "Materi"} tersimpan di Riwayat belajar.`,
+        href: `/materi/${payload.materialId}/selesai`,
+        icon: "check",
+        tone: "success",
       };
     case "submission.new":
       return {

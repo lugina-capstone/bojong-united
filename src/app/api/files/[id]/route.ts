@@ -6,7 +6,8 @@ import { createDownloadUrl } from "@/lib/storage";
 /**
  * Download: redirect ke URL storage sementara.
  * Boleh dibaca: pemilik, Administrator, peserta acara (lampiran milestone),
- * dan anggota aktif organisasi penyelenggara (lampiran dan karya peserta).
+ * anggota aktif organisasi penyelenggara (lampiran dan karya peserta),
+ * serta peserta materi dan anggota organisasi materi (berkas bagian materi).
  */
 export async function GET(
   _request: Request,
@@ -41,6 +42,14 @@ export async function GET(
     })) > 0 ||
     (await db.submission.count({
       where: { fileId: id, milestone: { event: isOrgMember } },
+    })) > 0 ||
+    (await db.materialSection.count({
+      where: {
+        fileId: id,
+        material: {
+          OR: [{ enrollments: { some: { userId: user.id } } }, isOrgMember],
+        },
+      },
     })) > 0;
   if (!canRead) return apiError(404, "not_found", "File tidak ditemukan");
 
