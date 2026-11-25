@@ -50,6 +50,14 @@ const UNUSED_OTP_PATHS = new Set([
   "/email-otp/change-email",
 ]);
 
+const NO_OAUTH_TOKENS = {
+  accessToken: null,
+  refreshToken: null,
+  idToken: null,
+  accessTokenExpiresAt: null,
+  refreshTokenExpiresAt: null,
+};
+
 export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
@@ -83,6 +91,22 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignIn: true,
     autoSignInAfterVerification: true,
+  },
+  onAPIError: { errorURL: `${env.BETTER_AUTH_URL}/masuk` },
+  // Token Google hanya dipakai saat masuk, jadi tidak disimpan.
+  databaseHooks: {
+    account: {
+      create: {
+        before: async (account) => ({
+          data: { ...account, ...NO_OAUTH_TOKENS },
+        }),
+      },
+      update: {
+        before: async (account) => ({
+          data: { ...account, ...NO_OAUTH_TOKENS },
+        }),
+      },
+    },
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
@@ -159,6 +183,8 @@ export const auth = betterAuth({
           google: {
             clientId: env.GOOGLE_CLIENT_ID,
             clientSecret: env.GOOGLE_CLIENT_SECRET,
+            // Di komputer bersama, jangan langsung masuk dengan akun Google yang sedang aktif.
+            prompt: "select_account",
           },
         }
       : undefined,
