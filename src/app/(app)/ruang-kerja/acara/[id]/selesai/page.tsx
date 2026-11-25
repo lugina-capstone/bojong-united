@@ -43,7 +43,7 @@ export default async function EventPublishedPage({
           <CompassIcon aria-hidden="true" />
           Ke Acara Saya
         </Link>
-        <Link href={`/ruang-kerja/acara/${id}`} className={buttonVariants()}>
+        <Link href={`/ruang-kerja/tugas/${id}`} className={buttonVariants()}>
           Pantau progres
           <ArrowRightIcon aria-hidden="true" />
         </Link>
