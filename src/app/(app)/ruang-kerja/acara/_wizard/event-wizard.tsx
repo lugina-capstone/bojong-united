@@ -192,6 +192,7 @@ function EventWizard({ data, step }: { data: WizardData; step: number }) {
               setRubrics((list) => [rubric, ...list])
             }
             fields={fields}
+            onFieldCreated={(field) => setFields((list) => [...list, field])}
             errors={errors}
           />
         )}

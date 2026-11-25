@@ -78,6 +78,13 @@ export async function updateRubricAction(
       fieldErrors: fieldErrorsOf(parsed.error.issues),
     };
   }
+  const field = await db.subjectField.findFirst({
+    where: {
+      id: parsed.data.fieldId,
+      OR: [{ organizationId }, { organizationId: null }],
+    },
+  });
+  if (!field) return { fieldErrors: { fieldId: "Bidang tidak ditemukan" } };
   const used =
     (await db.gradeScore.count({ where: { criterion: { rubricId } } })) > 0;
   if (used) {
@@ -87,7 +94,7 @@ export async function updateRubricAction(
         creatorId: user.id,
         title: parsed.data.title,
         description: parsed.data.description,
-        fieldId: parsed.data.fieldId,
+        fieldId: field.id,
         version: rubric.version + 1,
         sourceRubricId: rubric.sourceRubricId ?? rubric.id,
         criteria: { create: criteriaData(parsed.data.criteria) },
@@ -103,7 +110,7 @@ export async function updateRubricAction(
       data: {
         title: parsed.data.title,
         description: parsed.data.description,
-        fieldId: parsed.data.fieldId,
+        fieldId: field.id,
         criteria: { create: criteriaData(parsed.data.criteria) },
       },
     }),
