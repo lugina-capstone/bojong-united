@@ -58,7 +58,7 @@ function TrainerRequestActions({
   }
 
   return (
-    <div className="flex justify-end gap-2">
+    <div className="flex justify-center gap-2">
       <Button variant="secondary" size="sm" onClick={() => setDialog("reject")}>
         Tolak
       </Button>

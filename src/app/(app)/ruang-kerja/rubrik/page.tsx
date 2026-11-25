@@ -212,7 +212,7 @@ export default async function RubricsPage({
                 <TableHead>Dipakai</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Diperbarui</TableHead>
-                <TableHead className="text-right">Tindakan</TableHead>
+                <TableHead className="text-center">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -277,7 +277,7 @@ export default async function RubricsPage({
                       {formatDate(rubric.updatedAt)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-center gap-2">
                         <Link
                           href={`/ruang-kerja/rubrik/${rubric.id}`}
                           className={buttonVariants({

@@ -193,7 +193,7 @@ export default async function AdminPage() {
                   <TableHead>Organisasi</TableHead>
                   <TableHead>Pemohon</TableHead>
                   <TableHead>Diajukan</TableHead>
-                  <TableHead className="text-right">Tindakan</TableHead>
+                  <TableHead className="text-center">Tindakan</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -239,7 +239,7 @@ export default async function AdminPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center">
                         <Link
                           href={`/admin/persetujuan/${organization.id}`}
                           className={buttonVariants({ size: "sm" })}
