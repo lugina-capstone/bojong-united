@@ -31,7 +31,9 @@ export async function loadWorkspace(eventId: string, userId: string) {
       organization: { select: { name: true, status: true } },
       materials: {
         include: {
-          material: { select: { id: true, title: true, description: true } },
+          material: {
+            select: { id: true, title: true, description: true, status: true },
+          },
         },
       },
       milestones: {

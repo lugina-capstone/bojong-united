@@ -24,7 +24,7 @@ export async function GET(
     return apiError(404, "not_found", "File tidak ditemukan");
   const isOrgMember = {
     organization: {
-      memberships: { some: { userId: user.id, status: "ACTIVE" as const } },
+      members: { some: { userId: user.id, status: "ACTIVE" as const } },
     },
   };
   const canRead =

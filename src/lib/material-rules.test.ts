@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canOpenSection,
+  lastOpenSection,
   canDeleteMaterial,
   formatDuration,
   materialCover,
@@ -41,5 +43,14 @@ describe("material rules", () => {
     expect(shouldNotifyEnrollment(1)).toBe(true);
     expect(shouldNotifyEnrollment(3)).toBe(false);
     expect(shouldNotifyEnrollment(200)).toBe(true);
+  });
+
+  it("membuka bagian secara berurutan", () => {
+    expect(lastOpenSection([false, false, false])).toBe(0);
+    expect(lastOpenSection([true, false, false])).toBe(1);
+    expect(lastOpenSection([true, true, true])).toBe(2);
+    expect(canOpenSection(1, [true, false, false])).toBe(true);
+    expect(canOpenSection(2, [true, false, false])).toBe(false);
+    expect(canOpenSection(3, [true, true, true])).toBe(false);
   });
 });

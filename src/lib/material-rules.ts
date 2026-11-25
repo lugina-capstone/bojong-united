@@ -72,3 +72,13 @@ export function materialCover(color: string): CoverTone {
     ? (color as CoverTone)
     : "blue";
 }
+
+/** Indeks bagian terakhir yang boleh dibuka: bagian berurutan, terbuka setelah bagian sebelumnya selesai. */
+export function lastOpenSection(done: boolean[]) {
+  const first = done.indexOf(false);
+  return first === -1 ? done.length - 1 : first;
+}
+
+export function canOpenSection(index: number, done: boolean[]) {
+  return index >= 0 && index < done.length && index <= lastOpenSection(done);
+}

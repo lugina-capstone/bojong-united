@@ -93,7 +93,11 @@ export default async function PortfolioPage({
         completedAt: true,
         updatedAt: true,
         material: {
-          select: { title: true, category: { select: { name: true } } },
+          select: {
+            id: true,
+            title: true,
+            category: { select: { name: true } },
+          },
         },
       },
     }),
@@ -413,9 +417,16 @@ export default async function PortfolioPage({
                   <span className="text-caption text-muted-foreground">
                     {m.material.category.name}
                   </span>
-                  <span className="text-body-strong text-foreground">
+                  <Link
+                    href={
+                      m.completedAt
+                        ? `/materi/${m.material.id}/selesai`
+                        : `/materi/${m.material.id}`
+                    }
+                    className="text-body-strong text-foreground hover:text-primary-600"
+                  >
                     {m.material.title}
-                  </span>
+                  </Link>
                   <span className="text-caption text-muted-foreground">
                     {m.completedAt
                       ? `Selesai ${formatDate(m.completedAt)}`

@@ -4,7 +4,11 @@ import { refresh } from "next/cache";
 
 import { db } from "@/lib/db";
 import { visibleMaterialWhere } from "@/lib/material-access";
-import { materialProgress, shouldNotifyEnrollment } from "@/lib/material-rules";
+import {
+  canOpenSection,
+  materialProgress,
+  shouldNotifyEnrollment,
+} from "@/lib/material-rules";
 import { notify } from "@/lib/notifications";
 import { requirePermission } from "@/lib/session";
 
@@ -69,11 +73,27 @@ export async function completeSectionAction(
   if (!enrollment || enrollment.material.status === "DRAFT") {
     return { error: "Ikuti materi ini terlebih dahulu." };
   }
-  const section = await db.materialSection.findFirst({
-    where: { id: sectionId, materialId },
-    select: { id: true },
+  const sections = await db.materialSection.findMany({
+    where: { materialId },
+    orderBy: { order: "asc" },
+    select: {
+      id: true,
+      progress: {
+        where: { enrollmentId: enrollment.id },
+        select: { sectionId: true },
+      },
+    },
   });
-  if (!section) return { error: "Bagian tidak ditemukan." };
+  const index = sections.findIndex((s) => s.id === sectionId);
+  if (index === -1) return { error: "Bagian tidak ditemukan." };
+  if (
+    !canOpenSection(
+      index,
+      sections.map((s) => s.progress.length > 0),
+    )
+  ) {
+    return { error: "Selesaikan bagian sebelumnya terlebih dahulu." };
+  }
   await db.materialSectionProgress.upsert({
     where: {
       enrollmentId_sectionId: { enrollmentId: enrollment.id, sectionId },

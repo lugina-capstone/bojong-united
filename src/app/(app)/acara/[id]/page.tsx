@@ -14,6 +14,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SubmissionForm } from "@/app/(app)/acara/[id]/_components/submission-form";
+import { EnrollButton } from "@/app/(app)/materi/_components/enroll-button";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FileItem } from "@/components/ui/file-item";
@@ -25,6 +26,7 @@ import {
   formatFileSize,
   formatScore,
 } from "@/lib/format";
+import { db } from "@/lib/db";
 import { requireParticipant } from "@/lib/participant-access";
 import { loadWorkspace, type MilestoneView } from "@/lib/participant-workspace";
 import { cn } from "@/lib/utils";
@@ -60,6 +62,18 @@ export default async function WorkspacePage({
   const ws = await loadWorkspace(id, user.id);
   const { event, milestones } = ws;
   const tab = sp.tab === "materi" ? "materi" : "milestone";
+  const materialProgress = new Map(
+    (tab === "materi"
+      ? await db.materialEnrollment.findMany({
+          where: {
+            userId: user.id,
+            materialId: { in: event.materials.map((m) => m.material.id) },
+          },
+          select: { materialId: true, progress: true, completedAt: true },
+        })
+      : []
+    ).map((e) => [e.materialId, e]),
+  );
   const requested = Number(sp.m);
   const fallback =
     milestones.find((m) => m.canSubmit) ??
@@ -191,7 +205,7 @@ export default async function WorkspacePage({
                   aria-hidden="true"
                   className="size-5 shrink-0 text-primary-500"
                 />
-                <div className="flex min-w-0 flex-col gap-1">
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <h2 className="text-body-strong text-foreground">
                     {material.title}
                   </h2>
@@ -200,6 +214,42 @@ export default async function WorkspacePage({
                       {material.description}
                     </p>
                   )}
+                  {(() => {
+                    const e = materialProgress.get(material.id);
+                    if (!e) {
+                      return material.status === "PUBLISHED" ? (
+                        <EnrollButton
+                          materialId={material.id}
+                          size="sm"
+                          className="mt-1 w-fit"
+                        />
+                      ) : null;
+                    }
+                    return (
+                      <div className="mt-1 flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <Progress
+                            value={e.progress}
+                            label={`Progres ${material.title}`}
+                            className="flex-1"
+                          />
+                          <span className="text-caption-strong text-primary-600">
+                            {e.progress}%
+                          </span>
+                        </div>
+                        <Link
+                          href={`/materi/${material.id}`}
+                          className={buttonVariants({
+                            size: "sm",
+                            variant: e.completedAt ? "secondary" : "primary",
+                            className: "w-fit",
+                          })}
+                        >
+                          {e.completedAt ? "Buka lagi" : "Lanjutkan belajar"}
+                        </Link>
+                      </div>
+                    );
+                  })()}
                 </div>
               </article>
             ))

@@ -21,11 +21,20 @@ describe("uploadRequestSchema", () => {
 
   it("menolak tipe yang tidak didukung", () => {
     const result = uploadRequestSchema.safeParse({
+      name: "setup.exe",
+      contentType: "application/x-msdownload",
+      size: 1024,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("menerima video MP4 untuk bagian materi", () => {
+    const result = uploadRequestSchema.safeParse({
       name: "video.mp4",
       contentType: "video/mp4",
       size: 1024,
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it("menolak ekstensi yang tidak sesuai dengan tipe", () => {
