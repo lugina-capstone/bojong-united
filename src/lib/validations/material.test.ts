@@ -24,6 +24,12 @@ describe("outcomes materi", () => {
     ]);
   });
 
+  it("membuang tanda daftar tanpa isi dan • yang menempel pada teks", () => {
+    expect(parseOutcomes("•Hierarki visual\n-\n• \n*")).toEqual([
+      "Hierarki visual",
+    ]);
+  });
+
   it("opsional", () => {
     expect(materialInfoSchema.parse(info).outcomes).toEqual([]);
   });
