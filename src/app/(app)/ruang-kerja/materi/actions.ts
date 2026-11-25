@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { requireOwnMaterial, requireTrainer } from "@/lib/material-access";
 import { canDeleteMaterial, materialProgress } from "@/lib/material-rules";
 import { notify } from "@/lib/notifications";
+import { deleteObject } from "@/lib/storage";
 import {
   materialInfoSchema,
   materialPublishSchema,
@@ -20,7 +21,22 @@ export type MaterialActionState = {
   materialId?: string;
   categoryId?: string;
   archiveSuggested?: boolean;
+  sectionIds?: string[];
 };
+
+/** Hapus berkas bagian yang sudah tidak dipakai materi mana pun dari storage privat. */
+async function removeUnusedFiles(fileIds: (string | null)[]) {
+  const ids = fileIds.filter((id): id is string => Boolean(id));
+  if (ids.length === 0) return;
+  const files = await db.file.findMany({
+    where: { id: { in: ids }, materialSection: null },
+    select: { id: true, key: true },
+  });
+  await Promise.all(
+    files.map((f) => deleteObject(f.key).catch(() => undefined)),
+  );
+  await db.file.deleteMany({ where: { id: { in: files.map((f) => f.id) } } });
+}
 
 function fieldErrorsOf(issues: { path: PropertyKey[]; message: string }[]) {
   const errors: Record<string, string> = {};
@@ -124,8 +140,7 @@ async function recomputeProgress(materialId: string) {
         where: { id: e.id },
         data: {
           progress,
-          completedAt:
-            progress === 100 ? (e.completedAt ?? new Date()) : e.completedAt,
+          completedAt: progress === 100 ? (e.completedAt ?? new Date()) : null,
         },
       });
     }),
@@ -173,7 +188,8 @@ export async function saveMaterialSectionsAction(
   const keepIds = sections.flatMap((s) =>
     s.id && existingIds.has(s.id) ? [s.id] : [],
   );
-  await db.$transaction(async (tx) => {
+  const sectionIds = await db.$transaction(async (tx) => {
+    const ids: string[] = [];
     await tx.materialSection.deleteMany({
       where: { materialId, id: { notIn: keepIds } },
     });
@@ -192,18 +208,24 @@ export async function saveMaterialSectionsAction(
       };
       if (s.id && existingIds.has(s.id)) {
         await tx.materialSection.update({ where: { id: s.id }, data: values });
+        ids.push(s.id);
       } else {
-        await tx.materialSection.create({ data: { ...values, materialId } });
+        const created = await tx.materialSection.create({
+          data: { ...values, materialId },
+        });
+        ids.push(created.id);
       }
     }
     await tx.material.update({
       where: { id: materialId },
       data: { draftStep: Math.max(material.draftStep, 3) },
     });
+    return ids;
   });
+  await removeUnusedFiles(existing.map((s) => s.fileId));
   if (material.status !== "DRAFT") await recomputeProgress(materialId);
   refresh();
-  return { ok: true, materialId };
+  return { ok: true, materialId, sectionIds };
 }
 
 async function notifyAttached(
@@ -242,23 +264,23 @@ export async function saveMaterialPublishAction(
     };
   }
   const { visibility, eventIds } = parsed.data;
-  const events = await db.event.findMany({
-    where: {
-      id: { in: eventIds },
-      organizationId,
-      status: { in: ["DRAFT", "PUBLISHED"] },
-    },
-    select: { id: true },
-  });
-  if (events.length !== new Set(eventIds).size) {
-    return { error: "Acara tidak ditemukan atau sudah ditutup." };
-  }
   const current = await db.eventMaterial.findMany({
     where: { materialId },
     select: { eventId: true, event: { select: { status: true } } },
   });
   const currentIds = new Set(current.map((c) => c.eventId));
-  const added = eventIds.filter((id) => !currentIds.has(id));
+  const added = [...new Set(eventIds.filter((id) => !currentIds.has(id)))];
+  const events = await db.event.findMany({
+    where: {
+      id: { in: added },
+      organizationId,
+      status: { in: ["DRAFT", "PUBLISHED"] },
+    },
+    select: { id: true },
+  });
+  if (events.length !== added.length) {
+    return { error: "Acara tidak ditemukan atau sudah ditutup." };
+  }
   const removable = current
     .filter(
       (c) =>
@@ -351,7 +373,12 @@ export async function deleteMaterialAction(
       archiveSuggested: true,
     };
   }
+  const sections = await db.materialSection.findMany({
+    where: { materialId },
+    select: { fileId: true },
+  });
   await db.material.delete({ where: { id: material.id } });
+  await removeUnusedFiles(sections.map((s) => s.fileId));
   refresh();
   return { ok: true };
 }

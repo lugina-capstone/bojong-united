@@ -89,6 +89,7 @@ function MaterialWizard({ data, step }: { data: Data; step: number }) {
         data.materialId,
         sections.map((s) => ({
           id: s.id,
+          mode: s.mode,
           title: s.title,
           content: s.content,
           fileId: s.mode === "file" ? s.fileId : null,
@@ -109,6 +110,12 @@ function MaterialWizard({ data, step }: { data: Data; step: number }) {
         return;
       }
       const id = result.materialId ?? data.materialId!;
+      const savedIds = result.sectionIds;
+      if (savedIds) {
+        setSections((list) =>
+          list.map((s, i) => ({ ...s, id: savedIds[i] ?? s.id })),
+        );
+      }
       if (result.categoryId && info.newCategory) {
         if (!categories.some((c) => c.id === result.categoryId)) {
           setCategories((list) => [

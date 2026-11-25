@@ -33,6 +33,7 @@ export const materialInfoSchema = z
 export const materialSectionSchema = z
   .object({
     id: z.string().optional(),
+    mode: z.enum(["text", "file", "link"]).optional(),
     title: text("Judul bagian", 3, 120),
     content: z.string().trim().max(10000).default(""),
     fileId: z.string().nullable().default(null),
@@ -50,6 +51,14 @@ export const materialSectionSchema = z
   .refine((s) => Boolean(s.content || s.fileId || s.link), {
     path: ["content"],
     error: "Isi bagian dengan teks bacaan, berkas, atau tautan",
+  })
+  .refine((s) => s.mode !== "file" || Boolean(s.fileId), {
+    path: ["content"],
+    error: "Unggah berkas untuk bagian ini",
+  })
+  .refine((s) => s.mode !== "link" || Boolean(s.link), {
+    path: ["link"],
+    error: "Isi tautan untuk bagian ini",
   });
 
 export const materialSectionsSchema = z

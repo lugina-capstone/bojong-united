@@ -90,6 +90,11 @@ function StepContent({
     if (value.length === 0) onChange([emptySection()]);
   }, [value.length, onChange]);
 
+  const listRef = React.useRef(list);
+  React.useEffect(() => {
+    listRef.current = list;
+  });
+
   function update(patch: Partial<WizardSection>) {
     onChange(list.map((s, i) => (i === index ? { ...s, ...patch } : s)));
   }
@@ -111,6 +116,7 @@ function StepContent({
 
   async function attach(file: File | undefined) {
     if (!file) return;
+    const key = list[index]?.key;
     const types = allowedFileTypes as Record<string, readonly string[]>;
     if (!types[file.type]) {
       setUpload({
@@ -140,14 +146,21 @@ function StepContent({
       return;
     }
     setUpload(null);
-    update({
-      fileId: uploaded.id,
-      file: {
-        name: uploaded.name,
-        size: uploaded.size,
-        contentType: uploaded.contentType,
-      },
-    });
+    onChange(
+      listRef.current.map((s) =>
+        s.key === key
+          ? {
+              ...s,
+              fileId: uploaded.id,
+              file: {
+                name: uploaded.name,
+                size: uploaded.size,
+                contentType: uploaded.contentType,
+              },
+            }
+          : s,
+      ),
+    );
   }
 
   const totalMinutes = list.reduce(
