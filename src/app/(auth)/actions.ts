@@ -466,6 +466,8 @@ export async function signOutToSignUpAction() {
       membership: null,
       accounts: { none: { providerId: "credential" } },
       enrollments: { none: {} },
+      materialEnrollments: { none: {} },
+      trainerRequests: { none: {} },
     },
   });
   redirect("/daftar");
