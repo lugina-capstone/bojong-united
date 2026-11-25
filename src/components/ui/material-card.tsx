@@ -4,6 +4,8 @@ import { ClockIcon, LayersIcon, UsersIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { OrgLogo } from "@/components/ui/org-logo";
 import { Progress } from "@/components/ui/progress";
+import type { CoverTone } from "@/components/ui/event-card";
+import { COVER_CLASS } from "@/lib/event-cover";
 
 type MaterialStatus = "not-started" | "in-progress" | "completed";
 
@@ -25,6 +27,7 @@ function MaterialCard({
   learners,
   status,
   progress = 0,
+  cover,
   className,
 }: {
   title: string;
@@ -37,6 +40,8 @@ function MaterialCard({
   learners: number;
   status: MaterialStatus;
   progress?: number;
+  /** Warna sampul materi; tanpa ini warna mengikuti status. */
+  cover?: CoverTone;
   className?: string;
 }) {
   return (
@@ -47,7 +52,12 @@ function MaterialCard({
         className,
       )}
     >
-      <div className={cn("flex h-32 flex-col gap-2.5 p-4.5", COVER[status])}>
+      <div
+        className={cn(
+          "flex h-32 flex-col gap-2.5 p-4.5",
+          cover ? COVER_CLASS[cover] : COVER[status],
+        )}
+      >
         <p className="text-overline">{category}</p>
         <h3 className="line-clamp-2 text-h2">{title}</h3>
       </div>
