@@ -455,7 +455,19 @@ export async function signOutAction() {
 
 /** Dari "Lengkapi Data Google": keluar lalu daftar lewat formulir email. */
 export async function signOutToSignUpAction() {
+  const user = await requireUser();
   await auth.api.signOut({ headers: await headers() });
+  // Akun Google yang belum melengkapi data dihapus agar emailnya bisa dipakai di formulir email.
+  await db.user.deleteMany({
+    where: {
+      id: user.id,
+      profileCompletedAt: null,
+      isAdministrator: false,
+      membership: null,
+      accounts: { none: { providerId: "credential" } },
+      enrollments: { none: {} },
+    },
+  });
   redirect("/daftar");
 }
 
@@ -509,7 +521,10 @@ export async function completeGoogleProfileAction(
   const user = await requireUser();
   const parsed = profileSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
-  await db.user.update({ where: { id: user.id }, data: parsed.data });
+  await db.user.update({
+    where: { id: user.id },
+    data: { ...parsed.data, profileCompletedAt: new Date() },
+  });
   redirect(destinationHref(destinationFor(user)));
 }
 
