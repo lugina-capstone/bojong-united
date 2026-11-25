@@ -8,14 +8,18 @@ import type { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { limitAuthAction } from "@/lib/auth-rate-limit";
-import { destinationFor, destinationHref } from "@/lib/auth-routing";
+import {
+  afterSignInHref,
+  destinationFor,
+  destinationHref,
+} from "@/lib/auth-routing";
 import { db } from "@/lib/db";
 import {
   notifyAdministrators,
   notifyOrganizationAdmins,
 } from "@/lib/notifications";
 import { generateOrganizationCode } from "@/lib/organization-code";
-import { OTP_RESEND_SECONDS, otpResendKey } from "@/lib/otp";
+import { OTP_RESEND_SECONDS, OTP_VALID_MINUTES, otpResendKey } from "@/lib/otp";
 import { requireUser } from "@/lib/session";
 import {
   forgotPasswordSchema,
@@ -50,7 +54,55 @@ function fieldErrorsOf(error: z.ZodError): FormState {
   return { fieldErrors };
 }
 
+/**
+ * Email dianggap terpakai bila akunnya sudah terverifikasi atau kode OTP-nya masih berlaku.
+ * Akun yang tidak pernah diverifikasi dihapus (beserta pengajuan organisasinya) agar pemilik
+ * email tidak terkunci oleh pendaftaran orang lain dan tidak mewarisi organisasi pilihan orang itu.
+ */
 async function emailTaken(email: string) {
+  const user = await db.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      emailVerified: true,
+      createdAt: true,
+      membership: {
+        select: {
+          isAdmin: true,
+          organization: {
+            select: {
+              id: true,
+              status: true,
+              _count: { select: { members: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!user) return false;
+  const otpExpired =
+    user.createdAt.getTime() < Date.now() - OTP_VALID_MINUTES * 60 * 1000;
+  if (user.emailVerified || !otpExpired) return true;
+  const organization = user.membership?.organization;
+  const ownPendingOrganization =
+    user.membership?.isAdmin &&
+    organization?.status === "PENDING" &&
+    organization._count.members === 1;
+  await db.$transaction([
+    db.user.deleteMany({ where: { id: user.id, emailVerified: false } }),
+    ...(ownPendingOrganization && organization
+      ? [
+          db.organization.deleteMany({
+            where: {
+              id: organization.id,
+              status: "PENDING",
+              members: { none: {} },
+            },
+          }),
+        ]
+      : []),
+  ]);
   return (await db.user.count({ where: { email } })) > 0;
 }
 
@@ -403,13 +455,16 @@ export async function resendOtpAction(email: string): Promise<FormState> {
 }
 
 /** Tujuan setelah sesi ada: beranda, layar Dikeluarkan, atau layar status di Masuk. */
-export async function homeHref() {
+export async function homeHref(callbackURL?: unknown) {
   const user = await requireUser();
-  return destinationHref(destinationFor(user));
+  return afterSignInHref(destinationFor(user), callbackURL);
 }
 
 /** Masuk (AA-04). */
-export async function signInAction(input: unknown): Promise<FormState> {
+export async function signInAction(
+  input: unknown,
+  callbackURL?: string,
+): Promise<FormState> {
   const parsed = signInSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
   const { email } = parsed.data;
@@ -445,7 +500,7 @@ export async function signInAction(input: unknown): Promise<FormState> {
       `/masuk?status=${destination.status}&email=${encodeURIComponent(email)}`,
     );
   }
-  redirect(destinationHref(destination));
+  redirect(afterSignInHref(destination, callbackURL));
 }
 
 export async function signOutAction() {
@@ -480,8 +535,11 @@ export async function forgotPasswordAction(input: unknown): Promise<FormState> {
   if (limited) return { error: limited };
   const user = await db.user.findUnique({
     where: { email: parsed.data.email },
-    select: { id: true },
+    select: { id: true, emailVerified: true },
   });
+  // Akun yang belum terverifikasi tidak bisa dipulihkan lewat reset; pemilik email mendaftar ulang.
+  if (user && !user.emailVerified)
+    return { ok: true, email: parsed.data.email };
   const throttled =
     user &&
     (await sentRecently({

@@ -25,10 +25,12 @@ function SignInForm({
   googleEnabled,
   defaultEmail = "",
   statusAlert,
+  callbackURL,
 }: {
   googleEnabled: boolean;
   defaultEmail?: string;
   statusAlert?: React.ReactNode;
+  callbackURL?: string;
 }) {
   const [values, setValues] = React.useState({
     email: defaultEmail,
@@ -94,7 +96,7 @@ function SignInForm({
           event.preventDefault();
           if (unverifiedEmail) return setVerifying(true);
           startTransition(async () =>
-            setState((await signInAction(values)) ?? {}),
+            setState((await signInAction(values, callbackURL)) ?? {}),
           );
         }}
       >
@@ -153,7 +155,9 @@ function SignInForm({
         <Button type="submit" size="lg" disabled={pending}>
           {unverifiedEmail ? "Verifikasi email sekarang" : "Masuk ke beranda"}
         </Button>
-        {googleEnabled && <GoogleSignIn label="Masuk dengan Google" />}
+        {googleEnabled && (
+          <GoogleSignIn label="Masuk dengan Google" callbackURL={callbackURL} />
+        )}
       </form>
       <p className="text-center text-small text-muted-foreground">
         Belum memiliki akun?{" "}

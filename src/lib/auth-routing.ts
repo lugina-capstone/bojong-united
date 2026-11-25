@@ -43,3 +43,30 @@ export function destinationHref(destination: Destination) {
     ? `/masuk?status=${destination.status}`
     : destination.href;
 }
+
+const ORIGIN = "http://becraft.invalid";
+
+/** Alamat tujuan dari `callbackURL` hanya dipakai bila berupa path di aplikasi ini, bukan layar akses akun. */
+export function safeCallbackPath(value: unknown) {
+  if (typeof value !== "string" || !/^\/[^/\\]/.test(value)) return undefined;
+  let url: URL;
+  try {
+    url = new URL(value, ORIGIN);
+  } catch {
+    return undefined;
+  }
+  if (url.origin !== ORIGIN) return undefined;
+  if (/^\/(masuk|daftar|api)(\/|$)/.test(url.pathname)) return undefined;
+  return url.pathname + url.search;
+}
+
+/** Tujuan setelah masuk: alamat semula hanya untuk akun yang memang boleh ke berandanya. */
+export function afterSignInHref(
+  destination: Destination,
+  callbackURL?: unknown,
+) {
+  const href = destinationHref(destination);
+  return destination.type === "home"
+    ? (safeCallbackPath(callbackURL) ?? href)
+    : href;
+}

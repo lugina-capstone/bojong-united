@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { destinationFor, destinationHref } from "@/lib/auth-routing";
+import {
+  afterSignInHref,
+  destinationFor,
+  destinationHref,
+  safeCallbackPath,
+} from "@/lib/auth-routing";
 
 const member = (
   status: "ACTIVE" | "REMOVED",
@@ -49,5 +54,49 @@ describe("destinationFor", () => {
     expect(destinationHref(destinationFor(member("REMOVED", "APPROVED")))).toBe(
       "/dikeluarkan",
     );
+  });
+});
+
+describe("safeCallbackPath", () => {
+  it("menerima path di dalam aplikasi beserta query", () => {
+    expect(safeCallbackPath("/acara/abc?tab=tim")).toBe("/acara/abc?tab=tim");
+  });
+
+  it.each([
+    "https://evil.test/x",
+    "//evil.test/x",
+    "/\\evil.test/x",
+    "acara",
+    "/masuk?status=menunggu",
+    "/daftar/google",
+    "/api/auth/get-session",
+    "",
+    undefined,
+    ["/acara"],
+  ])("menolak %j", (value) => {
+    expect(safeCallbackPath(value)).toBeUndefined();
+  });
+});
+
+describe("afterSignInHref", () => {
+  it("memakai alamat semula untuk akun yang masuk ke beranda", () => {
+    expect(
+      afterSignInHref({ type: "home", href: "/beranda" }, "/acara/abc"),
+    ).toBe("/acara/abc");
+  });
+
+  it("mengabaikan alamat semula untuk akun dikeluarkan atau berstatus", () => {
+    expect(
+      afterSignInHref({ type: "removed", href: "/dikeluarkan" }, "/acara/abc"),
+    ).toBe("/dikeluarkan");
+    expect(
+      afterSignInHref({ type: "status", status: "menunggu" }, "/acara/abc"),
+    ).toBe("/masuk?status=menunggu");
+  });
+
+  it("kembali ke beranda bila alamat semula tidak aman", () => {
+    expect(
+      afterSignInHref({ type: "home", href: "/admin" }, "//evil.test"),
+    ).toBe("/admin");
   });
 });
