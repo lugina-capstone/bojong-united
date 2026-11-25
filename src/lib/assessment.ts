@@ -64,10 +64,12 @@ export async function issueCertificateIfEligible(
     include: {
       certificate: true,
       event: true,
-      user: { select: { name: true } },
+      user: { select: { name: true, status: true } },
     },
   });
   if (!enrollment || enrollment.certificate) return null;
+  // Akun yang dihapus tidak lagi menerima sertifikat.
+  if (enrollment.user.status !== "ACTIVE") return null;
   const { event } = enrollment;
   const rows = await latestMilestoneScores(eventId, userId);
   if (rows.some((r) => !r.surveyDone)) return null;

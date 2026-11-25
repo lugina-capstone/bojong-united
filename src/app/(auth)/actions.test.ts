@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
     session: { deleteMany: vi.fn() },
     account: { deleteMany: vi.fn() },
     teamInvite: { updateMany: vi.fn() },
+    certificate: { deleteMany: vi.fn() },
     user: { update: vi.fn() },
     enrollment: {
       findMany: vi.fn(),
@@ -94,6 +95,9 @@ describe("deleteAccountAction", () => {
     });
     await deleteAccountAction(input);
     expect(mocks.db.$transaction).toHaveBeenCalled();
+    expect(mocks.db.certificate.deleteMany).toHaveBeenCalledWith({
+      where: { enrollment: { userId: "peserta" } },
+    });
     expect(mocks.db.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({

@@ -88,10 +88,11 @@ function DeleteAccountDialog({
             <Consequence icon={CircleCheckIcon} className="text-success-600">
               {organizationName
                 ? `Acara dan penilaian yang Anda buat tetap tersimpan di ${organizationName}.`
-                : 'Kiriman, nilai, dan sertifikat Anda tetap tersimpan di acara atas nama "Akun dihapus".'}
+                : 'Kiriman dan nilai Anda tetap tersimpan di acara atas nama "Akun dihapus".'}
             </Consequence>
             <Consequence icon={Trash2Icon} className="text-danger-500">
-              Profil, portofolio pribadi, dan riwayat belajar ikut dihapus.
+              Profil, portofolio pribadi, sertifikat, dan riwayat belajar ikut
+              dihapus.
             </Consequence>
             <Consequence icon={InfoIcon} className="text-primary-500">
               Email ini dapat dipakai lagi untuk mendaftar akun baru.

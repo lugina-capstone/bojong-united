@@ -618,7 +618,7 @@ export async function continueAsPesertaAction() {
 }
 
 /**
- * Hapus akun (AA-10). Data pribadi dihapus; acara, kiriman, dan penilaian tetap tersimpan.
+ * Hapus akun (AA-10). Data pribadi dan sertifikat dihapus; acara, kiriman, dan penilaian tetap tersimpan.
  * Email dianonimkan agar bisa dipakai mendaftar lagi.
  */
 export async function deleteAccountAction(input: {
@@ -662,6 +662,10 @@ export async function deleteAccountAction(input: {
         });
       else await tx.team.delete({ where: { id: team.id } });
     }
+    // Sertifikat memuat nama asli penerima, jadi ikut dihapus.
+    await tx.certificate.deleteMany({
+      where: { enrollment: { userId: user.id } },
+    });
     await tx.materialEnrollment.deleteMany({ where: { userId: user.id } });
     await tx.notification.deleteMany({ where: { userId: user.id } });
     await tx.session.deleteMany({ where: { userId: user.id } });
