@@ -8,8 +8,8 @@ import Link from "next/link";
 
 import {
   hrefWith,
-  PAGE_SIZE,
   pageOf,
+  pageSizeOf,
   param,
 } from "@/app/(app)/_components/href";
 import { LinkTabs } from "@/app/(app)/_components/link-tabs";
@@ -28,6 +28,9 @@ import { visibleMaterialWhere } from "@/lib/material-access";
 import { materialCardsFor } from "@/lib/material-catalog";
 import { formatDuration, materialLevelLabels } from "@/lib/material-rules";
 
+const PAGE_SIZES = [6, 12, 24] as const;
+const PAGE_SIZE = 6;
+
 type SearchParams = Record<string, string | string[] | undefined>;
 
 /** Jelajah tab Materi: materi publik dari semua penyelenggara. */
@@ -44,6 +47,7 @@ export async function MaterialExplore({
   const orgId = param(params, "org");
   const level = param(params, "tingkat");
   const page = pageOf(params);
+  const pageSize = pageSizeOf(params, PAGE_SIZES, PAGE_SIZE);
   const publicWhere: Prisma.MaterialWhereInput = {
     ...visibleMaterialWhere,
     visibility: "PUBLIC",
@@ -81,8 +85,8 @@ export async function MaterialExplore({
         },
       }),
       materialCardsFor(userId, where, {
-        skip: (page - 1) * PAGE_SIZE,
-        take: PAGE_SIZE,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       }),
       db.materialCategory.findMany({
         where: { materials: { some: publicWhere } },
@@ -254,9 +258,20 @@ export async function MaterialExplore({
       )}
       <ListFooter
         page={page}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         total={total}
         noun="materi"
+        pageSizeControl={
+          <SearchParamSelect
+            name="per"
+            label="Jumlah materi per halaman"
+            options={PAGE_SIZES.map((n) => ({
+              value: String(n),
+              label: String(n),
+            }))}
+            defaultValue={String(PAGE_SIZE)}
+          />
+        }
         hrefFor={(p) => hrefWith(PATH, params, { page: p })}
       />
     </div>

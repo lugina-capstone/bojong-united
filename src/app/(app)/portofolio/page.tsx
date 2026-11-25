@@ -15,11 +15,20 @@ import { hrefWith, pageOf, param } from "@/app/(app)/_components/href";
 import { LinkTabs } from "@/app/(app)/_components/link-tabs";
 import { SearchParamInput } from "@/app/(app)/_components/list-controls";
 import { ListFooter } from "@/app/(app)/_components/list-footer";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Progress } from "@/components/ui/progress";
 import { StatCard } from "@/components/ui/stat-card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { db } from "@/lib/db";
 import { finalScore } from "@/lib/event-rules";
 import { formatDate, formatDateTime, formatScore } from "@/lib/format";
@@ -97,6 +106,7 @@ export default async function PortfolioPage({
             id: true,
             title: true,
             category: { select: { name: true } },
+            organization: { select: { name: true } },
           },
         },
       },
@@ -407,39 +417,71 @@ export default async function PortfolioPage({
             description="Materi mandiri yang Anda ikuti akan tercatat di sini."
           />
         ) : (
-          <ul className="flex flex-col gap-3">
-            {materials.map((m) => (
-              <li
-                key={m.id}
-                className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex flex-col">
-                  <span className="text-caption text-muted-foreground">
-                    {m.material.category.name}
-                  </span>
-                  <Link
-                    href={
-                      m.completedAt
-                        ? `/materi/${m.material.id}/selesai`
-                        : `/materi/${m.material.id}`
-                    }
-                    className="text-body-strong text-foreground hover:text-primary-600"
-                  >
-                    {m.material.title}
-                  </Link>
-                  <span className="text-caption text-muted-foreground">
-                    {m.completedAt
-                      ? `Selesai ${formatDate(m.completedAt)}`
-                      : `Terakhir dibuka ${formatDate(m.updatedAt)}`}
-                  </span>
-                </div>
-                <div className="flex w-full flex-col gap-1 sm:w-48">
-                  <span className="text-small text-label">{m.progress}%</span>
-                  <Progress value={m.progress} />
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Materi</TableHead>
+                  <TableHead>Penyelenggara</TableHead>
+                  <TableHead>Progres</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-center">Tindakan</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {materials.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell>
+                      <div className="flex min-w-56 flex-col">
+                        <span className="text-small-strong text-foreground">
+                          {m.material.title}
+                        </span>
+                        <span className="text-caption text-muted-foreground">
+                          {m.material.category.name} ·{" "}
+                          {m.completedAt
+                            ? `Selesai ${formatDate(m.completedAt)}`
+                            : `Terakhir dibuka ${formatDate(m.updatedAt)}`}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-small">
+                      {m.material.organization.name}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex w-36 items-center gap-2">
+                        <Progress
+                          value={m.progress}
+                          label={`Progres ${m.material.title}`}
+                        />
+                        <span className="text-small-strong text-foreground">
+                          {m.progress}%
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        size="sm"
+                        tone={m.completedAt ? "success" : "primary"}
+                      >
+                        {m.completedAt ? "Selesai" : "Sedang belajar"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Link
+                        href={`/materi/${m.material.id}`}
+                        className={buttonVariants({
+                          variant: m.completedAt ? "secondary" : "primary",
+                          size: "sm",
+                        })}
+                      >
+                        {m.completedAt ? "Buka lagi" : "Lanjutkan"}
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         ))}
 
       <p className="flex items-start gap-2 rounded-2xl border border-border bg-card p-4 text-caption text-muted-foreground">
