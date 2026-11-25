@@ -192,7 +192,6 @@ export function ProfileForm({
                   inputMode="tel"
                   autoComplete="tel"
                   placeholder="0857-1122-0074"
-                  maxLength={20}
                   value={values.phone}
                   onChange={(event) =>
                     setValues({ ...values, phone: event.target.value })
