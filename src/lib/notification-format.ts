@@ -29,6 +29,7 @@ export const notificationTypes = [
   "team.removed",
   "material.transferred",
   "material.attached",
+  "material.unreachable",
   "material.enrolled",
   "material.completed",
 ] as const;
@@ -205,6 +206,14 @@ export function describeNotification(
         href: `/ruang-kerja/acara/${payload.eventId}`,
         icon: "book",
         tone: "primary",
+      };
+    case "material.unreachable":
+      return {
+        title: "Materi tidak lagi terlampir di acara",
+        body: `${payload.materialTitle ?? "Materi"} dilepas dari ${payload.eventTitle ?? "acara"} dan tidak bisa ditemukan peserta baru. Lampirkan ke acara lain atau ubah menjadi publik.`,
+        href: `/ruang-kerja/materi/${payload.materialId}`,
+        icon: "book",
+        tone: "warning",
       };
     case "material.enrolled":
       return {

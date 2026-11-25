@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { requireOwnMaterial, requireTrainer } from "@/lib/material-access";
 import { canDeleteMaterial, materialProgress } from "@/lib/material-rules";
 import { notify } from "@/lib/notifications";
@@ -70,10 +71,18 @@ async function resolveCategory(
     select: { id: true },
   });
   if (existing) return existing;
-  return db.materialCategory.create({
-    data: { organizationId, name: newCategory },
-    select: { id: true },
-  });
+  try {
+    return await db.materialCategory.create({
+      data: { organizationId, name: newCategory },
+      select: { id: true },
+    });
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error;
+    return db.materialCategory.findFirst({
+      where: { organizationId, name: newCategory },
+      select: { id: true },
+    });
+  }
 }
 
 /** Langkah 1: simpan informasi materi (membuat draf jika baru). */
@@ -377,7 +386,17 @@ export async function deleteMaterialAction(
     where: { materialId },
     select: { fileId: true },
   });
-  await db.material.delete({ where: { id: material.id } });
+  // Syarat "belum diikuti" ikut dicek saat menghapus, supaya pendaftaran yang masuk bersamaan tidak ikut terhapus.
+  const deleted = await db.material.deleteMany({
+    where: { id: material.id, enrollments: { none: {} } },
+  });
+  if (deleted.count === 0) {
+    return {
+      error:
+        "Materi baru saja diikuti peserta. Arsipkan agar riwayat belajar tetap tersimpan.",
+      archiveSuggested: true,
+    };
+  }
   await removeUnusedFiles(sections.map((s) => s.fileId));
   refresh();
   return { ok: true };

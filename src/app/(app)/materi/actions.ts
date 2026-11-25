@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 
 import { db } from "@/lib/db";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { visibleMaterialWhere } from "@/lib/material-access";
 import {
   canOpenSection,
@@ -45,9 +46,15 @@ export async function enrollMaterialAction(
     select: { id: true },
   });
   if (existing) return { ok: true };
-  await db.materialEnrollment.create({
-    data: { materialId, userId: user.id },
-  });
+  try {
+    await db.materialEnrollment.create({
+      data: { materialId, userId: user.id },
+    });
+  } catch (error) {
+    // Permintaan ganda yang bersamaan: pendaftaran sudah dibuat permintaan lain.
+    if (isUniqueViolation(error)) return { ok: true };
+    throw error;
+  }
   const count = await db.materialEnrollment.count({ where: { materialId } });
   if (shouldNotifyEnrollment(count)) {
     await notify([material.trainerId], "material.enrolled", {

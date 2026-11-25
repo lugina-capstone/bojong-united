@@ -136,20 +136,56 @@ export async function saveEventInfoAction(
 
   const { event } = await requireOwnEvent(eventId);
   if (event.status !== "DRAFT") return { error: "Acara sudah diterbitkan." };
+  // Hanya materi terbit yang bisa dipilih di wizard, jadi lampiran materi draf dan arsip dibiarkan.
+  const detached = {
+    eventId: event.id,
+    material: { status: "PUBLISHED" as const },
+    materialId: { notIn: materials.map((m) => m.id) },
+  };
+  const detachedIds = (
+    await db.eventMaterial.findMany({
+      where: detached,
+      select: { materialId: true },
+    })
+  ).map((m) => m.materialId);
   await db.$transaction([
     db.event.update({
       where: { id: event.id },
       data: { ...values, draftStep: Math.max(event.draftStep, 2) },
     }),
-    db.eventMaterial.deleteMany({
-      where: { eventId: event.id, material: { status: { not: "DRAFT" } } },
-    }),
+    db.eventMaterial.deleteMany({ where: detached }),
     db.eventMaterial.createMany({
       data: materials.map((m) => ({ eventId: event.id, materialId: m.id })),
       skipDuplicates: true,
     }),
   ]);
+  await notifyUnreachableMaterials(detachedIds, data.title);
   return { ok: true, eventId: event.id };
+}
+
+/** Beri tahu Trainer jika materi "hanya lewat acara" tidak lagi terlampir di acara mana pun. */
+async function notifyUnreachableMaterials(
+  materialIds: string[],
+  eventTitle: string,
+) {
+  if (materialIds.length === 0) return;
+  const orphaned = await db.material.findMany({
+    where: {
+      id: { in: materialIds },
+      visibility: "EVENT_ONLY",
+      events: { none: {} },
+    },
+    select: { id: true, title: true, trainerId: true },
+  });
+  await Promise.all(
+    orphaned.map((m) =>
+      notify([m.trainerId], "material.unreachable", {
+        materialId: m.id,
+        materialTitle: m.title,
+        eventTitle,
+      }),
+    ),
+  );
 }
 
 export async function saveMilestonesAction(
@@ -352,7 +388,24 @@ export async function deleteEventAction(
   const participants = await db.enrollment.count({ where: { eventId } });
   const rule = canDeleteEvent(event.status, participants);
   if (!rule.allowed) return { error: rule.reason };
-  await db.event.delete({ where: { id: eventId } });
+  const attached = await db.eventMaterial.findMany({
+    where: { eventId },
+    select: { materialId: true },
+  });
+  // Syarat "tanpa peserta" ikut dicek saat menghapus, supaya pendaftaran yang masuk bersamaan tidak ikut terhapus.
+  const deleted = await db.event.deleteMany({
+    where: { id: eventId, enrollments: { none: {} } },
+  });
+  if (deleted.count === 0) {
+    return {
+      error:
+        "Acara baru saja diikuti peserta dan tidak bisa dihapus. Arsipkan saja.",
+    };
+  }
+  await notifyUnreachableMaterials(
+    attached.map((m) => m.materialId),
+    event.title,
+  );
   refresh();
   return { ok: true };
 }
