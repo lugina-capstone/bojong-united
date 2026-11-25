@@ -184,7 +184,9 @@ export function describeNotification(
       return {
         title: "Acara dialihkan ke Anda",
         body: `${payload.eventTitle ?? "Acara"} kini Anda kelola.`,
-        href: "/organisasi/acara",
+        href: payload.eventId
+          ? `/ruang-kerja/acara/${payload.eventId}`
+          : "/ruang-kerja/acara",
         icon: "calendar",
         tone: "primary",
       };

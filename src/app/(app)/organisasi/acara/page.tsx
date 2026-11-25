@@ -127,12 +127,16 @@ export default async function OrganizationEventsPage({
     db.membership.findMany({
       where: { organizationId, status: "ACTIVE" },
       orderBy: { user: { name: "asc" } },
-      select: { id: true, userId: true, user: { select: { name: true } } },
+      select: {
+        id: true,
+        userId: true,
+        user: { select: { name: true, email: true } },
+      },
     }),
   ]);
   const memberOptions = members.map((member) => ({
     value: member.id,
-    label: member.user.name,
+    label: `${member.user.name} (${member.user.email})`,
     userId: member.userId,
   }));
 
