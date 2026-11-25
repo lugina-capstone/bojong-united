@@ -537,6 +537,7 @@ export async function seedDemo(
       enrollmentId: dimasEnrollment.id,
       templateId: template.id,
       number: "BCR-2026-0001",
+      recipientName: dimas.name,
       finalScore: dimasFinalScore,
     },
   });

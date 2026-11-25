@@ -43,7 +43,7 @@ export async function loadCertificate(number: string, user: CurrentUser) {
     number: certificate.number,
     issuedAt: certificate.issuedAt,
     finalScore: certificate.finalScore,
-    recipient: enrollment.user.name,
+    recipient: certificate.recipientName,
     isOwner: enrollment.userId === user.id,
     eventId: event.id,
     eventTitle: event.title,

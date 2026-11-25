@@ -552,14 +552,16 @@ model CertificateTemplate {
 
 /// Terbit otomatis jika nilai akhir (rata-rata nilai milestone) ≥ KKM.
 model Certificate {
-  id           String               @id @default(cuid())
-  enrollmentId String               @unique
-  templateId   String?
-  number       String               @unique
-  finalScore   Float
-  issuedAt     DateTime             @default(now())
-  enrollment   Enrollment           @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  template     CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  id            String               @id @default(cuid())
+  enrollmentId  String               @unique
+  templateId    String?
+  number        String               @unique
+  /// Nama penerima saat terbit; tidak ikut berubah saat nama profil diganti.
+  recipientName String
+  finalScore    Float
+  issuedAt      DateTime             @default(now())
+  enrollment    Enrollment           @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  template      CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@map("certificates")
 }
@@ -646,18 +648,18 @@ model Material {
 }
 
 model MaterialSection {
-  id         String                    @id @default(cuid())
-  materialId String
-  order      Int
-  title      String
-  content    String?
-  fileId     String?                   @unique
-  link       String?
+  id              String                    @id @default(cuid())
+  materialId      String
+  order           Int
+  title           String
+  content         String?
+  fileId          String?                   @unique
+  link            String?
   /// Estimasi durasi belajar bagian ini (menit).
   durationMinutes Int?
-  material   Material                  @relation(fields: [materialId], references: [id], onDelete: Cascade)
-  file       File?                     @relation("MaterialSectionFile", fields: [fileId], references: [id], onDelete: SetNull)
-  progress   MaterialSectionProgress[]
+  material        Material                  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  file            File?                     @relation("MaterialSectionFile", fields: [fileId], references: [id], onDelete: SetNull)
+  progress        MaterialSectionProgress[]
 
   @@unique([materialId, order])
   @@map("material_sections")
