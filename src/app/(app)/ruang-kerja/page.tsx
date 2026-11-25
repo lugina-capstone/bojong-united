@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { requireHomeRole } from "@/app/(app)/home-guard";
+import { TrainerHome } from "@/app/(app)/ruang-kerja/_components/trainer-home";
 import { PhaseBadge } from "@/app/(app)/jelajah/_components/phase-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -17,6 +18,16 @@ export const metadata: Metadata = { title: "Ruang Kerja" };
 export default async function RuangKerjaPage() {
   const user = await requireHomeRole(["GURU", "ASESOR", "TRAINER"]);
   const organizationId = user.membership!.organization.id;
+  if (user.role === "TRAINER") {
+    return (
+      <TrainerHome
+        userId={user.id}
+        firstName={user.name.split(" ")[0]!}
+        organizationId={organizationId}
+        organizationName={user.membership!.organization.name}
+      />
+    );
+  }
   const events = await db.event.findMany({
     where: { organizationId, creatorId: user.id, status: { not: "DRAFT" } },
     orderBy: [{ startsAt: "desc" }, { createdAt: "desc" }],
