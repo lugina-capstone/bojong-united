@@ -99,7 +99,11 @@ export async function saveEventInfoAction(
     return { fieldErrors: { fieldId: "Bidang tidak ditemukan" } };
   }
   const materials = await db.material.findMany({
-    where: { id: { in: data.materialIds }, status: "PUBLISHED" },
+    where: {
+      id: { in: data.materialIds },
+      organizationId,
+      status: "PUBLISHED",
+    },
     select: { id: true },
   });
 
@@ -137,9 +141,12 @@ export async function saveEventInfoAction(
       where: { id: event.id },
       data: { ...values, draftStep: Math.max(event.draftStep, 2) },
     }),
-    db.eventMaterial.deleteMany({ where: { eventId: event.id } }),
+    db.eventMaterial.deleteMany({
+      where: { eventId: event.id, material: { status: "PUBLISHED" } },
+    }),
     db.eventMaterial.createMany({
       data: materials.map((m) => ({ eventId: event.id, materialId: m.id })),
+      skipDuplicates: true,
     }),
   ]);
   return { ok: true, eventId: event.id };

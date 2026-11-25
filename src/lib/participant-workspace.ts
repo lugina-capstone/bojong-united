@@ -30,6 +30,7 @@ export async function loadWorkspace(eventId: string, userId: string) {
       creator: { select: { id: true, name: true } },
       organization: { select: { name: true, status: true } },
       materials: {
+        where: { material: { status: { not: "DRAFT" } } },
         include: {
           material: {
             select: { id: true, title: true, description: true, status: true },
