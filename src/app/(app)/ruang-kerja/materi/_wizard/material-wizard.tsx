@@ -102,6 +102,7 @@ function MaterialWizard({ data, step }: { data: Data; step: number }) {
   }
 
   function run(target: "draft" | "next" | "publish") {
+    const submitted = sections;
     startTransition(async () => {
       const result = await saveCurrent();
       setErrors(result.fieldErrors ?? {});
@@ -113,7 +114,15 @@ function MaterialWizard({ data, step }: { data: Data; step: number }) {
       const savedIds = result.sectionIds;
       if (savedIds) {
         setSections((list) =>
-          list.map((s, i) => ({ ...s, id: savedIds[i] ?? s.id })),
+          list.map((s) => {
+            const i = submitted.findIndex((x) => x.key === s.key);
+            if (i === -1 || !savedIds[i]) return s;
+            const fileDropped =
+              submitted[i].mode !== "file" && s.fileId === submitted[i].fileId;
+            return fileDropped
+              ? { ...s, id: savedIds[i], fileId: null, file: null }
+              : { ...s, id: savedIds[i] };
+          }),
         );
       }
       if (result.categoryId && info.newCategory) {
