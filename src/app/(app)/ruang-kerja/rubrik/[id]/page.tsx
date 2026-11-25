@@ -48,20 +48,23 @@ export default async function RubricDetailPage({
         actions={
           <div className="flex flex-wrap gap-2">
             <CopyRubricButton rubricId={rubric.id} size="md" />
-            {!canManageRubric(rubric, user) ? null : rubric.locked ? (
-              <DeleteRubricButton
-                rubricId={rubric.id}
-                title={rubric.title}
-                usedInEvents={rubric.milestones.length}
-              />
-            ) : (
-              <Link
-                href={`/ruang-kerja/rubrik/${rubric.id}/edit`}
-                className={buttonVariants()}
-              >
-                <PencilIcon aria-hidden="true" />
-                Edit rubrik
-              </Link>
+            {canManageRubric(rubric, user) && (
+              <>
+                {rubric.locked && (
+                  <DeleteRubricButton
+                    rubricId={rubric.id}
+                    title={rubric.title}
+                    usedInEvents={rubric.milestones.length}
+                  />
+                )}
+                <Link
+                  href={`/ruang-kerja/rubrik/${rubric.id}/edit`}
+                  className={buttonVariants()}
+                >
+                  <PencilIcon aria-hidden="true" />
+                  {rubric.locked ? "Buat versi baru" : "Edit rubrik"}
+                </Link>
+              </>
             )}
           </div>
         }

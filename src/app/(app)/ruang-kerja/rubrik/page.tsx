@@ -292,7 +292,7 @@ export default async function RubricsPage({
                           <EyeIcon aria-hidden="true" />
                           Lihat
                         </Link>
-                        {locked || !canManage ? (
+                        {!canManage ? (
                           <CopyRubricButton rubricId={rubric.id} />
                         ) : (
                           <Link
@@ -303,7 +303,7 @@ export default async function RubricsPage({
                             })}
                           >
                             <PencilIcon aria-hidden="true" />
-                            Edit
+                            {locked ? "Versi baru" : "Edit"}
                           </Link>
                         )}
                       </div>
