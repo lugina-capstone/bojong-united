@@ -5,12 +5,12 @@ import { auth } from "@/lib/auth";
 const handler = toNextJsHandler(auth);
 
 /**
- * Hanya endpoint yang dipakai browser secara langsung (masuk dengan Google). Alur lain lewat
+ * Hanya endpoint yang dibuka browser secara langsung (masuk dengan Google, tautan reset di email). Alur lain lewat
  * Server Action di `(auth)/actions.ts` dan `(app)/profil/actions.ts`, yang memvalidasi input,
  * membatasi laju, dan mengunci akun; membuka endpoint Better Auth lainnya melewati semua itu.
  */
 const ALLOWED: Record<string, RegExp> = {
-  GET: /^\/api\/auth\/(callback\/[^/]+|error|get-session)$/,
+  GET: /^\/api\/auth\/(callback\/[^/]+|reset-password\/[^/]+|error|get-session)$/,
   POST: /^\/api\/auth\/(sign-in\/social|callback\/[^/]+)$/,
 };
 

@@ -147,7 +147,7 @@ Model utama (lihat komentar di `prisma/schema.prisma` untuk detail tiap field):
 
 Autentikasi memakai [Better Auth](https://www.better-auth.com) dengan sesi di database. Endpoint-nya ada di `/api/auth/*`.
 
-`/api/auth/*` hanya membuka endpoint yang dipanggil browser secara langsung (masuk dengan Google, callback, `get-session`); sisanya dibalas 404. Daftar, masuk, OTP, reset, dan ubah kata sandi wajib lewat Server Action, yang memvalidasi input dan membatasi percobaan per alamat IP per menit (`@/lib/auth-rate-limit`, tabel `auth_rate_limits`). Alamat IP dibaca dari `x-forwarded-for`, jadi reverse proxy di production harus menimpa header itu dari klien.
+`/api/auth/*` hanya membuka endpoint yang dipanggil browser secara langsung (masuk dengan Google, callback, tautan reset di email, `get-session`); sisanya dibalas 404. Daftar, masuk, OTP, reset, dan ubah kata sandi wajib lewat Server Action, yang memvalidasi input dan membatasi percobaan per alamat IP per menit (`@/lib/auth-rate-limit`, tabel `auth_rate_limits`). Alamat IP dibaca dari `x-forwarded-for`, jadi reverse proxy di production harus menimpa header itu dari klien.
 
 - **Email + password:** password di-hash dengan scrypt, minimal 8 karakter. Email wajib diverifikasi sebelum bisa login. Email verifikasi dan reset password dikirim lewat SMTP; di lokal, buka inbox Mailpit di `http://localhost:8025`.
 - **Google:** aktif jika `GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_SECRET` diisi. Redirect URI: `<BETTER_AUTH_URL>/api/auth/callback/google`. Akun Google dengan email yang sama otomatis ditautkan ke akun yang emailnya sudah terverifikasi.
