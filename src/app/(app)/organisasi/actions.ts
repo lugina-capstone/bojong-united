@@ -14,11 +14,13 @@ import {
   canDemoteAdmin,
   canLeaveOrganization,
   canPromoteAdmin,
+  canRegenerateCode,
   canRemoveMember,
+  sniffImageType,
 } from "@/lib/organization-rules";
 import { roleLabels } from "@/lib/rbac";
 import { requireUser } from "@/lib/session";
-import { deleteObject } from "@/lib/storage";
+import { deleteObject, readObjectHead } from "@/lib/storage";
 import { logoContentTypes, MAX_LOGO_SIZE } from "@/lib/validations/auth";
 import {
   memberRoleSchema,
@@ -108,12 +110,13 @@ export async function updateOrganizationLogoAction(
   if (fileId) {
     const file = await db.file.findFirst({
       where: { id: fileId, ownerId: user.id, status: "UPLOADED" },
-      select: { size: true, contentType: true },
+      select: { key: true, size: true, contentType: true },
     });
     const valid =
       file &&
       file.size <= MAX_LOGO_SIZE &&
-      (logoContentTypes as readonly string[]).includes(file.contentType);
+      (logoContentTypes as readonly string[]).includes(file.contentType) &&
+      sniffImageType(await readObjectHead(file.key, 8)) === file.contentType;
     if (!valid) return { error: "Logo harus PNG/JPG, maks. 2 MB." };
   }
   const previous = await db.organization.findUniqueOrThrow({
@@ -137,13 +140,22 @@ export async function regenerateOrganizationCodeAction(): Promise<OrgActionState
   const { organizationId } = await requireOrganizationAdmin(
     "organization:update",
   );
+  const { codeCreatedAt } = await db.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: { codeCreatedAt: true },
+  });
+  const rule = canRegenerateCode(codeCreatedAt, new Date());
+  if (!rule.allowed) return { error: rule.reason };
   for (let attempt = 0; ; attempt++) {
     const code = generateOrganizationCode();
     try {
-      await db.organization.update({
-        where: { id: organizationId },
+      // Syarat `codeCreatedAt` menolak permintaan kedua yang datang bersamaan.
+      const updated = await db.organization.updateMany({
+        where: { id: organizationId, codeCreatedAt },
         data: { code, codeCreatedAt: new Date() },
       });
+      if (updated.count === 0)
+        return { error: "Kode baru saja dibuat. Muat ulang halaman." };
       refresh();
       return { ok: true, code };
     } catch (error) {
@@ -495,7 +507,12 @@ export async function leaveOrganizationAction(): Promise<OrgActionState> {
       if (!rule.allowed) throw new RuleError(rule.reason);
       await tx.membership.update({
         where: { id: membership.id },
-        data: { status: "REMOVED", removedAt: new Date(), isAdmin: false },
+        data: {
+          status: "REMOVED",
+          removedAt: new Date(),
+          isAdmin: false,
+          leftVoluntarily: true,
+        },
       });
       await tx.trainerRequest.deleteMany({
         where: { userId: user.id, status: "PENDING" },

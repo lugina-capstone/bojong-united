@@ -85,6 +85,19 @@ export async function getObjectInfo(key: string) {
   }
 }
 
+/** Byte awal objek, untuk memeriksa isi berkas yang sudah diunggah. */
+export async function readObjectHead(key: string, length: number) {
+  const object = await s3.send(
+    new GetObjectCommand({
+      Bucket: env.S3_BUCKET,
+      Key: key,
+      Range: `bytes=0-${length - 1}`,
+    }),
+  );
+  const bytes = await object.Body?.transformToByteArray();
+  return (bytes ?? new Uint8Array()).subarray(0, length);
+}
+
 export async function deleteObject(key: string) {
   await s3.send(new DeleteObjectCommand({ Bucket: env.S3_BUCKET, Key: key }));
 }
