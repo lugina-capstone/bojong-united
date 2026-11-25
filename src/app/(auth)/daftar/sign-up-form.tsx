@@ -34,6 +34,7 @@ function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
   });
   const [state, setState] = React.useState<FormState>({});
   const [verifyEmail, setVerifyEmail] = React.useState<string>();
+  const [registered, setRegistered] = React.useState<string>();
   const [pending, startTransition] = React.useTransition();
   const errors = state.fieldErrors ?? {};
   const emailTaken =
@@ -82,10 +83,16 @@ function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
         className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
+          // Akun untuk email ini sudah dibuat sebelum kembali dari OTP: lanjutkan verifikasinya.
+          if (values.email.trim().toLowerCase() === registered)
+            return setVerifyEmail(registered);
           startTransition(async () => {
             const result = await signUpAction(values);
             setState({ ...result, email: result.email ?? values.email });
-            if (result.ok && result.email) setVerifyEmail(result.email);
+            if (result.ok && result.email) {
+              setRegistered(result.email);
+              setVerifyEmail(result.email);
+            }
           });
         }}
       >

@@ -124,6 +124,9 @@ function OrganizationForm() {
         className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
+          // Akun untuk email ini sudah dibuat sebelum kembali dari OTP: lanjutkan verifikasinya.
+          if (state.ok && personal.email.trim().toLowerCase() === state.email)
+            return setStep("otp");
           startTransition(async () => {
             const result = await registerOrganizationAction({
               ...personal,
