@@ -3,8 +3,8 @@
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import * as React from "react";
 
+import { SubjectFieldPicker } from "@/app/(app)/ruang-kerja/_components/subject-field-picker";
 import { Button } from "@/components/ui/button";
-import { ChoiceChip, ChoiceChipGroup } from "@/components/ui/choice-chip";
 import { FormField } from "@/components/ui/form-field";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
@@ -49,12 +49,14 @@ function RubricForm({
   value,
   onChange,
   fields,
+  onFieldCreated,
   errors,
   idPrefix = "rubric",
 }: {
   value: RubricFormValue;
   onChange: (value: RubricFormValue) => void;
   fields: { id: string; name: string }[];
+  onFieldCreated: (field: { id: string; name: string }) => void;
   errors: Record<string, string>;
   idPrefix?: string;
 }) {
@@ -92,20 +94,14 @@ function RubricForm({
         required
         error={errors.fieldId}
       >
-        <ChoiceChipGroup
+        <SubjectFieldPicker
           id={`${idPrefix}-field`}
-          aria-label="Bidang rubrik"
-          value={value.fieldId ? [value.fieldId] : []}
-          onValueChange={(next) =>
-            next[0] && onChange({ ...value, fieldId: String(next[0]) })
-          }
-        >
-          {fields.map((field) => (
-            <ChoiceChip key={field.id} value={field.id}>
-              {field.name}
-            </ChoiceChip>
-          ))}
-        </ChoiceChipGroup>
+          label="Bidang rubrik"
+          value={value.fieldId}
+          onChange={(fieldId) => onChange({ ...value, fieldId })}
+          fields={fields}
+          onFieldCreated={onFieldCreated}
+        />
       </FormField>
       <FormField
         id={`${idPrefix}-description`}

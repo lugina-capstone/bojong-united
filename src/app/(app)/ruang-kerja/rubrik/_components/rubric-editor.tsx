@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 function RubricEditor({
   rubricId,
   initial,
-  fields,
+  fields: initialFields,
   locked = false,
   cancelHref,
 }: {
@@ -36,6 +36,7 @@ function RubricEditor({
 }) {
   const router = useRouter();
   const [value, setValue] = React.useState(() => initial ?? emptyRubric());
+  const [fields, setFields] = React.useState(initialFields);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [scores, setScores] = React.useState<number[]>(() =>
     (initial?.criteria ?? [null]).map(() => 5),
@@ -84,6 +85,7 @@ function RubricEditor({
           value={value}
           onChange={change}
           fields={fields}
+          onFieldCreated={(field) => setFields((list) => [...list, field])}
           errors={errors}
         />
         <div className="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end">

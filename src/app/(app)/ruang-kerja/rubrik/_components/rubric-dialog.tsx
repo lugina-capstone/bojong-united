@@ -25,12 +25,14 @@ function RubricDialog({
   open,
   onOpenChange,
   fields,
+  onFieldCreated,
   defaultFieldId,
   onCreated,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   fields: { id: string; name: string }[];
+  onFieldCreated: (field: { id: string; name: string }) => void;
   defaultFieldId?: string;
   onCreated: (rubric: WizardRubric) => void;
 }) {
@@ -84,6 +86,7 @@ function RubricDialog({
             value={value}
             onChange={setValue}
             fields={fields}
+            onFieldCreated={onFieldCreated}
             errors={errors}
           />
           <DialogFooter>

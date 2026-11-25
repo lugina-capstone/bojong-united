@@ -33,6 +33,7 @@ function StepRubrics({
   rubrics,
   onRubricCreated,
   fields,
+  onFieldCreated,
   errors,
 }: {
   milestones: WizardMilestone[];
@@ -40,6 +41,7 @@ function StepRubrics({
   rubrics: WizardRubric[];
   onRubricCreated: (rubric: WizardRubric) => void;
   fields: WizardOption[];
+  onFieldCreated: (field: WizardOption) => void;
   errors: Errors;
 }) {
   const ids = new Set(milestones.map((m) => m.rubricId));
@@ -247,6 +249,7 @@ function StepRubrics({
         open={dialog}
         onOpenChange={setDialog}
         fields={fields}
+        onFieldCreated={onFieldCreated}
         defaultFieldId={field || undefined}
         onCreated={(rubric) => {
           onRubricCreated(rubric);

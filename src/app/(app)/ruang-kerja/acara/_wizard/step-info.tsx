@@ -1,20 +1,17 @@
 "use client";
 
-import { PlusIcon, UserIcon, UsersIcon } from "lucide-react";
+import { UserIcon, UsersIcon } from "lucide-react";
 import * as React from "react";
-import { toast } from "sonner";
 
 import { SectionCard } from "@/app/(app)/_components/section-card";
-import { createSubjectFieldAction } from "@/app/(app)/ruang-kerja/acara/actions";
+import { SubjectFieldPicker } from "@/app/(app)/ruang-kerja/_components/subject-field-picker";
 import type { Errors } from "@/app/(app)/ruang-kerja/acara/_wizard/event-wizard";
 import type {
   WizardData,
   WizardOption,
 } from "@/app/(app)/ruang-kerja/acara/_wizard/load";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChoiceChip, ChoiceChipGroup } from "@/components/ui/choice-chip";
 import { FormField } from "@/components/ui/form-field";
 import { InfoBox } from "@/components/ui/info-box";
 import { Input } from "@/components/ui/input";
@@ -52,25 +49,8 @@ function StepInfo({
   onFieldCreated: (field: WizardOption) => void;
   errors: Errors;
 }) {
-  const [newField, setNewField] = React.useState<string | null>(null);
-  const [pending, startTransition] = React.useTransition();
   const set = <K extends keyof Info>(key: K, next: Info[K]) =>
     onChange({ ...value, [key]: next });
-
-  function addField() {
-    if (!newField) return;
-    startTransition(async () => {
-      const result = await createSubjectFieldAction(newField);
-      if (!result.ok || !result.fieldId) {
-        toast.error(result.error ?? "Bidang gagal ditambahkan.");
-        return;
-      }
-      if (!fields.some((f) => f.id === result.fieldId))
-        onFieldCreated({ id: result.fieldId, name: newField.trim() });
-      set("fieldId", result.fieldId);
-      setNewField(null);
-    });
-  }
 
   const fieldName = fields.find((f) => f.id === value.fieldId)?.name;
   const period =
@@ -106,61 +86,14 @@ function StepInfo({
             required
             error={errors.fieldId}
           >
-            <ChoiceChipGroup
+            <SubjectFieldPicker
               id="event-field"
-              value={value.fieldId ? [value.fieldId] : []}
-              onValueChange={(next) =>
-                next[0] && set("fieldId", String(next[0]))
-              }
-              aria-label="Bidang acara"
-            >
-              {fields.map((field) => (
-                <ChoiceChip key={field.id} value={field.id}>
-                  {field.name}
-                </ChoiceChip>
-              ))}
-              {newField === null && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setNewField("")}
-                >
-                  <PlusIcon aria-hidden="true" />
-                  Bidang lain
-                </Button>
-              )}
-            </ChoiceChipGroup>
-            {newField !== null && (
-              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                <Input
-                  autoFocus
-                  aria-label="Nama bidang baru"
-                  placeholder="Nama bidang, mis. Fotografi"
-                  value={newField}
-                  maxLength={40}
-                  onChange={(e) => setNewField(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addField();
-                    }
-                  }}
-                />
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setNewField(null)}
-                  >
-                    Batal
-                  </Button>
-                  <Button type="button" disabled={pending} onClick={addField}>
-                    Tambah
-                  </Button>
-                </div>
-              </div>
-            )}
+              label="Bidang acara"
+              value={value.fieldId}
+              onChange={(fieldId) => set("fieldId", fieldId)}
+              fields={fields}
+              onFieldCreated={onFieldCreated}
+            />
           </FormField>
           <FormField
             id="event-description"
