@@ -2,6 +2,7 @@ import "server-only";
 
 import { requireHomeRole } from "@/app/(app)/home-guard";
 import { db } from "@/lib/db";
+import { unfinishedEventWhere } from "@/lib/event-rules";
 
 /** Data Profil Peserta: akun, nomor HP, dan metode masuk (manual/Google). */
 export async function loadParticipantProfile() {
@@ -16,6 +17,9 @@ export async function loadParticipantProfile() {
       accounts: { select: { providerId: true, updatedAt: true } },
     },
   });
+  const unfinishedEvents = await db.enrollment.count({
+    where: { userId: user.id, event: unfinishedEventWhere() },
+  });
   const credential = detail.accounts.find((a) => a.providerId === "credential");
   const google = detail.accounts.some((a) => a.providerId === "google");
   return {
@@ -28,6 +32,7 @@ export async function loadParticipantProfile() {
     hasPassword: Boolean(credential),
     passwordChangedAt: credential?.updatedAt,
     google,
+    unfinishedEvents,
     emailNote: google
       ? "Terhubung via Google · tidak dapat diubah langsung."
       : "Terdaftar manual dengan email dan kata sandi · tidak dapat diubah langsung.",

@@ -28,6 +28,14 @@ export function eventPhase(
   return "ongoing";
 }
 
+/** Filter Prisma untuk acara yang belum berakhir (fase `upcoming` atau `ongoing`). */
+export function unfinishedEventWhere(now = new Date()) {
+  return {
+    status: "PUBLISHED" as const,
+    OR: [{ endsAt: null }, { endsAt: { gte: now } }],
+  };
+}
+
 /** Nilai milestone 0–100 = total skor ÷ skor maksimum × 100, tanpa bobot. */
 export function milestoneScore(scores: number[]) {
   const total = scores.reduce((sum, score) => sum + score, 0);

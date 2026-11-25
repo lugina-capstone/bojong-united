@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import type { z } from "zod";
 
 import { Prisma } from "@/generated/prisma/client";
+import { unfinishedEventWhere } from "@/lib/event-rules";
 import { auth } from "@/lib/auth";
 import { limitAuthAction } from "@/lib/auth-rate-limit";
 import {
@@ -636,21 +637,16 @@ export async function deleteAccountAction(input: {
     };
   if (input.email.trim().toLowerCase() !== user.email || !input.confirmed)
     return { fieldErrors: { email: "Email tidak cocok dengan akun ini." } };
-  await db.$transaction(async (tx) => {
-    // Acara yang belum mulai: lepaskan slot tim dan alihkan ketua agar tim tidak terkunci.
-    const notStarted = {
-      OR: [{ startsAt: null }, { startsAt: { gt: new Date() } }],
+  const unfinished = await db.enrollment.count({
+    where: { userId: user.id, event: unfinishedEventWhere() },
+  });
+  if (unfinished > 0)
+    return {
+      error:
+        "Akun belum bisa dihapus karena Anda masih terdaftar di acara yang belum selesai.",
     };
-    const upcoming = await tx.enrollment.findMany({
-      where: { userId: user.id, event: notStarted },
-      select: { id: true, team: { select: { id: true } } },
-    });
-    // Kunci baris tim (urut id) agar dua penghapusan bersamaan tidak saling memilih sebagai ketua.
-    const teamIds = upcoming.flatMap((e) => (e.team ? [e.team.id] : [])).sort();
-    for (const id of teamIds)
-      await tx.team.updateMany({ where: { id }, data: { id } });
-    // Setelah kunci tim (hindari deadlock dengan pengalihan ketua) dan sebelum hapus sertifikat,
-    // agar penerbitan sertifikat yang bersamaan menunggu baris user ini.
+  await db.$transaction(async (tx) => {
+    // Lebih dulu, agar penerbitan sertifikat yang bersamaan menunggu baris user ini.
     await tx.user.update({
       where: { id: user.id },
       data: {
@@ -662,27 +658,6 @@ export async function deleteAccountAction(input: {
         phone: null,
       },
     });
-    await tx.enrollment.deleteMany({
-      where: { id: { in: upcoming.map((e) => e.id) } },
-    });
-    for (const id of teamIds) {
-      const team = await tx.team.findUnique({
-        where: { id },
-        select: { leaderId: true },
-      });
-      if (team?.leaderId !== user.id) continue;
-      const next = await tx.enrollment.findFirst({
-        where: { teamId: id },
-        orderBy: { createdAt: "asc" },
-        select: { userId: true },
-      });
-      if (next)
-        await tx.team.update({
-          where: { id },
-          data: { leaderId: next.userId },
-        });
-      else await tx.team.delete({ where: { id } });
-    }
     // Sertifikat memuat nama asli penerima, jadi ikut dihapus.
     await tx.certificate.deleteMany({
       where: { enrollment: { userId: user.id } },

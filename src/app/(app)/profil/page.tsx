@@ -239,7 +239,17 @@ export default async function ParticipantProfilePage({
               sebagai anggota atau organisasi baru dengan email ini, hapus akun
               ini terlebih dahulu.
             </p>
-            <DeleteAccountButton email={profile.email} />
+            {profile.unfinishedEvents > 0 && (
+              <p className="text-small text-muted-foreground">
+                Anda masih terdaftar di {profile.unfinishedEvents} acara yang
+                belum selesai. Akun baru bisa dihapus setelah semua acara itu
+                berakhir.
+              </p>
+            )}
+            <DeleteAccountButton
+              email={profile.email}
+              disabled={profile.unfinishedEvents > 0}
+            />
           </section>
         </aside>
       </div>

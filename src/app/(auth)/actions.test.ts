@@ -11,17 +11,7 @@ const mocks = vi.hoisted(() => ({
     teamInvite: { updateMany: vi.fn() },
     certificate: { deleteMany: vi.fn() },
     user: { update: vi.fn() },
-    enrollment: {
-      findMany: vi.fn(),
-      findFirst: vi.fn(),
-      deleteMany: vi.fn(),
-    },
-    team: {
-      update: vi.fn(),
-      updateMany: vi.fn(),
-      findUnique: vi.fn(),
-      delete: vi.fn(),
-    },
+    enrollment: { count: vi.fn() },
     $transaction: vi.fn(),
   },
   requireUser: vi.fn(),
@@ -50,7 +40,7 @@ beforeEach(() => {
   mocks.db.$transaction.mockImplementation(
     (run: (tx: typeof mocks.db) => unknown) => run(mocks.db),
   );
-  mocks.db.enrollment.findMany.mockResolvedValue([]);
+  mocks.db.enrollment.count.mockResolvedValue(0);
 });
 
 describe("akun Peserta tanpa riwayat organisasi", () => {
@@ -113,37 +103,22 @@ describe("deleteAccountAction", () => {
     );
   });
 
-  it("melepas slot tim dan mengalihkan ketua di acara yang belum mulai", async () => {
+  it("menolak Peserta yang masih terdaftar di acara yang belum selesai", async () => {
     mocks.requireUser.mockResolvedValue({
       id: "peserta",
       email: "p@x.id",
       isAdministrator: false,
       membership: null,
     });
-    mocks.db.enrollment.findMany.mockResolvedValue([
-      { id: "e1", team: { id: "tim-1", leaderId: "peserta" } },
-      { id: "e2", team: { id: "tim-2", leaderId: "peserta" } },
-      { id: "e3", team: { id: "tim-3", leaderId: "orang-lain" } },
-    ]);
-    mocks.db.team.findUnique
-      .mockResolvedValueOnce({ leaderId: "peserta" })
-      .mockResolvedValueOnce({ leaderId: "peserta" })
-      .mockResolvedValueOnce({ leaderId: "orang-lain" });
-    mocks.db.enrollment.findFirst
-      .mockResolvedValueOnce({ userId: "anggota" })
-      .mockResolvedValueOnce(null);
-    await deleteAccountAction(input);
-    expect(mocks.db.enrollment.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ["e1", "e2", "e3"] } },
+    mocks.db.enrollment.count.mockResolvedValue(1);
+    expect((await deleteAccountAction(input))?.error).toMatch(/belum selesai/);
+    expect(mocks.db.enrollment.count).toHaveBeenCalledWith({
+      where: {
+        userId: "peserta",
+        event: expect.objectContaining({ status: "PUBLISHED" }),
+      },
     });
-    expect(mocks.db.team.update).toHaveBeenCalledWith({
-      where: { id: "tim-1" },
-      data: { leaderId: "anggota" },
-    });
-    expect(mocks.db.team.delete).toHaveBeenCalledWith({
-      where: { id: "tim-2" },
-    });
-    expect(mocks.db.team.update).toHaveBeenCalledTimes(1);
+    expect(mocks.db.$transaction).not.toHaveBeenCalled();
   });
 
   it("menolak anggota organisasi aktif dan Administrator", async () => {
