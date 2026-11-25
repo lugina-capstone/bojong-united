@@ -40,6 +40,8 @@ import { requirePermission } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Detail organisasi" };
 
+const MEMBER_LIMIT = 5;
+
 export default async function OrganizationDetailPage({
   params,
   searchParams,
@@ -70,7 +72,7 @@ export default async function OrganizationDetailPage({
     notFound();
 
   const [
-    members,
+    matches,
     memberCount,
     adminCount,
     activeEvents,
@@ -93,7 +95,7 @@ export default async function OrganizationDetailPage({
           : {}),
       },
       orderBy: [{ isAdmin: "desc" }, { createdAt: "asc" }],
-      take: 5,
+      take: MEMBER_LIMIT + 1,
       select: {
         id: true,
         isAdmin: true,
@@ -109,6 +111,7 @@ export default async function OrganizationDetailPage({
     db.enrollment.count({ where: { event: { organizationId: id } } }),
     logoUrlOf(organization.logo),
   ]);
+  const members = matches.slice(0, MEMBER_LIMIT);
   const disabled = organization.status === "DISABLED";
 
   return (
@@ -217,12 +220,12 @@ export default async function OrganizationDetailPage({
               ))}
             </TableBody>
           </Table>
-          {!q && memberCount > members.length && (
+          {matches.length > MEMBER_LIMIT && (
             <Link
-              href={`/admin/pengguna?organisasi=${organization.id}`}
+              href={`/admin/pengguna?organisasi=${organization.id}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
               className="flex items-center gap-1.5 border-t border-border px-4 py-3.5 text-small-strong text-primary-500 hover:underline sm:px-5"
             >
-              Lihat semua {memberCount} anggota
+              {q ? "Lihat semua hasil" : `Lihat semua ${memberCount} anggota`}
               <ArrowRightIcon aria-hidden="true" className="size-4" />
             </Link>
           )}

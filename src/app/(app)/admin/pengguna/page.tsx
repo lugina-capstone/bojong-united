@@ -247,7 +247,7 @@ export default async function UsersPage({
       },
     }),
     db.organization.findMany({
-      where: { status: { in: ["APPROVED", "DISABLED"] } },
+      where: { status: { in: ["APPROVED", "DISABLED", "PENDING"] } },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
