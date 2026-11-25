@@ -171,7 +171,7 @@ function EventWizard({ data, step }: { data: WizardData; step: number }) {
             value={info}
             onChange={edited(setInfo)}
             fields={fields}
-            onFieldCreated={(field) => setFields((list) => [...list, field])}
+            onFieldsChange={setFields}
             errors={errors}
           />
         )}
@@ -192,7 +192,7 @@ function EventWizard({ data, step }: { data: WizardData; step: number }) {
               setRubrics((list) => [rubric, ...list])
             }
             fields={fields}
-            onFieldCreated={(field) => setFields((list) => [...list, field])}
+            onFieldsChange={setFields}
             errors={errors}
           />
         )}

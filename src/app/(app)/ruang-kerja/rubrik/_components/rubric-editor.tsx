@@ -15,6 +15,7 @@ import {
   createRubricAction,
   updateRubricAction,
 } from "@/app/(app)/ruang-kerja/rubrik/actions";
+import type { SubjectFieldOption } from "@/lib/subject-fields";
 import { Alert } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { milestoneScore } from "@/lib/event-rules";
@@ -30,7 +31,7 @@ function RubricEditor({
 }: {
   rubricId?: string;
   initial?: RubricFormValue;
-  fields: { id: string; name: string }[];
+  fields: SubjectFieldOption[];
   locked?: boolean;
   cancelHref: string;
 }) {
@@ -85,7 +86,7 @@ function RubricEditor({
           value={value}
           onChange={change}
           fields={fields}
-          onFieldCreated={(field) => setFields((list) => [...list, field])}
+          onFieldsChange={setFields}
           errors={errors}
         />
         <div className="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end">

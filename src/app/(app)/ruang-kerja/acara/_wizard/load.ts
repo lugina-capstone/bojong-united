@@ -3,6 +3,10 @@ import "server-only";
 import { db } from "@/lib/db";
 import { publishIssues } from "@/lib/event-publish";
 import { logoUrlOf } from "@/lib/organization-access";
+import {
+  subjectFieldOptions,
+  type SubjectFieldOption,
+} from "@/lib/subject-fields";
 
 export type WizardOption = { id: string; name: string };
 
@@ -56,7 +60,7 @@ export type WizardData = {
     certificateIssuer: string;
     certificateSigner: string;
   };
-  fields: WizardOption[];
+  fields: SubjectFieldOption[];
   materials: (WizardOption & { level: string; category: string })[];
   rubrics: WizardRubric[];
   templates: WizardOption[];
@@ -88,14 +92,7 @@ export async function loadWizard(input: {
           logo: { select: { key: true, name: true, contentType: true } },
         },
       }),
-      db.subjectField.findMany({
-        where: { OR: [{ organizationId }, { organizationId: null }] },
-        orderBy: [
-          { organizationId: { sort: "asc", nulls: "first" } },
-          { name: "asc" },
-        ],
-        select: { id: true, name: true },
-      }),
+      subjectFieldOptions(organizationId),
       db.material.findMany({
         where: { organizationId, status: "PUBLISHED" },
         orderBy: { title: "asc" },

@@ -6,10 +6,7 @@ import * as React from "react";
 import { SectionCard } from "@/app/(app)/_components/section-card";
 import { SubjectFieldPicker } from "@/app/(app)/ruang-kerja/_components/subject-field-picker";
 import type { Errors } from "@/app/(app)/ruang-kerja/acara/_wizard/event-wizard";
-import type {
-  WizardData,
-  WizardOption,
-} from "@/app/(app)/ruang-kerja/acara/_wizard/load";
+import type { WizardData } from "@/app/(app)/ruang-kerja/acara/_wizard/load";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormField } from "@/components/ui/form-field";
@@ -21,6 +18,7 @@ import {
 } from "@/components/ui/segmented-control";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, parseWibInput } from "@/lib/format";
+import type { SubjectFieldOption } from "@/lib/subject-fields";
 
 type Info = WizardData["info"];
 
@@ -39,14 +37,14 @@ function StepInfo({
   value,
   onChange,
   fields,
-  onFieldCreated,
+  onFieldsChange,
   errors,
 }: {
   data: WizardData;
   value: Info;
   onChange: (value: Info) => void;
-  fields: WizardOption[];
-  onFieldCreated: (field: WizardOption) => void;
+  fields: SubjectFieldOption[];
+  onFieldsChange: (fields: SubjectFieldOption[]) => void;
   errors: Errors;
 }) {
   const set = <K extends keyof Info>(key: K, next: Info[K]) =>
@@ -82,8 +80,9 @@ function StepInfo({
           </FormField>
           <FormField
             id="event-field"
-            label="Bidang"
+            label="Bidang acara"
             required
+            description="Menentukan rubrik yang disarankan. Acara tidak terbatas pada UI/UX."
             error={errors.fieldId}
           >
             <SubjectFieldPicker
@@ -92,7 +91,7 @@ function StepInfo({
               value={value.fieldId}
               onChange={(fieldId) => set("fieldId", fieldId)}
               fields={fields}
-              onFieldCreated={onFieldCreated}
+              onFieldsChange={onFieldsChange}
             />
           </FormField>
           <FormField

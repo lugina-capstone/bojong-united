@@ -13,7 +13,6 @@ import {
   certificateSchema,
   editEventSchema,
   eventInfoSchema,
-  fieldNameSchema,
   milestonesSchema,
   rubricAssignmentSchema,
 } from "@/lib/validations/event";
@@ -56,25 +55,6 @@ const defaultSurveyQuestions: Prisma.SurveyQuestionCreateWithoutSurveyInput[] =
       required: false,
     },
   ];
-
-export async function createSubjectFieldAction(
-  name: string,
-): Promise<EventActionState> {
-  const { organizationId } = await requireTeacher();
-  const parsed = fieldNameSchema.safeParse(name);
-  if (!parsed.success) return { error: parsed.error.issues[0]!.message };
-  const existing = await db.subjectField.findFirst({
-    where: {
-      name: { equals: parsed.data, mode: "insensitive" },
-      OR: [{ organizationId }, { organizationId: null }],
-    },
-  });
-  if (existing) return { ok: true, fieldId: existing.id };
-  const field = await db.subjectField.create({
-    data: { name: parsed.data, organizationId },
-  });
-  return { ok: true, fieldId: field.id };
-}
 
 async function assertFieldAvailable(fieldId: string, organizationId: string) {
   return db.subjectField.findFirst({

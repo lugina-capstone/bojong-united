@@ -10,6 +10,7 @@ import {
   type RubricFormValue,
 } from "@/app/(app)/ruang-kerja/rubrik/_components/rubric-form";
 import { createRubricAction } from "@/app/(app)/ruang-kerja/rubrik/actions";
+import type { SubjectFieldOption } from "@/lib/subject-fields";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,14 +26,14 @@ function RubricDialog({
   open,
   onOpenChange,
   fields,
-  onFieldCreated,
+  onFieldsChange,
   defaultFieldId,
   onCreated,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  fields: { id: string; name: string }[];
-  onFieldCreated: (field: { id: string; name: string }) => void;
+  fields: SubjectFieldOption[];
+  onFieldsChange: (fields: SubjectFieldOption[]) => void;
   defaultFieldId?: string;
   onCreated: (rubric: WizardRubric) => void;
 }) {
@@ -86,7 +87,7 @@ function RubricDialog({
             value={value}
             onChange={setValue}
             fields={fields}
-            onFieldCreated={onFieldCreated}
+            onFieldsChange={onFieldsChange}
             errors={errors}
           />
           <DialogFooter>
