@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { visibleEventWhere } from "@/lib/event-query";
 import {
   canInviteToTeam,
@@ -15,13 +16,6 @@ import { notify } from "@/lib/notifications";
 import { hasStarted, requireParticipant } from "@/lib/participant-access";
 
 export type JoinActionState = { ok?: boolean; error?: string };
-
-function isUniqueViolation(error: unknown) {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === "P2002"
-  );
-}
 
 /** Ikuti acara. Di acara tim, peserta yang mendaftar sendiri menjadi ketua kelompok baru. */
 export async function joinEventAction(
