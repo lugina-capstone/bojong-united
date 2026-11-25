@@ -217,7 +217,7 @@ export default async function WorkspacePage({
                   {(() => {
                     const e = materialProgress.get(material.id);
                     if (!e) {
-                      return material.status === "PUBLISHED" ? (
+                      return material.status === "PUBLISHED" && !ws.paused ? (
                         <EnrollButton
                           materialId={material.id}
                           size="sm"
