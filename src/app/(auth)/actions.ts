@@ -84,6 +84,11 @@ async function emailTaken(email: string) {
   const otpExpired =
     user.createdAt.getTime() < Date.now() - OTP_VALID_MINUTES * 60 * 1000;
   if (user.emailVerified || !otpExpired) return true;
+  // Kode yang dikirim ulang memperpanjang masa tunggu.
+  const activeCode = await db.verification.count({
+    where: { identifier: { endsWith: email }, expiresAt: { gt: new Date() } },
+  });
+  if (activeCode > 0) return true;
   const organization = user.membership?.organization;
   const ownPendingOrganization =
     user.membership?.isAdmin &&
