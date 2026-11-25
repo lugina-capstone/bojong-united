@@ -27,6 +27,7 @@ export const notificationTypes = [
   "team.invite-accepted",
   "team.invite-rejected",
   "team.removed",
+  "material.transferred",
   "material.attached",
   "material.enrolled",
   "material.completed",
@@ -185,6 +186,14 @@ export function describeNotification(
         body: `${payload.eventTitle ?? "Acara"} kini Anda kelola.`,
         href: "/organisasi/acara",
         icon: "calendar",
+        tone: "primary",
+      };
+    case "material.transferred":
+      return {
+        title: "Materi dialihkan ke Anda",
+        body: `Materi milik ${payload.userName ?? "Trainer lain"} kini Anda kelola.`,
+        href: "/ruang-kerja/materi",
+        icon: "book",
         tone: "primary",
       };
     case "material.attached":

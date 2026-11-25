@@ -10,7 +10,11 @@ export default function NotFound() {
       icon={SearchXIcon}
       title="Halaman tidak ditemukan"
       description="Halaman yang Anda cari tidak ada atau Anda tidak memiliki akses."
-      action={<Button render={<Link href="/" />}>Kembali ke beranda</Button>}
+      action={
+        <Button nativeButton={false} render={<Link href="/" />}>
+          Kembali ke beranda
+        </Button>
+      }
     />
   );
 }
