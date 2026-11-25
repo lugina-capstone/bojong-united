@@ -102,3 +102,9 @@ export function parseWibInput(value: string) {
 export function formatScore(value: number) {
   return String(Math.round(value * 100) / 100);
 }
+
+/** Hitung mundur "mm:ss", mis. 42 → "00:42". */
+export function formatCountdown(seconds: number) {
+  const minutes = String(Math.floor(seconds / 60)).padStart(2, "0");
+  return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
+}

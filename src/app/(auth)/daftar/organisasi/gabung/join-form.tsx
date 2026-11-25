@@ -4,8 +4,11 @@ import { ArrowRightIcon, CircleCheckIcon, KeyRoundIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
-import { BackLink } from "@/app/(auth)/_components/back-link";
-import { OtpStep } from "@/app/(auth)/_components/otp-step";
+import { BackButton, BackLink } from "@/app/(auth)/_components/back-link";
+import {
+  OTP_ORGANIZATION_FOOTER,
+  OtpStep,
+} from "@/app/(auth)/_components/otp-step";
 import { PersonalFields } from "@/app/(auth)/_components/personal-fields";
 import { StepBadge } from "@/app/(auth)/_components/step-badge";
 import { TermsField } from "@/app/(auth)/_components/terms-field";
@@ -81,10 +84,16 @@ function JoinForm() {
   if (verifyEmail) {
     return (
       <AuthPanel
-        topStart={<BackLink href="/daftar/organisasi/gabung">Kembali</BackLink>}
+        topStart={
+          <BackButton onClick={() => setVerifyEmail(undefined)}>
+            Kembali ke pendaftaran
+          </BackButton>
+        }
+        footer={OTP_ORGANIZATION_FOOTER}
         topEnd={<StepBadge label="Gabung organisasi" step={2} total={2} />}
       >
         <OtpStep
+          organization="gabung"
           email={verifyEmail}
           onChangeEmail={() => setVerifyEmail(undefined)}
         />

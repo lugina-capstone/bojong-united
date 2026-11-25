@@ -5,14 +5,17 @@ import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
 
-import { BackLink } from "@/app/(auth)/_components/back-link";
+import { BackButton, BackLink } from "@/app/(auth)/_components/back-link";
 import { uploadOrganizationLogo } from "@/app/(auth)/_components/logo-picker";
 import {
   OrganizationFields,
   type OrganizationValues,
   SectionLabel,
 } from "@/app/(auth)/_components/organization-fields";
-import { OtpStep } from "@/app/(auth)/_components/otp-step";
+import {
+  OTP_ORGANIZATION_FOOTER,
+  OtpStep,
+} from "@/app/(auth)/_components/otp-step";
 import { PersonalFields } from "@/app/(auth)/_components/personal-fields";
 import { StepBadge } from "@/app/(auth)/_components/step-badge";
 import { TermsField } from "@/app/(auth)/_components/terms-field";
@@ -75,10 +78,16 @@ function OrganizationForm() {
   if (step === "otp" && state.email) {
     return (
       <AuthPanel
-        topStart={<BackLink href="/daftar/organisasi/baru">Kembali</BackLink>}
+        topStart={
+          <BackButton onClick={() => setStep("form")}>
+            Kembali ke pendaftaran
+          </BackButton>
+        }
+        footer={OTP_ORGANIZATION_FOOTER}
         topEnd={<StepBadge label="Organisasi baru" step={2} total={2} />}
       >
         <OtpStep
+          organization="baru"
           email={state.email}
           onChangeEmail={() => setStep("form")}
           onVerified={async () => {

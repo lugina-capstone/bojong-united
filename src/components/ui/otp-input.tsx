@@ -49,7 +49,7 @@ function OtpInput({
       autoComplete="one-time-code"
       pushPasswordManagerStrategy="none"
       aria-invalid={invalid || undefined}
-      containerClassName={cn("flex w-full max-w-101.5 gap-2.5", className)}
+      containerClassName={cn("flex w-full gap-2.5", className)}
       {...props}
     >
       {Array.from({ length: OTP_LENGTH }, (_, index) => (

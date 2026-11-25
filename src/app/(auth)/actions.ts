@@ -30,6 +30,7 @@ import {
   signInSchema,
   signUpSchema,
 } from "@/lib/validations/auth";
+import { profileSchema } from "@/lib/validations/profile";
 
 export type FormState = {
   ok?: boolean;
@@ -452,6 +453,12 @@ export async function signOutAction() {
   redirect("/masuk");
 }
 
+/** Dari "Lengkapi Data Google": keluar lalu daftar lewat formulir email. */
+export async function signOutToSignUpAction() {
+  await auth.api.signOut({ headers: await headers() });
+  redirect("/daftar");
+}
+
 export async function forgotPasswordAction(input: unknown): Promise<FormState> {
   const parsed = forgotPasswordSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
@@ -500,12 +507,9 @@ export async function completeGoogleProfileAction(
   input: unknown,
 ): Promise<FormState> {
   const user = await requireUser();
-  const parsed = signUpSchema.pick({ name: true }).safeParse(input);
+  const parsed = profileSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
-  await db.user.update({
-    where: { id: user.id },
-    data: { name: parsed.data.name },
-  });
+  await db.user.update({ where: { id: user.id }, data: parsed.data });
   redirect(destinationHref(destinationFor(user)));
 }
 
