@@ -83,15 +83,24 @@ export async function issueCertificateIfEligible(
   )
     return null;
   try {
-    const certificate = await db.certificate.create({
-      data: {
-        enrollmentId: enrollment.id,
-        templateId: event.certificateTemplateId,
-        number: certificateNumber(randomBytes(4).toString("hex")),
-        recipientName: enrollment.user.name,
-        finalScore: finalScore(scores)!,
-      },
+    const certificate = await db.$transaction(async (tx) => {
+      // Mengunci baris user: penghapusan akun yang bersamaan selesai dulu atau menunggu.
+      const active = await tx.user.updateMany({
+        where: { id: userId, status: "ACTIVE" },
+        data: { status: "ACTIVE" },
+      });
+      if (active.count === 0) return null;
+      return tx.certificate.create({
+        data: {
+          enrollmentId: enrollment.id,
+          templateId: event.certificateTemplateId,
+          number: certificateNumber(randomBytes(4).toString("hex")),
+          recipientName: enrollment.user.name,
+          finalScore: finalScore(scores)!,
+        },
+      });
     });
+    if (!certificate) return null;
     await notify([userId], "certificate.issued", {
       eventId,
       eventTitle: event.title,

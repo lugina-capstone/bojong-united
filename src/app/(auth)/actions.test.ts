@@ -16,7 +16,12 @@ const mocks = vi.hoisted(() => ({
       findFirst: vi.fn(),
       deleteMany: vi.fn(),
     },
-    team: { update: vi.fn(), delete: vi.fn() },
+    team: {
+      update: vi.fn(),
+      updateMany: vi.fn(),
+      findUnique: vi.fn(),
+      delete: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
   requireUser: vi.fn(),
@@ -120,6 +125,10 @@ describe("deleteAccountAction", () => {
       { id: "e2", team: { id: "tim-2", leaderId: "peserta" } },
       { id: "e3", team: { id: "tim-3", leaderId: "orang-lain" } },
     ]);
+    mocks.db.team.findUnique
+      .mockResolvedValueOnce({ leaderId: "peserta" })
+      .mockResolvedValueOnce({ leaderId: "peserta" })
+      .mockResolvedValueOnce({ leaderId: "orang-lain" });
     mocks.db.enrollment.findFirst
       .mockResolvedValueOnce({ userId: "anggota" })
       .mockResolvedValueOnce(null);
