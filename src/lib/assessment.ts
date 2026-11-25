@@ -61,7 +61,11 @@ export async function issueCertificateIfEligible(
 ) {
   const enrollment = await db.enrollment.findUnique({
     where: { eventId_userId: { eventId, userId } },
-    include: { certificate: true, event: true },
+    include: {
+      certificate: true,
+      event: true,
+      user: { select: { name: true } },
+    },
   });
   if (!enrollment || enrollment.certificate) return null;
   const { event } = enrollment;
@@ -82,6 +86,7 @@ export async function issueCertificateIfEligible(
         enrollmentId: enrollment.id,
         templateId: event.certificateTemplateId,
         number: certificateNumber(randomBytes(4).toString("hex")),
+        recipientName: enrollment.user.name,
         finalScore: finalScore(scores)!,
       },
     });
