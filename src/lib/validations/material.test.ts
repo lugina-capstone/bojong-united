@@ -18,6 +18,12 @@ describe("outcomes materi", () => {
     ]);
   });
 
+  it("mempertahankan tanda minus yang bukan tanda daftar", () => {
+    expect(parseOutcomes("-5 °C sebagai suhu simpan")).toEqual([
+      "-5 °C sebagai suhu simpan",
+    ]);
+  });
+
   it("opsional", () => {
     expect(materialInfoSchema.parse(info).outcomes).toEqual([]);
   });

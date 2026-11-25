@@ -16,7 +16,7 @@ export const MAX_OUTCOMES = 6;
 export function parseOutcomes(value: string) {
   return value
     .split("\n")
-    .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
+    .map((line) => line.replace(/^\s*[-•*]\s+/, "").trim())
     .filter(Boolean);
 }
 
