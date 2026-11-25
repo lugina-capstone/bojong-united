@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Progress } from "@/components/ui/progress";
 import { db } from "@/lib/db";
 import { eventPhase } from "@/lib/event-rules";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatLongDate, greeting } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Ruang Kerja" };
 
@@ -71,7 +71,8 @@ export default async function RuangKerjaPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader
-          title={`Halo, ${user.name.split(" ")[0]}.`}
+          eyebrow={formatLongDate(new Date())}
+          title={`${greeting()}, ${user.name.split(" ")[0]}.`}
           description="Bantu ide peserta berkembang menjadi karya nyata."
         />
         <Link

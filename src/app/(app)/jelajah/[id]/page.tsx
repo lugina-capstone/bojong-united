@@ -319,47 +319,45 @@ export default async function EventDetailPage({
             }
           />
 
-          {!enrollment && (
-            <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5">
-              <p className="text-overline text-primary-500">Penyelenggara</p>
-              <div className="flex items-center gap-3">
-                <OrgLogo name={event.organization.name} src={logoUrl} />
-                <div className="min-w-0">
-                  <p className="truncate text-body-strong text-foreground">
-                    {event.organization.name}
-                  </p>
-                  <p className="text-caption text-muted-foreground">
-                    {orgTypeLabel(event.organization.type)}
-                  </p>
-                </div>
+          <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5">
+            <p className="text-overline text-primary-500">Penyelenggara</p>
+            <div className="flex items-center gap-3">
+              <OrgLogo name={event.organization.name} src={logoUrl} />
+              <div className="min-w-0">
+                <p className="truncate text-body-strong text-foreground">
+                  {event.organization.name}
+                </p>
+                <p className="text-caption text-muted-foreground">
+                  {orgTypeLabel(event.organization.type)}
+                </p>
               </div>
-              <dl className="flex flex-col gap-2 border-t border-border pt-3 text-small">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground">Guru pembimbing</dt>
-                  <dd className="text-right text-small-strong">
-                    {event.creator.name}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground">Acara aktif</dt>
-                  <dd className="text-small-strong">
-                    {event.organization._count.events} acara
-                  </dd>
-                </div>
-              </dl>
-              <p className="text-caption text-muted-foreground">
-                Terbuka untuk semua peserta. Anda tidak perlu bergabung ke
-                organisasi ini.
-              </p>
-              <Link
-                href={`/jelajah?org=${event.organization.id}`}
-                className="inline-flex items-center gap-1 text-small-strong text-primary-500 hover:underline"
-              >
-                Lihat acara lain dari penyelenggara
-                <ArrowRightIcon aria-hidden="true" className="size-4" />
-              </Link>
-            </section>
-          )}
+            </div>
+            <dl className="flex flex-col gap-2 border-t border-border pt-3 text-small">
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">Guru pembimbing</dt>
+                <dd className="text-right text-small-strong">
+                  {event.creator.name}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">Acara aktif</dt>
+                <dd className="text-small-strong">
+                  {event.organization._count.events} acara
+                </dd>
+              </div>
+            </dl>
+            <p className="text-caption text-muted-foreground">
+              Terbuka untuk semua peserta. Anda tidak perlu bergabung ke
+              organisasi ini.
+            </p>
+            <Link
+              href={`/jelajah?org=${event.organization.id}`}
+              className="inline-flex items-center gap-1 text-small-strong text-primary-500 hover:underline"
+            >
+              Lihat acara lain dari penyelenggara
+              <ArrowRightIcon aria-hidden="true" className="size-4" />
+            </Link>
+          </section>
 
           {rubrics.length > 0 && (
             <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">

@@ -173,6 +173,20 @@ export default async function GradePage({
                   }
                 />
               )}
+              {v.file?.contentType.startsWith("image/") && (
+                <figure className="flex flex-col gap-2 rounded-lg border border-border bg-muted p-3">
+                  <figcaption className="text-caption text-muted-foreground">
+                    Pratinjau gambar
+                  </figcaption>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- URL sementara dari storage privat */}
+                  <img
+                    src={`/api/files/${v.file.id}`}
+                    alt={`Pratinjau ${v.file.name}`}
+                    loading="lazy"
+                    className="max-h-[32rem] w-full rounded-md object-contain"
+                  />
+                </figure>
+              )}
               {v.link && (
                 <WebLink
                   href={v.link}
