@@ -138,7 +138,7 @@ export default async function TasksPage({
           eventId: ev.id,
           eventTitle: ev.title,
           milestoneId: m.id,
-          milestoneLabel: `Milestone ${m.order} · ${en.team?.name ?? m.title}`,
+          milestoneLabel: `Milestone ${m.order} · ${m.title}${en.team ? ` · ${en.team.name}` : ""}`,
         };
         if (!latest) {
           if (started)

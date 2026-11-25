@@ -61,25 +61,27 @@ function SearchParamInput({
   );
 }
 
-/** Select filter yang menyimpan pilihan di search param; opsi pertama berarti "semua". */
+/** Select filter yang menyimpan pilihan di search param; `defaultValue` (bawaan: opsi pertama) tidak ditulis ke URL. */
 function SearchParamSelect({
   name,
   label,
   options,
+  defaultValue = options[0]?.value ?? "",
 }: {
   name: string;
   label: string;
   options: { value: string; label: string }[];
+  defaultValue?: string;
 }) {
   const searchParams = useSearchParams();
   const update = useUpdateParam();
-  const current = searchParams.get(name) ?? options[0]?.value ?? "";
+  const current = searchParams.get(name) ?? defaultValue;
   return (
     <Select
       items={options}
       value={current}
       onValueChange={(value) =>
-        update(name, value === options[0]?.value ? "" : String(value ?? ""))
+        update(name, value === defaultValue ? "" : String(value ?? ""))
       }
     >
       <SelectTrigger aria-label={label} className="w-full">

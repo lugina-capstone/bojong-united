@@ -27,6 +27,16 @@ export function hrefWith(
 
 export const PAGE_SIZE = 10;
 
+/** Jumlah per halaman dari `?per=`; nilai di luar `options` memakai `fallback`. */
+export function pageSizeOf(
+  params: SearchParams,
+  options: readonly number[],
+  fallback: number,
+) {
+  const size = Number.parseInt(param(params, "per"), 10);
+  return options.includes(size) ? size : fallback;
+}
+
 /** Halaman aktif (≥ 1) dari `?page=`. */
 export function pageOf(params: SearchParams) {
   const page = Number.parseInt(param(params, "page"), 10);

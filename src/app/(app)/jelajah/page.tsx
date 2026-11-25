@@ -1,9 +1,11 @@
-import { CompassIcon } from "lucide-react";
+import { ArrowUpRightIcon, CompassIcon } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import {
   hrefWith,
   pageOf,
+  pageSizeOf,
   param,
   type SearchParams,
 } from "@/app/(app)/_components/href";
@@ -15,6 +17,7 @@ import {
 import { ListFooter } from "@/app/(app)/_components/list-footer";
 import { ExploreCard } from "@/app/(app)/jelajah/_components/explore-card";
 import { MaterialExplore } from "@/app/(app)/jelajah/_components/material-explore";
+import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
@@ -27,6 +30,7 @@ import { requireParticipant } from "@/lib/participant-access";
 export const metadata: Metadata = { title: "Jelajah" };
 
 const PATH = "/jelajah";
+const PAGE_SIZES = [4, 6, 12] as const;
 const PAGE_SIZE = 6;
 const STATUS_OPTIONS = [
   { value: "semua", label: "Semua status" },
@@ -49,6 +53,7 @@ export default async function JelajahPage({
   const fieldId = param(params, "bidang");
   const status = param(params, "status");
   const page = pageOf(params);
+  const pageSize = pageSizeOf(params, PAGE_SIZES, PAGE_SIZE);
   const now = new Date();
 
   const joined: Prisma.EventWhereInput = {
@@ -87,8 +92,8 @@ export default async function JelajahPage({
     db.event.findMany({
       where,
       orderBy: [{ startsAt: "desc" }, { createdAt: "desc" }],
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
       include: {
         field: { select: { name: true } },
         creator: { select: { name: true } },
@@ -182,31 +187,44 @@ export default async function JelajahPage({
         />
       </div>
 
-      <LinkTabs
-        label="Jenis daftar"
-        active={tab}
-        className="px-0 sm:px-0"
-        tabs={[
-          {
-            value: "acara",
-            label: "Acara",
-            count: totalAll,
-            href: hrefWith(PATH, params, { tab: null, page: null }),
-          },
-          {
-            value: "materi",
-            label: "Materi",
-            count: publicMaterials,
-            href: hrefWith(PATH, {}, { tab: "materi" }),
-          },
-          {
-            value: "diikuti",
-            label: "Diikuti",
-            count: joinedAll,
-            href: hrefWith(PATH, params, { tab: "diikuti", page: null }),
-          },
-        ]}
-      />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <LinkTabs
+          label="Jenis daftar"
+          active={tab}
+          className="min-w-0 px-0 sm:px-0"
+          tabs={[
+            {
+              value: "acara",
+              label: "Acara",
+              count: totalAll,
+              href: hrefWith(PATH, params, { tab: null, page: null }),
+            },
+            {
+              value: "materi",
+              label: "Materi",
+              count: publicMaterials,
+              href: hrefWith(PATH, {}, { tab: "materi" }),
+            },
+            {
+              value: "diikuti",
+              label: "Diikuti",
+              count: joinedAll,
+              href: hrefWith(PATH, params, { tab: "diikuti", page: null }),
+            },
+          ]}
+        />
+        <Link
+          href="/beranda"
+          className={buttonVariants({
+            variant: "secondary",
+            size: "sm",
+            className: "w-fit shrink-0",
+          })}
+        >
+          Acara saya ({joinedAll})
+          <ArrowUpRightIcon aria-hidden="true" />
+        </Link>
+      </div>
 
       {events.length === 0 ? (
         <EmptyState
@@ -237,9 +255,20 @@ export default async function JelajahPage({
       )}
       <ListFooter
         page={page}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         total={total}
         noun="acara"
+        pageSizeControl={
+          <SearchParamSelect
+            name="per"
+            label="Jumlah acara per halaman"
+            options={PAGE_SIZES.map((n) => ({
+              value: String(n),
+              label: String(n),
+            }))}
+            defaultValue={String(PAGE_SIZE)}
+          />
+        }
         hrefFor={(p) => hrefWith(PATH, params, { page: p })}
       />
     </div>
