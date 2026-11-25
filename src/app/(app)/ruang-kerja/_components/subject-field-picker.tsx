@@ -193,7 +193,7 @@ function SubjectFieldPicker({
               Belum ada bidang tambahan.
             </p>
           ) : (
-            <ul className="flex flex-col divide-y divide-border">
+            <ul className="flex max-h-[50dvh] flex-col divide-y divide-border overflow-y-auto">
               {customFields.map((field) =>
                 editing?.id === field.id ? (
                   <li key={field.id} className="flex items-center gap-2 py-2">
