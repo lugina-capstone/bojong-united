@@ -14,16 +14,23 @@ export type SubjectFieldActionState = {
 
 const DUPLICATE = "Bidang dengan nama itu sudah ada.";
 const NOT_FOUND = "Bidang tidak ditemukan.";
+const USED =
+  "Bidang ini sudah dipakai acara atau rubrik. Hanya Admin Organisasi yang dapat mengubah namanya.";
 
 /** Bidang bawaan atau milik organisasi dengan nama yang sama tanpa membedakan huruf besar/kecil. */
-function findByName(organizationId: string, name: string) {
-  return db.subjectField.findFirst({
+async function findByName(organizationId: string, name: string) {
+  // `mode: "insensitive"` memakai ILIKE sehingga `_` dan `%` menjadi wildcard; cocokkan ulang secara harfiah.
+  const candidates = await db.subjectField.findMany({
     where: {
       name: { equals: name, mode: "insensitive" },
       OR: [{ organizationId }, { organizationId: null }],
     },
     select: { id: true, name: true },
   });
+  const wanted = name.toLowerCase();
+  return (
+    candidates.find((field) => field.name.toLowerCase() === wanted) ?? null
+  );
 }
 
 /** Menambah bidang organisasi; nama yang sudah ada mengembalikan bidang itu. */
@@ -73,18 +80,21 @@ export async function renameSubjectFieldAction(
   });
   if (!field) return { error: NOT_FOUND };
   if (!user.membership?.isAdmin && (await usageOf(field.id)) > 0) {
-    return {
-      error:
-        "Bidang ini sudah dipakai acara atau rubrik. Hanya Admin Organisasi yang dapat mengubah namanya.",
-    };
+    return { error: USED };
   }
   const duplicate = await findByName(organizationId, parsed.data);
   if (duplicate && duplicate.id !== field.id) return { error: DUPLICATE };
+  const admin = Boolean(user.membership?.isAdmin);
   try {
-    await db.subjectField.update({
-      where: { id: field.id },
+    // Satu pernyataan: bidang yang baru saja dipakai tidak ikut diubah oleh non-admin.
+    const { count } = await db.subjectField.updateMany({
+      where: {
+        id: field.id,
+        ...(admin ? {} : { events: { none: {} }, rubrics: { none: {} } }),
+      },
       data: { name: parsed.data },
     });
+    if (count === 0) return { error: USED };
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;
     return { error: DUPLICATE };

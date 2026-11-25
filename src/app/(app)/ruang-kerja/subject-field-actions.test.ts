@@ -4,8 +4,9 @@ const mocks = vi.hoisted(() => ({
   db: {
     subjectField: {
       findFirst: vi.fn(),
+      findMany: vi.fn(),
+      updateMany: vi.fn(),
       create: vi.fn(),
-      update: vi.fn(),
       deleteMany: vi.fn(),
     },
     event: { count: vi.fn() },
@@ -40,26 +41,27 @@ beforeEach(() => {
   mocks.user.membership.isAdmin = false;
   mocks.db.event.count.mockResolvedValue(0);
   mocks.db.rubric.count.mockResolvedValue(0);
+  mocks.db.subjectField.findMany.mockResolvedValue([]);
+  mocks.db.subjectField.updateMany.mockResolvedValue({ count: 1 });
 });
 
 describe("createSubjectFieldAction", () => {
   it("memakai bidang yang sudah ada walau beda huruf besar/kecil", async () => {
-    mocks.db.subjectField.findFirst.mockResolvedValue({
-      id: "f1",
-      name: "Fotografi",
-    });
+    mocks.db.subjectField.findMany.mockResolvedValue([
+      { id: "f1", name: "Fotografi" },
+    ]);
     const result = await createSubjectFieldAction("fotografi");
     expect(result).toEqual({ ok: true, fieldId: "f1", name: "Fotografi" });
-    expect(
-      mocks.db.subjectField.findFirst.mock.calls[0]![0].where.name,
-    ).toEqual({ equals: "fotografi", mode: "insensitive" });
+    expect(mocks.db.subjectField.findMany.mock.calls[0]![0].where.name).toEqual(
+      { equals: "fotografi", mode: "insensitive" },
+    );
     expect(mocks.db.subjectField.create).not.toHaveBeenCalled();
   });
 
   it("memakai bidang pemenang saat dua permintaan bersamaan", async () => {
-    mocks.db.subjectField.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: "f1", name: "Fotografi" });
+    mocks.db.subjectField.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: "f1", name: "Fotografi" }]);
     mocks.db.subjectField.create.mockRejectedValue(uniqueViolation);
     const result = await createSubjectFieldAction("FOTOGRAFI");
     expect(result).toEqual({ ok: true, fieldId: "f1", name: "Fotografi" });
@@ -75,7 +77,7 @@ describe("renameSubjectFieldAction", () => {
       id: "field_uiux",
       organizationId: "org",
     });
-    expect(mocks.db.subjectField.update).not.toHaveBeenCalled();
+    expect(mocks.db.subjectField.updateMany).not.toHaveBeenCalled();
   });
 
   it("menolak pengajar biasa bila bidang sudah dipakai", async () => {
@@ -83,33 +85,56 @@ describe("renameSubjectFieldAction", () => {
     mocks.db.rubric.count.mockResolvedValue(1);
     const result = await renameSubjectFieldAction("f1", "Foto");
     expect(result.error).toContain("Hanya Admin Organisasi");
-    expect(mocks.db.subjectField.update).not.toHaveBeenCalled();
+    expect(mocks.db.subjectField.updateMany).not.toHaveBeenCalled();
   });
 
   it("mengizinkan Admin Organisasi mengubah bidang yang dipakai", async () => {
     mocks.user.membership.isAdmin = true;
-    mocks.db.subjectField.findFirst
-      .mockResolvedValueOnce({ id: "f1" })
-      .mockResolvedValueOnce(null);
+    mocks.db.subjectField.findFirst.mockResolvedValue({ id: "f1" });
     mocks.db.rubric.count.mockResolvedValue(1);
     const result = await renameSubjectFieldAction("f1", "Foto");
     expect(result).toEqual({ ok: true, fieldId: "f1", name: "Foto" });
   });
 
   it("menolak nama yang sama dengan bidang lain", async () => {
-    mocks.db.subjectField.findFirst
-      .mockResolvedValueOnce({ id: "f1" })
-      .mockResolvedValueOnce({ id: "field_poster", name: "Poster" });
+    mocks.db.subjectField.findFirst.mockResolvedValue({ id: "f1" });
+    mocks.db.subjectField.findMany.mockResolvedValue([
+      { id: "field_poster", name: "Poster" },
+    ]);
     const result = await renameSubjectFieldAction("f1", "poster");
     expect(result.error).toBe("Bidang dengan nama itu sudah ada.");
   });
 
   it("mengizinkan mengubah huruf besar/kecil bidang itu sendiri", async () => {
-    mocks.db.subjectField.findFirst
-      .mockResolvedValueOnce({ id: "f1" })
-      .mockResolvedValueOnce({ id: "f1", name: "fotografi" });
+    mocks.db.subjectField.findFirst.mockResolvedValue({ id: "f1" });
+    mocks.db.subjectField.findMany.mockResolvedValue([
+      { id: "f1", name: "fotografi" },
+    ]);
     const result = await renameSubjectFieldAction("f1", "Fotografi");
     expect(result.ok).toBe(true);
+  });
+});
+
+describe("renameSubjectFieldAction (kasus tepi)", () => {
+  it("tidak menganggap wildcard ILIKE sebagai nama yang sama", async () => {
+    mocks.db.subjectField.findFirst.mockResolvedValue({ id: "f1" });
+    mocks.db.subjectField.findMany.mockResolvedValue([
+      { id: "field_uiux", name: "UI/UX" },
+    ]);
+    const result = await renameSubjectFieldAction("f1", "U__UX");
+    expect(result.ok).toBe(true);
+  });
+
+  it("menolak pengajar biasa bila bidang dipakai tepat sebelum disimpan", async () => {
+    mocks.db.subjectField.findFirst.mockResolvedValue({ id: "f1" });
+    mocks.db.subjectField.updateMany.mockResolvedValue({ count: 0 });
+    const result = await renameSubjectFieldAction("f1", "Foto");
+    expect(result.error).toContain("Hanya Admin Organisasi");
+    expect(mocks.db.subjectField.updateMany.mock.calls[0]![0].where).toEqual({
+      id: "f1",
+      events: { none: {} },
+      rubrics: { none: {} },
+    });
   });
 });
 
