@@ -63,15 +63,17 @@ function SidebarContent({
       >
         <BecraftLogo variant="sidebar" />
       </Link>
-      <div className="flex items-center gap-2.5 rounded-lg bg-muted p-3">
-        <CompassIcon
-          aria-hidden="true"
-          className="size-5 shrink-0 text-primary-500"
-        />
-        <p className="truncate text-small-strong text-foreground">
-          {workspace}
-        </p>
-      </div>
+      {access.role !== "PESERTA" && (
+        <div className="flex items-center gap-2.5 rounded-lg bg-muted p-3">
+          <CompassIcon
+            aria-hidden="true"
+            className="size-5 shrink-0 text-primary-500"
+          />
+          <p className="truncate text-small-strong text-foreground">
+            {workspace}
+          </p>
+        </div>
+      )}
       <nav aria-label="Menu utama" className="flex flex-col gap-5">
         {sections.map((section) => (
           <div key={section.label} className="flex flex-col gap-1">
