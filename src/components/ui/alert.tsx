@@ -5,6 +5,7 @@ import {
   CircleCheckIcon,
   CircleXIcon,
   ClockIcon,
+  BanIcon,
   InfoIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -18,6 +19,7 @@ const alertVariants = cva(
         danger: "border-danger-200 bg-danger-50 text-danger-700",
         warning: "border-warning-200 bg-warning-50 text-warning-700",
         success: "border-success-200 bg-success-50 text-success-700",
+        neutral: "border-border bg-muted text-foreground",
       },
     },
     defaultVariants: { tone: "info" },
@@ -32,6 +34,7 @@ const ICONS: Record<
   danger: CircleXIcon,
   warning: ClockIcon,
   success: CircleCheckIcon,
+  neutral: BanIcon,
 };
 
 /** Alert di dalam halaman: Info/Bahaya/Warning/Sukses. */

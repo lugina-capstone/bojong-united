@@ -56,7 +56,7 @@ function StatusAlert({ status }: { status?: string }) {
       );
     case "nonaktif":
       return (
-        <Alert tone="danger" title="Organisasi dinonaktifkan">
+        <Alert tone="neutral" title="Organisasi dinonaktifkan">
           Organisasi Anda sedang dinonaktifkan oleh Administrator Becraft.
           Hubungi admin organisasi atau Administrator untuk informasi lebih
           lanjut.

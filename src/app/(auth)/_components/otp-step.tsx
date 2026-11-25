@@ -1,6 +1,6 @@
 "use client";
 
-import { MailCheckIcon } from "lucide-react";
+import { InfoIcon, MailCheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -10,25 +10,35 @@ import {
   verifyOtpAction,
 } from "@/app/(auth)/actions";
 import { AuthHeading } from "@/components/layout/auth-panel";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { IconBox } from "@/components/ui/icon-box";
 import { OTP_LENGTH, OtpInput } from "@/components/ui/otp-input";
-import { OTP_RESEND_SECONDS } from "@/lib/otp";
+import { formatCountdown } from "@/lib/format";
+import { OTP_RESEND_SECONDS, OTP_VALID_MINUTES } from "@/lib/otp";
+
+const OTP_FOOTER =
+  "Verifikasi dilakukan satu kali khusus pendaftaran manual tanpa Google.";
+const OTP_ORGANIZATION_FOOTER =
+  "Verifikasi email berlaku untuk semua pendaftaran manual: peserta dan organisasi.";
 
 /** Langkah verifikasi email dengan kode 6 digit (AA-02). */
 function OtpStep({
   email,
   onChangeEmail,
   onVerified,
+  organization,
 }: {
   email: string;
+  /** Pendaftaran organisasi: "baru" mengirim pengajuan, "gabung" langsung aktif. */
+  organization?: "baru" | "gabung";
   onChangeEmail?: () => void;
   /** Default: arahkan ke beranda sesuai role setelah sesi dibuat. */
   onVerified?: () => void | Promise<void>;
 }) {
   const router = useRouter();
   const [otp, setOtp] = React.useState("");
-  const [error, setError] = React.useState<string>();
+  const [error, setError] = React.useState<{ code?: string; text?: string }>();
   const [notice, setNotice] = React.useState<string>();
   const [cooldown, setCooldown] = React.useState(OTP_RESEND_SECONDS);
   const [pending, startTransition] = React.useTransition();
@@ -44,7 +54,10 @@ function OtpStep({
     startTransition(async () => {
       const result = await verifyOtpAction({ email, otp: code });
       if (!result.ok) {
-        setError(result.error ?? result.fieldErrors?.otp);
+        setError({
+          code: result.code,
+          text: result.error ?? result.fieldErrors?.otp,
+        });
         return;
       }
       if (onVerified) await onVerified();
@@ -60,7 +73,7 @@ function OtpStep({
         setNotice("Kode baru sudah dikirim.");
         setOtp("");
         setCooldown(OTP_RESEND_SECONDS);
-      } else setError(result.error ?? result.fieldErrors?.email);
+      } else setError({ text: result.error ?? result.fieldErrors?.email });
     });
   }
 
@@ -74,18 +87,33 @@ function OtpStep({
     >
       <AuthHeading
         icon={<IconBox icon={MailCheckIcon} tone="primary" size="lg" />}
-        title="Cek email Anda"
+        title="Verifikasi alamat email Anda"
         description={
           <>
-            Kami mengirim kode {OTP_LENGTH} digit ke{" "}
-            <span className="text-body-strong text-foreground">{email}</span>.
-            Masukkan kode untuk memverifikasi email.
+            Masukkan kode {OTP_LENGTH} digit yang telah kami kirim ke{" "}
+            <span className="text-body-strong text-foreground">{email}</span>
+            {organization ? "." : " untuk mengaktifkan akun manual Anda."}
           </>
         }
       />
+      {error &&
+        (error.code === "INVALID_OTP" ? (
+          <Alert tone="danger" title="Kode salah atau sudah kedaluwarsa">
+            Periksa lagi, atau kirim ulang kode untuk mendapatkan kode baru yang
+            berlaku {OTP_VALID_MINUTES} menit.
+          </Alert>
+        ) : (
+          <Alert tone="danger">{error.text}</Alert>
+        ))}
       <div className="flex flex-col gap-2">
+        <span id="otp-label" className="text-small-strong text-label">
+          Kode verifikasi ({OTP_LENGTH} digit)
+          <span aria-hidden="true" className="ml-0.5 text-danger-500">
+            *
+          </span>
+        </span>
         <OtpInput
-          aria-label="Kode verifikasi"
+          aria-labelledby="otp-label"
           value={otp}
           onChange={(value: string) => {
             setOtp(value);
@@ -96,30 +124,11 @@ function OtpStep({
           disabled={pending}
           autoFocus
         />
-        {error ? (
-          <p role="alert" className="text-caption text-danger-500">
-            {error}
-          </p>
-        ) : (
-          notice && (
-            <p role="status" className="text-caption text-success-700">
-              {notice}
-            </p>
-          )
-        )}
-      </div>
-      <Button
-        type="submit"
-        size="lg"
-        disabled={pending || otp.length < OTP_LENGTH}
-      >
-        Verifikasi
-      </Button>
-      <div className="flex flex-wrap items-center justify-between gap-2 text-small">
-        <span className="text-muted-foreground">
-          Tidak menerima kode?{" "}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-small">
           {cooldown > 0 ? (
-            <span>Kirim ulang dalam {cooldown} detik</span>
+            <span className="text-muted-foreground">
+              Kirim ulang kode dalam {formatCountdown(cooldown)}
+            </span>
           ) : (
             <button
               type="button"
@@ -127,22 +136,51 @@ function OtpStep({
               disabled={pending}
               className="text-small-strong text-primary-500 hover:underline"
             >
-              Kirim ulang
+              Kirim ulang kode
             </button>
           )}
-        </span>
-        {onChangeEmail && (
-          <button
-            type="button"
-            onClick={onChangeEmail}
-            className="text-small-strong text-primary-500 hover:underline"
-          >
-            Ubah email
-          </button>
+          {onChangeEmail && (
+            <button
+              type="button"
+              onClick={onChangeEmail}
+              className="text-small-strong text-primary-500 hover:underline"
+            >
+              Ubah alamat email
+            </button>
+          )}
+        </div>
+        {notice && !error && (
+          <p role="status" className="text-caption text-success-700">
+            {notice}
+          </p>
         )}
       </div>
+      <Button
+        type="submit"
+        size="lg"
+        disabled={pending || otp.length < OTP_LENGTH}
+      >
+        {organization === "baru"
+          ? "Verifikasi & kirim pengajuan"
+          : "Verifikasi & lanjutkan"}
+      </Button>
+      {organization ? (
+        <Alert tone="info">
+          Organisasi baru: pengajuan dikirim ke Administrator setelah email
+          terverifikasi. Gabung organisasi: akun langsung aktif sebagai anggota.
+        </Alert>
+      ) : (
+        <p className="flex items-start gap-2 rounded-lg border border-border bg-muted p-3 text-caption text-muted-foreground">
+          <InfoIcon aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+          Belum menemukan email? Periksa folder Spam atau Promosi, atau pastikan
+          penulisan email sudah benar.
+        </p>
+      )}
     </form>
   );
 }
 
-export { OtpStep };
+const REGISTERED_NOTICE =
+  "Akun untuk email ini sudah dibuat, jadi perubahan data belum tersimpan. Data yang dikirim sebelumnya tetap dipakai.";
+
+export { OTP_FOOTER, OTP_ORGANIZATION_FOOTER, OtpStep, REGISTERED_NOTICE };

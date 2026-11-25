@@ -1,17 +1,31 @@
 "use client";
 
-import { MailIcon, UserRoundIcon } from "lucide-react";
+import {
+  Building2Icon,
+  ChevronRightIcon,
+  MailIcon,
+  UserRoundIcon,
+} from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
+import { toast } from "sonner";
 
-import { BackLink } from "@/app/(auth)/_components/back-link";
+import { BackButton } from "@/app/(auth)/_components/back-link";
 import { GoogleSignIn } from "@/app/(auth)/_components/google-sign-in";
-import { OtpStep } from "@/app/(auth)/_components/otp-step";
+import {
+  OTP_FOOTER,
+  OtpStep,
+  REGISTERED_NOTICE,
+} from "@/app/(auth)/_components/otp-step";
 import { PasswordInput } from "@/app/(auth)/_components/password-input";
-import { StepBadge } from "@/app/(auth)/_components/step-badge";
 import { TermsField } from "@/app/(auth)/_components/terms-field";
 import { type FormState, signUpAction } from "@/app/(auth)/actions";
-import { AuthHeading, AuthPanel } from "@/components/layout/auth-panel";
+import {
+  AuthHeading,
+  AuthPanel,
+  AuthTag,
+} from "@/components/layout/auth-panel";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { FormField, fieldDescribedBy } from "@/components/ui/form-field";
 import { InputWithIcon } from "@/components/ui/input";
@@ -25,14 +39,24 @@ function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
   });
   const [state, setState] = React.useState<FormState>({});
   const [verifyEmail, setVerifyEmail] = React.useState<string>();
+  const [registered, setRegistered] = React.useState<{
+    email: string;
+    values: typeof values;
+  }>();
   const [pending, startTransition] = React.useTransition();
   const errors = state.fieldErrors ?? {};
+  const emailTaken =
+    state.code === "EMAIL_TAKEN" && state.email === values.email;
 
   if (verifyEmail) {
     return (
       <AuthPanel
-        topStart={<BackLink href="/daftar">Kembali</BackLink>}
-        topEnd={<StepBadge step={2} total={2} />}
+        topStart={
+          <BackButton onClick={() => setVerifyEmail(undefined)}>
+            Kembali ke pendaftaran
+          </BackButton>
+        }
+        footer={OTP_FOOTER}
       >
         <OtpStep
           email={verifyEmail}
@@ -43,27 +67,52 @@ function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
   }
 
   return (
-    <AuthPanel
-      topStart={<BackLink href="/">Beranda</BackLink>}
-      topEnd={<StepBadge step={1} total={2} />}
-    >
+    <AuthPanel topStart={<AuthTag>Pendaftaran akun</AuthTag>}>
       <AuthHeading
-        title="Buat akun Becraft"
-        description="Daftar sebagai Peserta untuk mengikuti acara dan materi."
+        title="Buat akun baru"
+        description="Daftar sebagai peserta untuk mengikuti acara dari organisasi mana pun. Isi formulir di bawah atau gunakan Google."
       />
+      {emailTaken && (
+        <Alert tone="danger" title="Email sudah terdaftar">
+          <p>
+            {state.email} sudah memiliki akun Becraft. Satu email hanya bisa
+            dipakai untuk satu akun — silakan masuk, atau gunakan email lain.
+          </p>
+          <Link
+            href={`/masuk?email=${encodeURIComponent(state.email ?? "")}`}
+            className="mt-1 inline-block text-small-strong underline"
+          >
+            Masuk dengan email ini →
+          </Link>
+        </Alert>
+      )}
       <form
         noValidate
         className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
+          // Akun untuk email ini sudah dibuat sebelum kembali dari OTP: lanjutkan verifikasinya.
+          if (
+            registered &&
+            values.email.trim().toLowerCase() === registered.email
+          ) {
+            if (JSON.stringify(values) !== JSON.stringify(registered.values)) {
+              setValues(registered.values);
+              toast.info(REGISTERED_NOTICE);
+            }
+            return setVerifyEmail(registered.email);
+          }
           startTransition(async () => {
             const result = await signUpAction(values);
-            setState(result);
-            if (result.ok && result.email) setVerifyEmail(result.email);
+            setState({ ...result, email: result.email ?? values.email });
+            if (result.ok && result.email) {
+              setRegistered({ email: result.email, values });
+              setVerifyEmail(result.email);
+            }
           });
         }}
       >
-        <FormField id="name" label="Nama lengkap" error={errors.name}>
+        <FormField id="name" label="Nama lengkap" required error={errors.name}>
           <InputWithIcon
             id="name"
             icon={UserRoundIcon}
@@ -79,19 +128,12 @@ function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
         </FormField>
         <FormField
           id="email"
-          label="Email"
+          label="Alamat email"
+          required
           error={
-            errors.email &&
-            (state.code === "EMAIL_TAKEN" ? (
-              <>
-                {errors.email}{" "}
-                <Link href="/masuk" className="text-caption-strong underline">
-                  Masuk
-                </Link>
-              </>
-            ) : (
-              errors.email
-            ))
+            emailTaken
+              ? "Email ini sudah terdaftar. Gunakan email lain atau masuk ke akun Anda."
+              : errors.email
           }
         >
           <InputWithIcon
@@ -113,13 +155,13 @@ function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
         <FormField
           id="password"
           label="Kata sandi"
-          description="Minimal 8 karakter."
+          required
           error={errors.password}
         >
           <PasswordInput
             id="password"
             autoComplete="new-password"
-            placeholder="Buat kata sandi"
+            placeholder="Minimal 8 karakter"
             value={values.password}
             onChange={(event) =>
               setValues({ ...values, password: event.target.value })
@@ -127,7 +169,6 @@ function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
             aria-invalid={Boolean(errors.password)}
             aria-describedby={fieldDescribedBy("password", {
               error: errors.password,
-              description: true,
             })}
           />
         </FormField>
@@ -142,23 +183,37 @@ function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
           </p>
         )}
         <Button type="submit" size="lg" disabled={pending}>
-          Daftar
+          Daftar sekarang
         </Button>
         {googleEnabled && <GoogleSignIn label="Daftar dengan Google" />}
       </form>
       <p className="text-center text-small text-muted-foreground">
-        Sudah punya akun?{" "}
+        Sudah memiliki akun?{" "}
         <Link href="/masuk" className="text-small-strong text-primary-500">
           Masuk
         </Link>
-        {" · "}
-        <Link
-          href="/daftar/organisasi"
-          className="text-small-strong text-primary-500"
-        >
-          Daftar sebagai organisasi
-        </Link>
       </p>
+      <Link
+        href="/daftar/organisasi"
+        className="flex items-center gap-3 rounded-xl border border-border bg-muted p-3.5 hover:border-primary-200 hover:bg-primary-50"
+      >
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-100 text-primary-500">
+          <Building2Icon aria-hidden="true" className="size-4.5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-small-strong text-primary-500">
+            Daftar sebagai organisasi
+          </span>
+          <span className="block text-caption text-muted-foreground">
+            Untuk guru, asesor, atau trainer dari sekolah, lembaga, dan
+            perusahaan.
+          </span>
+        </span>
+        <ChevronRightIcon
+          aria-hidden="true"
+          className="size-4 shrink-0 text-primary-500"
+        />
+      </Link>
     </AuthPanel>
   );
 }

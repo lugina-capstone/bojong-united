@@ -42,28 +42,31 @@ enum UserStatus {
 }
 
 model User {
-  id               String      @id @default(cuid())
+  id                 String      @id @default(cuid())
   /// Wajib huruf kecil (CHECK users_email_lowercase). Satu email untuk satu akun.
-  email            String      @unique
-  name             String
-  emailVerified    Boolean     @default(false)
-  image            String?
+  email              String      @unique
+  name               String
+  emailVerified      Boolean     @default(false)
+  image              String?
   /// Nomor HP Indonesia tanpa pemisah, mis. "085711220074" (CHECK users_phone_format).
-  phone            String?
+  phone              String?
+  /// Diisi saat akun Google baru menyelesaikan "Lengkapi Data Google". Akun Google yang masih
+  /// kosong boleh dihapus bila pemiliknya beralih ke formulir email.
+  profileCompletedAt DateTime?
   /// Administrator platform (global), bukan peran organisasi.
-  isAdministrator  Boolean     @default(false)
-  status           UserStatus  @default(ACTIVE)
-  deletedAt        DateTime?
+  isAdministrator    Boolean     @default(false)
+  status             UserStatus  @default(ACTIVE)
+  deletedAt          DateTime?
   /// Jumlah kata sandi salah berturut-turut. Direset setelah login berhasil.
-  failedLoginCount Int         @default(0)
+  failedLoginCount   Int         @default(0)
   /// Akun dikunci 15 menit setelah 5 kali kata sandi salah.
-  lockedUntil      DateTime?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  membership       Membership?
-  sessions         Session[]
-  accounts         Account[]
-  files            File[]
+  lockedUntil        DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  membership         Membership?
+  sessions           Session[]
+  accounts           Account[]
+  files              File[]
 
   reviewedOrganizations   Organization[]       @relation("OrganizationReviewer")
   trainerRequests         TrainerRequest[]     @relation("TrainerRequestUser")

@@ -5,14 +5,18 @@ import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
 
-import { BackLink } from "@/app/(auth)/_components/back-link";
+import { BackButton, BackLink } from "@/app/(auth)/_components/back-link";
 import { uploadOrganizationLogo } from "@/app/(auth)/_components/logo-picker";
 import {
   OrganizationFields,
   type OrganizationValues,
   SectionLabel,
 } from "@/app/(auth)/_components/organization-fields";
-import { OtpStep } from "@/app/(auth)/_components/otp-step";
+import {
+  OTP_ORGANIZATION_FOOTER,
+  OtpStep,
+  REGISTERED_NOTICE,
+} from "@/app/(auth)/_components/otp-step";
 import { PersonalFields } from "@/app/(auth)/_components/personal-fields";
 import { StepBadge } from "@/app/(auth)/_components/step-badge";
 import { TermsField } from "@/app/(auth)/_components/terms-field";
@@ -66,6 +70,11 @@ function OrganizationForm() {
   const [logo, setLogo] = React.useState<File | null>(null);
   const [state, setState] = React.useState<FormState>({});
   const [step, setStep] = React.useState<"form" | "otp" | "done">("form");
+  const [registered, setRegistered] = React.useState<{
+    personal: typeof personal;
+    organization: OrganizationValues;
+    terms: boolean;
+  }>();
   const [pending, startTransition] = React.useTransition();
   const errors = state.fieldErrors ?? {};
 
@@ -75,10 +84,16 @@ function OrganizationForm() {
   if (step === "otp" && state.email) {
     return (
       <AuthPanel
-        topStart={<BackLink href="/daftar/organisasi/baru">Kembali</BackLink>}
+        topStart={
+          <BackButton onClick={() => setStep("form")}>
+            Kembali ke pendaftaran
+          </BackButton>
+        }
+        footer={OTP_ORGANIZATION_FOOTER}
         topEnd={<StepBadge label="Organisasi baru" step={2} total={2} />}
       >
         <OtpStep
+          organization="baru"
           email={state.email}
           onChangeEmail={() => setStep("form")}
           onVerified={async () => {
@@ -115,6 +130,20 @@ function OrganizationForm() {
         className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
+          // Akun untuk email ini sudah dibuat sebelum kembali dari OTP: lanjutkan verifikasinya.
+          if (
+            registered &&
+            personal.email.trim().toLowerCase() === state.email
+          ) {
+            const current = { personal, organization, terms };
+            if (JSON.stringify(current) !== JSON.stringify(registered)) {
+              setPersonal(registered.personal);
+              setOrganization(registered.organization);
+              setTerms(registered.terms);
+              toast.info(REGISTERED_NOTICE);
+            }
+            return setStep("otp");
+          }
           startTransition(async () => {
             const result = await registerOrganizationAction({
               ...personal,
@@ -122,7 +151,10 @@ function OrganizationForm() {
               terms,
             });
             setState(result);
-            if (result.ok) setStep("otp");
+            if (result.ok) {
+              setRegistered({ personal, organization, terms });
+              setStep("otp");
+            }
           });
         }}
       >

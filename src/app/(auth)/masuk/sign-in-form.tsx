@@ -4,9 +4,9 @@ import { MailIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
-import { BackLink } from "@/app/(auth)/_components/back-link";
+import { BackButton } from "@/app/(auth)/_components/back-link";
 import { GoogleSignIn } from "@/app/(auth)/_components/google-sign-in";
-import { OtpStep } from "@/app/(auth)/_components/otp-step";
+import { OTP_FOOTER, OtpStep } from "@/app/(auth)/_components/otp-step";
 import { PasswordInput } from "@/app/(auth)/_components/password-input";
 import { type FormState, signInAction } from "@/app/(auth)/actions";
 import {
@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormField, fieldDescribedBy } from "@/components/ui/form-field";
 import { InputWithIcon } from "@/components/ui/input";
+import { LOCK_MINUTES, MAX_FAILED_LOGINS } from "@/lib/login-lock";
 
 function SignInForm({
   googleEnabled,
@@ -35,14 +36,28 @@ function SignInForm({
     rememberMe: true,
   });
   const [state, setState] = React.useState<FormState>({});
-  const [verifyEmail, setVerifyEmail] = React.useState<string>();
+  const [verifying, setVerifying] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
   const errors = state.fieldErrors ?? {};
+  const wrongCredentials = state.code === "INVALID_CREDENTIALS";
+  // Kode OTP sudah dikirim Better Auth saat masuk (sendOnSignIn).
+  const unverifiedEmail =
+    state.code === "EMAIL_NOT_VERIFIED" &&
+    state.email === values.email.trim().toLowerCase()
+      ? state.email
+      : undefined;
 
-  if (verifyEmail) {
+  if (verifying && unverifiedEmail) {
     return (
-      <AuthPanel topStart={<BackLink href="/masuk">Kembali</BackLink>}>
-        <OtpStep email={verifyEmail} />
+      <AuthPanel
+        topStart={
+          <BackButton onClick={() => setVerifying(false)}>
+            Kembali ke halaman masuk
+          </BackButton>
+        }
+        footer={OTP_FOOTER}
+      >
+        <OtpStep email={unverifiedEmail} />
       </AuthPanel>
     );
   }
@@ -57,9 +72,19 @@ function SignInForm({
         description="Selamat datang kembali. Masuk dengan email atau Google — Anda langsung diarahkan ke ruang kerja sesuai peran akun."
       />
       {statusAlert}
-      {state.error && (
-        <Alert tone="danger" role="alert">
-          {state.error}
+      {wrongCredentials ? (
+        <Alert tone="danger" title="Email atau kata sandi salah">
+          Periksa kembali, atau gunakan Lupa kata sandi. Setelah{" "}
+          {MAX_FAILED_LOGINS} kali gagal, akun dikunci sementara selama{" "}
+          {LOCK_MINUTES} menit.
+        </Alert>
+      ) : (
+        state.error && <Alert tone="danger">{state.error}</Alert>
+      )}
+      {unverifiedEmail && (
+        <Alert tone="warning" title="Email belum diverifikasi">
+          Kami sudah mengirim kode verifikasi baru ke {unverifiedEmail}.
+          Verifikasi email terlebih dahulu untuk masuk.
         </Alert>
       )}
       <form
@@ -67,16 +92,18 @@ function SignInForm({
         className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
-          startTransition(async () => {
-            const result = await signInAction(values);
-            setState(result ?? {});
-            // Kode OTP sudah dikirim Better Auth saat masuk (sendOnSignIn).
-            if (result?.code === "EMAIL_NOT_VERIFIED" && result.email)
-              setVerifyEmail(result.email);
-          });
+          if (unverifiedEmail) return setVerifying(true);
+          startTransition(async () =>
+            setState((await signInAction(values)) ?? {}),
+          );
         }}
       >
-        <FormField id="email" label="Email" error={errors.email}>
+        <FormField
+          id="email"
+          label="Alamat email"
+          required
+          error={errors.email}
+        >
           <InputWithIcon
             id="email"
             type="email"
@@ -96,6 +123,7 @@ function SignInForm({
         <FormField
           id="password"
           label="Kata sandi"
+          required
           error={errors.password}
           action={<Link href="/lupa-password">Lupa kata sandi?</Link>}
         >
@@ -107,7 +135,7 @@ function SignInForm({
             onChange={(event) =>
               setValues({ ...values, password: event.target.value })
             }
-            aria-invalid={Boolean(errors.password)}
+            aria-invalid={Boolean(errors.password) || wrongCredentials}
             aria-describedby={fieldDescribedBy("password", {
               error: errors.password,
             })}
@@ -123,21 +151,14 @@ function SignInForm({
           Ingat saya di perangkat ini
         </label>
         <Button type="submit" size="lg" disabled={pending}>
-          Masuk ke beranda
+          {unverifiedEmail ? "Verifikasi email sekarang" : "Masuk ke beranda"}
         </Button>
         {googleEnabled && <GoogleSignIn label="Masuk dengan Google" />}
       </form>
       <p className="text-center text-small text-muted-foreground">
-        Belum punya akun?{" "}
+        Belum memiliki akun?{" "}
         <Link href="/daftar" className="text-small-strong text-primary-500">
-          Daftar
-        </Link>
-        {" · "}
-        <Link
-          href="/daftar/organisasi"
-          className="text-small-strong text-primary-500"
-        >
-          Daftar sebagai organisasi
+          Daftar sekarang
         </Link>
       </p>
     </AuthPanel>

@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheckIcon, UserRoundIcon } from "lucide-react";
+import { CircleCheckIcon, PhoneIcon, UserRoundIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
@@ -9,6 +9,7 @@ import {
   completeGoogleProfileAction,
   type FormState,
   signOutAction,
+  signOutToSignUpAction,
 } from "@/app/(auth)/actions";
 import { AuthHeading, AuthPanel } from "@/components/layout/auth-panel";
 import { Button } from "@/components/ui/button";
@@ -19,14 +20,18 @@ import { initialsOf } from "@/components/ui/org-logo";
 function GoogleProfileForm({
   name: initialName,
   email,
+  phone: initialPhone,
 }: {
   name: string;
   email: string;
+  phone: string;
 }) {
   const [name, setName] = React.useState(initialName);
+  const [phone, setPhone] = React.useState(initialPhone);
   const [state, setState] = React.useState<FormState>({});
   const [pending, startTransition] = React.useTransition();
   const error = state.fieldErrors?.name;
+  const phoneError = state.fieldErrors?.phone;
 
   return (
     <AuthPanel
@@ -70,7 +75,9 @@ function GoogleProfileForm({
         onSubmit={(event) => {
           event.preventDefault();
           startTransition(async () =>
-            setState((await completeGoogleProfileAction({ name })) ?? {}),
+            setState(
+              (await completeGoogleProfileAction({ name, phone })) ?? {},
+            ),
           );
         }}
       >
@@ -85,6 +92,24 @@ function GoogleProfileForm({
             aria-describedby={fieldDescribedBy("name", { error })}
           />
         </FormField>
+        <FormField
+          id="phone"
+          label="Nomor WhatsApp (opsional)"
+          error={phoneError}
+        >
+          <InputWithIcon
+            id="phone"
+            icon={PhoneIcon}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="0812-3456-7890"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            aria-invalid={Boolean(phoneError)}
+            aria-describedby={fieldDescribedBy("phone", { error: phoneError })}
+          />
+        </FormField>
         <p className="rounded-lg bg-muted p-3 text-caption text-muted-foreground">
           Becraft hanya menerima nama, email, dan foto profil Google Anda. Kata
           sandi Google tidak pernah dibagikan.
@@ -93,14 +118,24 @@ function GoogleProfileForm({
           Selesaikan pendaftaran
         </Button>
       </form>
-      <form action={signOutAction} className="text-center">
-        <button
-          type="submit"
-          className="text-small-strong text-primary-500 hover:underline"
-        >
-          Gunakan akun Google lain
-        </button>
-      </form>
+      <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className="text-small-strong text-primary-500 hover:underline"
+          >
+            Gunakan akun Google lain
+          </button>
+        </form>
+        <form action={signOutToSignUpAction}>
+          <button
+            type="submit"
+            className="text-small-medium text-muted-foreground hover:underline"
+          >
+            Daftar lewat formulir email
+          </button>
+        </form>
+      </div>
     </AuthPanel>
   );
 }

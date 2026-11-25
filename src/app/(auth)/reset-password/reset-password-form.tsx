@@ -1,33 +1,84 @@
 "use client";
 
-import { CircleCheckIcon, LinkIcon } from "lucide-react";
+import { CircleCheckIcon, CircleIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
 import { BackLink } from "@/app/(auth)/_components/back-link";
 import { PasswordInput } from "@/app/(auth)/_components/password-input";
 import { type FormState, resetPasswordAction } from "@/app/(auth)/actions";
-import { AuthHeading, AuthPanel } from "@/components/layout/auth-panel";
+import { ForgotPasswordForm } from "@/app/(auth)/lupa-password/forgot-password-form";
+import {
+  AuthHeading,
+  AuthPanel,
+  AuthTag,
+} from "@/components/layout/auth-panel";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FormField, fieldDescribedBy } from "@/components/ui/form-field";
 import { IconBox } from "@/components/ui/icon-box";
+import { passwordChecks, passwordStrength } from "@/lib/password-strength";
+import { cn } from "@/lib/utils";
 
-function ExpiredLink() {
+const STRENGTH_LABEL = ["", "Lemah", "Cukup", "Baik", "Kuat"];
+
+/** Indikator kekuatan: 4 batang dan 3 kriteria. Hanya panduan; syarat wajibnya minimal 8 karakter. */
+function PasswordStrength({ password }: { password: string }) {
+  const level = passwordStrength(password);
+  const tone =
+    level >= 3
+      ? "bg-success-500"
+      : level === 2
+        ? "bg-warning-500"
+        : "bg-danger-500";
   return (
-    <AuthPanel topStart={<BackLink href="/masuk">Kembali ke Masuk</BackLink>}>
-      <AuthHeading
-        icon={<IconBox icon={LinkIcon} tone="danger" size="lg" />}
-        title="Tautan sudah kedaluwarsa"
-        description="Tautan atur ulang kata sandi hanya berlaku 1 jam dan sekali pakai. Minta tautan baru untuk melanjutkan."
-      />
-      <Link href="/lupa-password" className={buttonVariants({ size: "lg" })}>
-        Minta tautan baru
-      </Link>
-    </AuthPanel>
+    <div
+      id="password-strength"
+      className="flex flex-col gap-2 rounded-lg border border-border bg-muted p-3"
+    >
+      <div className="flex items-center gap-2">
+        <div aria-hidden="true" className="flex flex-1 gap-1.5">
+          {[1, 2, 3, 4].map((bar) => (
+            <span
+              key={bar}
+              className={cn(
+                "h-1 flex-1 rounded-full",
+                bar <= level ? tone : "bg-border",
+              )}
+            />
+          ))}
+        </div>
+        <span
+          role="status"
+          className="min-w-10 text-right text-caption-strong text-label"
+        >
+          {STRENGTH_LABEL[level]}
+        </span>
+      </div>
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted-foreground">
+        {passwordChecks(password).map(({ label, met }) => {
+          const Icon = met ? CircleCheckIcon : CircleIcon;
+          return (
+            <li key={label} className="flex items-center gap-1">
+              <Icon
+                aria-hidden="true"
+                className={cn(
+                  "size-3.5",
+                  met ? "text-success-700" : "text-subtle",
+                )}
+              />
+              {label}
+              <span className="sr-only">
+                {met ? " (terpenuhi)" : " (belum terpenuhi)"}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
-function ResetPasswordForm({ token }: { token?: string }) {
+function ResetPasswordForm({ token, email }: { token: string; email: string }) {
   const [values, setValues] = React.useState({
     password: "",
     confirmPassword: "",
@@ -36,28 +87,40 @@ function ResetPasswordForm({ token }: { token?: string }) {
   const [pending, startTransition] = React.useTransition();
   const errors = state.fieldErrors ?? {};
 
-  if (!token || state.code === "INVALID_TOKEN") return <ExpiredLink />;
+  if (state.code === "INVALID_TOKEN") return <ForgotPasswordForm expired />;
 
   if (state.ok) {
     return (
-      <AuthPanel>
+      <AuthPanel
+        topStart={<BackLink href="/masuk">Kembali ke halaman masuk</BackLink>}
+        footer="Tautan atur ulang hanya dapat digunakan satu kali demi keamanan akun Anda."
+      >
         <AuthHeading
           icon={<IconBox icon={CircleCheckIcon} tone="success" size="lg" />}
           title="Kata sandi berhasil diubah"
-          description="Silakan masuk dengan kata sandi baru. Sesi di perangkat lain sudah dikeluarkan."
+          description="Silakan masuk dengan kata sandi baru. Demi keamanan, semua sesi di perangkat lain sudah dikeluarkan."
         />
         <Link href="/masuk" className={buttonVariants({ size: "lg" })}>
-          Masuk
+          Masuk sekarang
         </Link>
       </AuthPanel>
     );
   }
 
   return (
-    <AuthPanel topStart={<BackLink href="/masuk">Kembali ke Masuk</BackLink>}>
+    <AuthPanel
+      topStart={<AuthTag>Atur ulang kata sandi</AuthTag>}
+      footer="Kata sandi Anda dienkripsi dan tidak pernah dibagikan kepada pihak lain."
+    >
       <AuthHeading
         title="Buat kata sandi baru"
-        description="Gunakan minimal 8 karakter yang belum pernah Anda pakai."
+        description={
+          <>
+            Atur kata sandi baru untuk akun{" "}
+            <span className="text-body-strong text-foreground">{email}</span>.
+            Pastikan berbeda dari kata sandi sebelumnya.
+          </>
+        }
       />
       <form
         noValidate
@@ -72,7 +135,7 @@ function ResetPasswordForm({ token }: { token?: string }) {
         <FormField
           id="password"
           label="Kata sandi baru"
-          description="Minimal 8 karakter."
+          required
           error={errors.password}
         >
           <PasswordInput
@@ -83,15 +146,17 @@ function ResetPasswordForm({ token }: { token?: string }) {
               setValues({ ...values, password: event.target.value })
             }
             aria-invalid={Boolean(errors.password)}
-            aria-describedby={fieldDescribedBy("password", {
-              error: errors.password,
-              description: true,
-            })}
+            aria-describedby={
+              fieldDescribedBy("password", { error: errors.password }) ??
+              "password-strength"
+            }
           />
         </FormField>
+        <PasswordStrength password={values.password} />
         <FormField
           id="confirmPassword"
-          label="Ulangi kata sandi baru"
+          label="Konfirmasi kata sandi baru"
+          required
           error={errors.confirmPassword}
         >
           <PasswordInput
@@ -113,9 +178,15 @@ function ResetPasswordForm({ token }: { token?: string }) {
           </p>
         )}
         <Button type="submit" size="lg" disabled={pending}>
-          Simpan kata sandi
+          Simpan kata sandi baru
         </Button>
       </form>
+      <Link
+        href="/masuk"
+        className="text-center text-small-strong text-foreground hover:underline"
+      >
+        Kembali ke Halaman Masuk
+      </Link>
     </AuthPanel>
   );
 }

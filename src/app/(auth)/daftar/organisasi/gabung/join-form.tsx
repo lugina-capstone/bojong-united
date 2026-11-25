@@ -3,9 +3,14 @@
 import { ArrowRightIcon, CircleCheckIcon, KeyRoundIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
+import { toast } from "sonner";
 
-import { BackLink } from "@/app/(auth)/_components/back-link";
-import { OtpStep } from "@/app/(auth)/_components/otp-step";
+import { BackButton, BackLink } from "@/app/(auth)/_components/back-link";
+import {
+  OTP_ORGANIZATION_FOOTER,
+  OtpStep,
+  REGISTERED_NOTICE,
+} from "@/app/(auth)/_components/otp-step";
 import { PersonalFields } from "@/app/(auth)/_components/personal-fields";
 import { StepBadge } from "@/app/(auth)/_components/step-badge";
 import { TermsField } from "@/app/(auth)/_components/terms-field";
@@ -65,6 +70,10 @@ function JoinForm() {
   const [check, setCheck] = React.useState<CodeCheck>();
   const [state, setState] = React.useState<FormState>({});
   const [verifyEmail, setVerifyEmail] = React.useState<string>();
+  const [registered, setRegistered] = React.useState<{
+    email: string;
+    values: typeof values;
+  }>();
   const [pending, startTransition] = React.useTransition();
   const errors: Record<string, string> = {
     ...state.fieldErrors,
@@ -81,10 +90,16 @@ function JoinForm() {
   if (verifyEmail) {
     return (
       <AuthPanel
-        topStart={<BackLink href="/daftar/organisasi/gabung">Kembali</BackLink>}
+        topStart={
+          <BackButton onClick={() => setVerifyEmail(undefined)}>
+            Kembali ke pendaftaran
+          </BackButton>
+        }
+        footer={OTP_ORGANIZATION_FOOTER}
         topEnd={<StepBadge label="Gabung organisasi" step={2} total={2} />}
       >
         <OtpStep
+          organization="gabung"
           email={verifyEmail}
           onChangeEmail={() => setVerifyEmail(undefined)}
         />
@@ -108,10 +123,24 @@ function JoinForm() {
         className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
+          // Akun untuk email ini sudah dibuat sebelum kembali dari OTP: lanjutkan verifikasinya.
+          if (
+            registered &&
+            values.email.trim().toLowerCase() === registered.email
+          ) {
+            if (JSON.stringify(values) !== JSON.stringify(registered.values)) {
+              setValues(registered.values);
+              toast.info(REGISTERED_NOTICE);
+            }
+            return setVerifyEmail(registered.email);
+          }
           startTransition(async () => {
             const result = await registerMemberAction(values);
             setState(result);
-            if (result.ok && result.email) setVerifyEmail(result.email);
+            if (result.ok && result.email) {
+              setRegistered({ email: result.email, values });
+              setVerifyEmail(result.email);
+            }
           });
         }}
       >

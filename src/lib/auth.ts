@@ -9,7 +9,13 @@ import { emailOTP } from "better-auth/plugins";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { env } from "@/lib/env";
-import { OTP_LENGTH, OTP_RESEND_SECONDS, otpResendKey } from "@/lib/otp";
+import {
+  OTP_LENGTH,
+  OTP_RESEND_SECONDS,
+  OTP_VALID_MINUTES,
+  otpResendKey,
+  RESET_LINK_MINUTES,
+} from "@/lib/otp";
 import {
   LOCK_MINUTES,
   lockAfterFailure,
@@ -64,6 +70,7 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     maxPasswordLength: 128,
     revokeSessionsOnPasswordReset: true,
+    resetPasswordTokenExpiresIn: RESET_LINK_MINUTES * 60,
     sendResetPassword: async ({ user, url }) => {
       sendLinkEmail(
         user.email,
@@ -159,7 +166,7 @@ export const auth = betterAuth({
   plugins: [
     emailOTP({
       otpLength: OTP_LENGTH,
-      expiresIn: 10 * 60,
+      expiresIn: OTP_VALID_MINUTES * 60,
       allowedAttempts: 5,
       storeOTP: "hashed",
       sendVerificationOnSignUp: true,
