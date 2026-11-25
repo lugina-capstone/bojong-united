@@ -28,6 +28,12 @@ export default async function RubricDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <nav className="text-small text-muted-foreground" aria-label="Breadcrumb">
+        <Link href="/ruang-kerja/rubrik" className="hover:text-foreground">
+          Rubrik Penilaian
+        </Link>{" "}
+        / {rubric.title}
+      </nav>
       <PageHeader
         eyebrow={`Rubrik penilaian · ${rubric.field.name}`}
         title={
