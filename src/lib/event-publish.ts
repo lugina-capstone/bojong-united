@@ -6,7 +6,9 @@ import { db } from "@/lib/db";
 export async function publishIssues(eventId: string) {
   const event = await db.event.findUniqueOrThrow({
     where: { id: eventId },
-    include: { milestones: true },
+    include: {
+      milestones: { include: { rubric: { select: { archivedAt: true } } } },
+    },
   });
   const issues: string[] = [];
   if (!event.fieldId) issues.push("Bidang acara belum dipilih.");
@@ -22,6 +24,8 @@ export async function publishIssues(eventId: string) {
     )
   )
     issues.push("Tenggat milestone harus berada dalam periode acara.");
+  if (event.milestones.some((m) => m.rubric?.archivedAt))
+    issues.push("Ada milestone dengan rubrik yang sudah diarsipkan.");
   if (event.milestones.some((m) => !m.rubricId))
     issues.push("Ada milestone tanpa rubrik.");
   if (event.certificateEnabled && !event.certificateTitle)
