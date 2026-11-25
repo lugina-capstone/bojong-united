@@ -14,13 +14,14 @@ async function RemovedContent() {
   if (user.membership?.status !== "REMOVED") redirect(await homeHref());
   const membership = await db.membership.findUnique({
     where: { userId: user.id },
-    select: { removedAt: true },
+    select: { removedAt: true, leftVoluntarily: true },
   });
   return (
     <RemovedChoice
       name={user.name}
       email={user.email}
       organizationName={user.membership.organization.name}
+      left={membership?.leftVoluntarily ?? false}
       removedAt={
         membership?.removedAt?.toLocaleDateString("id-ID", {
           day: "numeric",

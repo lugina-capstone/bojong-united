@@ -46,12 +46,7 @@ import {
 import { UserRow } from "@/components/ui/user-row";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
-import {
-  formatDate,
-  formatDateTime,
-  formatNumber,
-  formatRelative,
-} from "@/lib/format";
+import { formatDate, formatDateTime, formatNumber } from "@/lib/format";
 import { requirePermission } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Pengguna" };
@@ -67,34 +62,57 @@ const TABS: { value: string; label: string; where: Prisma.UserWhereInput }[] = [
   {
     value: "peserta",
     label: "Peserta",
-    where: { isAdministrator: false, NOT: { membership: activeMember } },
+    where: {
+      isAdministrator: false,
+      NOT: [
+        { membership: activeMember },
+        { membership: { organization: { status: "PENDING" } } },
+      ],
+    },
   },
   {
-    value: "guru",
-    label: "Guru",
-    where: { membership: { ...activeMember, role: "GURU" } },
-  },
-  {
-    value: "asesor",
-    label: "Asesor",
-    where: { membership: { ...activeMember, role: "ASESOR" } },
-  },
-  {
-    value: "trainer",
-    label: "Trainer",
-    where: { membership: { ...activeMember, role: "TRAINER" } },
+    value: "anggota",
+    label: "Anggota organisasi",
+    where: { membership: activeMember },
   },
   {
     value: "admin",
-    label: "Admin Organisasi",
+    label: "Admin organisasi",
     where: { membership: { ...activeMember, isAdmin: true } },
   },
   {
-    value: "administrator",
-    label: "Administrator",
-    where: { isAdministrator: true },
+    value: "menunggu",
+    label: "Menunggu persetujuan",
+    where: {
+      membership: { status: "ACTIVE", organization: { status: "PENDING" } },
+    },
   },
 ];
+
+const ROLES: { value: string; label: string; where: Prisma.UserWhereInput }[] =
+  [
+    { value: "semua", label: "Semua peran", where: {} },
+    {
+      value: "guru",
+      label: "Guru",
+      where: { membership: { ...activeMember, role: "GURU" } },
+    },
+    {
+      value: "asesor",
+      label: "Asesor",
+      where: { membership: { ...activeMember, role: "ASESOR" } },
+    },
+    {
+      value: "trainer",
+      label: "Trainer",
+      where: { membership: { ...activeMember, role: "TRAINER" } },
+    },
+    {
+      value: "administrator",
+      label: "Administrator",
+      where: { isAdministrator: true },
+    },
+  ];
 
 const userSelect = {
   id: true,
@@ -135,6 +153,12 @@ function membershipOf(user: Row) {
     : null;
 }
 
+function signInMethod(user: Row) {
+  return user.accounts.some((a) => a.providerId === "google")
+    ? "Google"
+    : "Email";
+}
+
 function RoleCell({ user }: { user: Row }) {
   if (user.isAdministrator) return <AdminBadge label="Administrator" />;
   const m = membershipOf(user);
@@ -161,14 +185,16 @@ export default async function UsersPage({
 }: PageProps<"/admin/pengguna">) {
   await requirePermission("user:manage");
   const params = (await searchParams) as SearchParams;
-  const tab = TABS.find((t) => t.value === param(params, "peran")) ?? TABS[0]!;
+  const tab = TABS.find((t) => t.value === param(params, "tab")) ?? TABS[0]!;
+  const role =
+    ROLES.find((r) => r.value === param(params, "peran")) ?? ROLES[0]!;
   const q = param(params, "q");
   const organizationId = param(params, "organisasi");
   const status = param(params, "status");
   const detailId = param(params, "detail");
   const page = pageOf(params);
 
-  const base: Prisma.UserWhereInput = {
+  const filters: Prisma.UserWhereInput = {
     ...(status === "dihapus"
       ? { status: "DELETED" }
       : status === "semua"
@@ -186,6 +212,7 @@ export default async function UsersPage({
         }
       : {}),
   };
+  const base: Prisma.UserWhereInput = { AND: [filters, role.where] };
   const where: Prisma.UserWhereInput = { AND: [base, tab.where] };
 
   const [
@@ -220,7 +247,7 @@ export default async function UsersPage({
       },
     }),
     db.organization.findMany({
-      where: { status: { in: ["APPROVED", "DISABLED"] } },
+      where: { status: { in: ["APPROVED", "DISABLED", "PENDING"] } },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
@@ -275,6 +302,11 @@ export default async function UsersPage({
           }
         >
           <SearchParamSelect
+            name="peran"
+            label="Peran"
+            options={ROLES.map(({ value, label }) => ({ value, label }))}
+          />
+          <SearchParamSelect
             name="organisasi"
             label="Organisasi"
             options={[
@@ -293,14 +325,14 @@ export default async function UsersPage({
           />
         </FilterBar>
         <LinkTabs
-          label="Peran"
+          label="Kelompok pengguna"
           active={tab.value}
           tabs={TABS.map((t, i) => ({
             value: t.value,
             label: t.label,
             count: counts[i],
             href: hrefWith(PATH, params, {
-              peran: t.value === "semua" ? null : t.value,
+              tab: t.value === "semua" ? null : t.value,
               page: null,
               detail: null,
             }),
@@ -317,11 +349,11 @@ export default async function UsersPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nama</TableHead>
+                <TableHead>Pengguna</TableHead>
                 <TableHead>Peran</TableHead>
                 <TableHead>Organisasi</TableHead>
+                <TableHead>Metode masuk</TableHead>
                 <TableHead>Terdaftar</TableHead>
-                <TableHead>Terakhir aktif</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-center">Tindakan</TableHead>
               </TableRow>
@@ -343,12 +375,10 @@ export default async function UsersPage({
                     {membershipOf(user)?.organization.name ?? "—"}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    {formatDate(user.createdAt)}
+                    {signInMethod(user)}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    {user.sessions[0]
-                      ? formatRelative(user.sessions[0].createdAt)
-                      : "—"}
+                    {formatDate(user.createdAt)}
                   </TableCell>
                   <TableCell>
                     <StatusBadge user={user} />
@@ -362,7 +392,7 @@ export default async function UsersPage({
                         variant: "secondary",
                       })}
                     >
-                      Lihat
+                      Detail
                     </Link>
                   </TableCell>
                 </TableRow>
@@ -401,9 +431,7 @@ export default async function UsersPage({
                 },
                 {
                   label: "Metode masuk",
-                  value: detail.accounts.some((a) => a.providerId === "google")
-                    ? "Google"
-                    : "Email dan kata sandi",
+                  value: signInMethod(detail),
                 },
                 {
                   label: "Email terverifikasi",

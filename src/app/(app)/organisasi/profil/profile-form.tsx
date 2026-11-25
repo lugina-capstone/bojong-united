@@ -14,7 +14,6 @@ import {
   isSquare,
   uploadOrganizationLogo,
 } from "@/app/(auth)/_components/logo-picker";
-import { OrgTypeField } from "@/app/(auth)/_components/org-type-field";
 import {
   updateOrganizationLogoAction,
   updateOrganizationProfileAction,
@@ -23,10 +22,27 @@ import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InputWithIcon } from "@/components/ui/input";
 import { OrgLogo } from "@/components/ui/org-logo";
+import { ORG_TYPES } from "@/components/ui/org-type-selected";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { OrganizationType } from "@/generated/prisma/enums";
 import { formatFileSize } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { logoContentTypes, MAX_LOGO_SIZE } from "@/lib/validations/auth";
+import {
+  logoContentTypes,
+  MAX_LOGO_SIZE,
+  organizationTypes,
+} from "@/lib/validations/auth";
+
+const TYPE_OPTIONS = organizationTypes.map((value) => ({
+  value,
+  label: ORG_TYPES[value].label,
+}));
 
 type Values = {
   name: string;
@@ -175,11 +191,35 @@ function ProfileForm({
           aria-invalid={Boolean(errors.name)}
         />
       </FormField>
-      <OrgTypeField
-        value={values.type}
-        onChange={(type) => setValues({ ...values, type })}
+      <FormField
+        id="org-type"
+        label="Jenis organisasi"
+        required
         error={errors.type}
-      />
+      >
+        <Select
+          items={TYPE_OPTIONS}
+          value={values.type}
+          onValueChange={(type) =>
+            type && setValues({ ...values, type: type as OrganizationType })
+          }
+        >
+          <SelectTrigger
+            id="org-type"
+            className="w-full"
+            aria-invalid={Boolean(errors.type)}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TYPE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FormField>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField
           id="org-email"

@@ -2,7 +2,9 @@
 
 import * as React from "react";
 import { BellIcon, MenuIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
 
+import { activeHref, navFor } from "@/components/layout/nav";
 import { SidebarContent } from "@/components/layout/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -39,6 +41,11 @@ function Header({
   accountMenu?: React.ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const pathname = usePathname();
+  const sections = navFor(access);
+  const current = activeHref(sections, pathname);
+  const section = sections.find((s) => s.items.some((i) => i.href === current));
+  const page = section?.items.find((i) => i.href === current);
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card px-4 sm:px-8 lg:h-20 lg:gap-4 lg:px-12">
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -60,7 +67,16 @@ function Header({
         </SheetContent>
       </Sheet>
       <div className="min-w-0 flex-1 truncate text-body text-muted-foreground">
-        {breadcrumb}
+        {breadcrumb ??
+          (section && page && (
+            <nav aria-label="Breadcrumb">
+              {section.label}
+              <span aria-hidden="true" className="mx-2">
+                /
+              </span>
+              <span className="text-foreground">{page.label}</span>
+            </nav>
+          ))}
       </div>
       <SearchInput
         aria-label="Cari"

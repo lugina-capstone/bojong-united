@@ -77,6 +77,7 @@ export default async function ApprovalDetailPage({
       contactPhone: true,
       rejectionReason: true,
       createdAt: true,
+      applicationNumber: true,
       reviewedAt: true,
       reviewedBy: { select: { name: true } },
       logo: { select: { key: true, name: true, contentType: true } },
@@ -130,6 +131,8 @@ export default async function ApprovalDetailPage({
               />
             </div>
             <p className="text-small text-muted-foreground">
+              Pengajuan #ORG-{organization.createdAt.getFullYear()}-
+              {String(organization.applicationNumber).padStart(4, "0")} ·
               Diajukan {formatDateTime(organization.createdAt)} WIB
             </p>
           </div>

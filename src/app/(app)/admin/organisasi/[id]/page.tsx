@@ -15,6 +15,8 @@ import {
   orgTypeLabel,
 } from "@/app/(app)/_components/badges";
 import { InfoRows } from "@/app/(app)/_components/info-rows";
+import { param, type SearchParams } from "@/app/(app)/_components/href";
+import { SearchParamInput } from "@/app/(app)/_components/list-controls";
 import { SectionCard } from "@/app/(app)/_components/section-card";
 import { OrganizationStatusCard } from "@/app/(app)/admin/organisasi/[id]/status-actions";
 import { applicantSelect } from "@/app/(app)/admin/queries";
@@ -38,11 +40,15 @@ import { requirePermission } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Detail organisasi" };
 
+const MEMBER_LIMIT = 5;
+
 export default async function OrganizationDetailPage({
   params,
+  searchParams,
 }: PageProps<"/admin/organisasi/[id]">) {
   await requirePermission("organization:manage");
   const { id } = await params;
+  const q = param((await searchParams) as SearchParams, "q");
   const organization = await db.organization.findUnique({
     where: { id },
     select: {
@@ -66,7 +72,7 @@ export default async function OrganizationDetailPage({
     notFound();
 
   const [
-    members,
+    matches,
     memberCount,
     adminCount,
     activeEvents,
@@ -74,9 +80,22 @@ export default async function OrganizationDetailPage({
     logoUrl,
   ] = await Promise.all([
     db.membership.findMany({
-      where: { organizationId: id, status: "ACTIVE" },
+      where: {
+        organizationId: id,
+        status: "ACTIVE",
+        ...(q
+          ? {
+              user: {
+                OR: [
+                  { name: { contains: q, mode: "insensitive" } },
+                  { email: { contains: q.toLowerCase() } },
+                ],
+              },
+            }
+          : {}),
+      },
       orderBy: [{ isAdmin: "desc" }, { createdAt: "asc" }],
-      take: 5,
+      take: MEMBER_LIMIT + 1,
       select: {
         id: true,
         isAdmin: true,
@@ -92,6 +111,7 @@ export default async function OrganizationDetailPage({
     db.enrollment.count({ where: { event: { organizationId: id } } }),
     logoUrlOf(organization.logo),
   ]);
+  const members = matches.slice(0, MEMBER_LIMIT);
   const disabled = organization.status === "DISABLED";
 
   return (
@@ -156,8 +176,19 @@ export default async function OrganizationDetailPage({
         <SectionCard
           title="Anggota organisasi"
           description="Peran anggota dikelola oleh Admin Organisasi."
+          action={
+            <SearchParamInput
+              label="Cari anggota"
+              placeholder="Cari anggota…"
+            />
+          }
         >
-          <Table>
+          {members.length === 0 && (
+            <p className="px-4 pb-4 text-small text-muted-foreground sm:px-5">
+              Tidak ada anggota yang cocok.
+            </p>
+          )}
+          <Table className={members.length === 0 ? "hidden" : undefined}>
             <TableHeader>
               <TableRow>
                 <TableHead>Nama</TableHead>
@@ -189,12 +220,12 @@ export default async function OrganizationDetailPage({
               ))}
             </TableBody>
           </Table>
-          {memberCount > members.length && (
+          {matches.length > MEMBER_LIMIT && (
             <Link
-              href={`/admin/pengguna?organisasi=${organization.id}`}
+              href={`/admin/pengguna?organisasi=${organization.id}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
               className="flex items-center gap-1.5 border-t border-border px-4 py-3.5 text-small-strong text-primary-500 hover:underline sm:px-5"
             >
-              Lihat semua {memberCount} anggota
+              {q ? "Lihat semua hasil" : `Lihat semua ${memberCount} anggota`}
               <ArrowRightIcon aria-hidden="true" className="size-4" />
             </Link>
           )}

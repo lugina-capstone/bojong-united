@@ -101,11 +101,14 @@ function RemovedChoice({
   email,
   organizationName,
   removedAt,
+  left,
 }: {
   name: string;
   email: string;
   organizationName: string;
   removedAt: string | null;
+  /** Keluar sendiri, bukan dikeluarkan admin. */
+  left: boolean;
 }) {
   const [choice, setChoice] = React.useState<Choice>("baru");
   const [step, setStep] = React.useState<"choose" | Choice | "done">("choose");
@@ -214,10 +217,10 @@ function RemovedChoice({
     <AuthPanel topStart={<SignOutLink />}>
       <AuthHeading
         title="Anda tidak lagi tergabung di organisasi"
-        description={`Halo ${name}, akun ${email} sudah dikeluarkan dari ${organizationName}. Pilih cara melanjutkan dengan akun yang sama.`}
+        description={`Halo ${name}, akun ${email} sudah ${left ? "keluar" : "dikeluarkan"} dari ${organizationName}. Pilih cara melanjutkan dengan akun yang sama.`}
       />
       <Alert tone="warning">
-        Dikeluarkan dari {organizationName}
+        {left ? "Keluar" : "Dikeluarkan"} dari {organizationName}
         {removedAt && ` pada ${removedAt}`}. Acara dan penilaian yang Anda buat
         tetap tersimpan di organisasi tersebut.
       </Alert>
