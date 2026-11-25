@@ -1,16 +1,16 @@
 import { apiError } from "@/lib/api/response";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
-import { createDownloadUrl } from "@/lib/storage";
+import { createDownloadUrl, createPreviewUrl } from "@/lib/storage";
 
 /**
- * Download: redirect ke URL storage sementara.
+ * Download: redirect ke URL storage sementara. `?pratinjau=1` menampilkan PDF di browser; tipe lain tetap diunduh.
  * Boleh dibaca: pemilik, Administrator, peserta acara (lampiran milestone),
  * anggota aktif organisasi penyelenggara (lampiran dan karya peserta),
  * serta peserta materi dan anggota organisasi materi (berkas bagian materi).
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   ctx: RouteContext<"/api/files/[id]">,
 ) {
   const user = await getCurrentUser();
@@ -53,5 +53,9 @@ export async function GET(
     })) > 0;
   if (!canRead) return apiError(404, "not_found", "File tidak ditemukan");
 
-  return Response.redirect(await createDownloadUrl(file), 302);
+  const preview = new URL(request.url).searchParams.get("pratinjau") === "1";
+  return Response.redirect(
+    await (preview ? createPreviewUrl(file) : createDownloadUrl(file)),
+    302,
+  );
 }

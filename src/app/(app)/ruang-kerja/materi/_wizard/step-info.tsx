@@ -92,6 +92,24 @@ function StepInfo({
           />
         </FormField>
         <FormField
+          id="material-outcomes"
+          label="Yang akan dipelajari"
+          description="Opsional. Satu poin per baris, maksimal 6 poin."
+          error={errors.outcomes}
+        >
+          <Textarea
+            id="material-outcomes"
+            value={value.outcomes}
+            maxLength={800}
+            rows={4}
+            placeholder={
+              "Menyusun hierarki visual\nMemilih warna & kontras yang aksesibel"
+            }
+            onChange={(e) => set("outcomes", e.target.value)}
+            aria-invalid={Boolean(errors.outcomes)}
+          />
+        </FormField>
+        <FormField
           id="material-category"
           label="Kategori bidang"
           required

@@ -68,6 +68,33 @@ export function createDownloadUrl(file: {
   );
 }
 
+/** Tipe yang boleh ditampilkan langsung di browser; tipe lain selalu diunduh. */
+export function canPreviewInline(contentType: string) {
+  return contentType === "application/pdf";
+}
+
+/**
+ * URL GET sementara untuk pratinjau di browser. Panggil hanya setelah izin user dicek.
+ * Hanya untuk tipe di `canPreviewInline`; tipe dari database tetap dipaksakan.
+ */
+export function createPreviewUrl(file: {
+  key: string;
+  name: string;
+  contentType: string;
+}) {
+  if (!canPreviewInline(file.contentType)) return createDownloadUrl(file);
+  return getSignedUrl(
+    s3,
+    new GetObjectCommand({
+      Bucket: env.S3_BUCKET,
+      Key: file.key,
+      ResponseContentType: file.contentType,
+      ResponseContentDisposition: contentDisposition(file.name, "inline"),
+    }),
+    { expiresIn: URL_EXPIRES_IN },
+  );
+}
+
 /** Ukuran dan tipe objek di bucket, atau null jika belum ada. */
 export async function getObjectInfo(key: string) {
   try {
@@ -114,9 +141,12 @@ export async function deleteObject(key: string) {
   await s3.send(new DeleteObjectCommand({ Bucket: env.S3_BUCKET, Key: key }));
 }
 
-function contentDisposition(fileName: string) {
+function contentDisposition(
+  fileName: string,
+  type: "attachment" | "inline" = "attachment",
+) {
   const ascii = fileName.replace(/[^\x20-\x7e]|["\\]/g, "_");
-  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeRfc5987(fileName)}`;
+  return `${type}; filename="${ascii}"; filename*=UTF-8''${encodeRfc5987(fileName)}`;
 }
 
 function encodeRfc5987(value: string) {

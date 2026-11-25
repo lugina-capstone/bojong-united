@@ -10,10 +10,30 @@ const text = (label: string, min: number, max: number) =>
     .min(min, { error: `${label} minimal ${min} karakter` })
     .max(max, { error: `${label} maksimal ${max} karakter` });
 
+export const MAX_OUTCOMES = 6;
+
+/** "Yang akan dipelajari": satu poin per baris; baris kosong dan tanda daftar di awal diabaikan. */
+export function parseOutcomes(value: string) {
+  return value
+    .split("\n")
+    .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
+    .filter(Boolean);
+}
+
 export const materialInfoSchema = z
   .object({
     title: text("Judul materi", 3, 120),
     description: text("Deskripsi singkat", 10, 500),
+    outcomes: z
+      .string()
+      .default("")
+      .transform(parseOutcomes)
+      .refine((list) => list.length <= MAX_OUTCOMES, {
+        error: `Maksimal ${MAX_OUTCOMES} poin`,
+      })
+      .refine((list) => list.every((o) => o.length >= 3 && o.length <= 120), {
+        error: "Tiap poin 3–120 karakter",
+      }),
     categoryId: z.string().default(""),
     newCategory: z.string().trim().max(40).default(""),
     level: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"], {
