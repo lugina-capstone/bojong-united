@@ -183,7 +183,7 @@ export default async function GradePage({
                     src={`/api/files/${v.file.id}`}
                     alt={`Pratinjau ${v.file.name}`}
                     loading="lazy"
-                    className="max-h-[32rem] w-full rounded-md object-contain"
+                    className="max-h-128 w-full rounded-md object-contain"
                   />
                 </figure>
               )}

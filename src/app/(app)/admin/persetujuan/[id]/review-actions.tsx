@@ -79,6 +79,17 @@ function ReviewActions({
     });
   }
 
+  function withCounter(text: string) {
+    return (
+      <span className="flex justify-between gap-2">
+        <span className="min-w-0">{text}</span>
+        <span className="shrink-0 text-muted-foreground">
+          {reason.length}/300
+        </span>
+      </span>
+    );
+  }
+
   return (
     <>
       <Button variant="secondary" onClick={() => setDialog("reject")}>
@@ -163,13 +174,14 @@ function ReviewActions({
               id="reject-reason"
               label="Alasan penolakan"
               required
-              description="Wajib diisi, minimal 20 karakter."
-              error={error}
+              description={withCounter("Wajib diisi, minimal 20 karakter.")}
+              error={error && withCounter(error)}
             >
               <Textarea
                 id="reject-reason"
                 rows={3}
                 maxLength={300}
+                className="resize-none"
                 value={reason}
                 onChange={(event) => {
                   setReason(event.target.value);
@@ -178,9 +190,6 @@ function ReviewActions({
                 aria-invalid={Boolean(error)}
               />
             </FormField>
-            <p className="-mt-3 text-right text-caption text-muted-foreground">
-              {reason.length}/300
-            </p>
             <Alert tone="info">
               Pemohon dapat memperbaiki data lalu mengajukan ulang. Data
               sebelumnya terisi otomatis.

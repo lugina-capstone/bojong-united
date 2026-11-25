@@ -75,7 +75,7 @@ export default async function CertificatePage({
               <span className="text-caption-strong text-primary-600 uppercase sm:text-small-strong">
                 {data.issuer}
               </span>
-              <span className="text-[0.625rem] text-muted-foreground sm:text-caption">
+              <span className="text-caption-s font-normal text-muted-foreground sm:text-caption">
                 No. {data.number}
               </span>
             </div>
@@ -83,25 +83,25 @@ export default async function CertificatePage({
               <span className="text-h2 tracking-wide text-foreground sm:text-display">
                 SERTIFIKAT
               </span>
-              <span className="text-[0.625rem] font-semibold text-label uppercase sm:text-small-strong">
+              <span className="text-caption-s text-label uppercase sm:text-small-strong">
                 {data.title}
               </span>
             </div>
             <div className="flex flex-col items-center gap-0.5 sm:gap-1">
-              <span className="text-[0.625rem] text-muted-foreground sm:text-small">
+              <span className="text-caption-s font-normal text-muted-foreground sm:text-small">
                 Diberikan kepada
               </span>
               <span className="text-h3 text-primary-600 sm:text-display">
                 {data.recipient}
               </span>
-              <span className="text-[0.625rem] text-muted-foreground sm:text-small">
+              <span className="text-caption-s font-normal text-muted-foreground sm:text-small">
                 Telah menyelesaikan seluruh milestone pembelajaran pada acara
               </span>
               <span className="text-small-strong text-foreground sm:text-h2">
                 {data.eventTitle}
               </span>
             </div>
-            <div className="grid w-full grid-cols-3 items-end gap-2 text-[0.625rem] sm:text-small">
+            <div className="grid w-full grid-cols-3 items-end gap-2 text-caption-s font-normal sm:text-small">
               <div className="flex flex-col">
                 <span className="font-semibold text-muted-foreground uppercase">
                   Tanggal terbit
