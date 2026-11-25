@@ -48,6 +48,8 @@ model User {
   name             String
   emailVerified    Boolean     @default(false)
   image            String?
+  /// Nomor HP Indonesia tanpa pemisah, mis. "085711220074" (CHECK users_phone_format).
+  phone            String?
   /// Administrator platform (global), bukan peran organisasi.
   isAdministrator  Boolean     @default(false)
   status           UserStatus  @default(ACTIVE)
