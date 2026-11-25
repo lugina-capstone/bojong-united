@@ -167,19 +167,33 @@ export async function changeMemberRoleAction(
   const member = await activeMemberOf(organizationId, membershipId);
   if (!member) return { error: "Anggota tidak ditemukan." };
   if (member.role === parsed.data) return { ok: true };
-  await db.membership.update({
-    where: { id: member.id },
-    data: { role: parsed.data },
-  });
-  if (parsed.data === "TRAINER")
-    await db.trainerRequest.updateMany({
-      where: { userId: member.userId, organizationId, status: "PENDING" },
-      data: {
-        status: "APPROVED",
-        reviewedById: user.id,
-        reviewedAt: new Date(),
-      },
-    });
+  const result = await guarded(() =>
+    db.$transaction(async (tx) => {
+      const changed = await tx.membership.updateMany({
+        where: {
+          id: member.id,
+          organizationId,
+          status: "ACTIVE",
+          role: member.role,
+        },
+        data: { role: parsed.data },
+      });
+      if (changed.count === 0)
+        throw new RuleError("Peran anggota sudah diubah. Muat ulang halaman.");
+      if (member.role === "TRAINER")
+        await releaseMaterials(tx, organizationId, member.userId, false);
+      if (parsed.data === "TRAINER")
+        await tx.trainerRequest.updateMany({
+          where: { userId: member.userId, organizationId, status: "PENDING" },
+          data: {
+            status: "APPROVED",
+            reviewedById: user.id,
+            reviewedAt: new Date(),
+          },
+        });
+    }, SERIALIZABLE),
+  );
+  if (!result.ok) return result;
   await notify([member.userId], "member.role-changed", {
     organizationId,
     organizationName: member.organization.name,
@@ -254,6 +268,57 @@ async function transferEvents(
   return events;
 }
 
+/**
+ * Materi hanya bisa dikelola Trainer pembuatnya. Saat ia berhenti jadi Trainer,
+ * materinya dialihkan ke Trainer aktif lain; jika tidak ada (atau `transfer`
+ * mati), materi terbit diarsipkan agar tidak terbit tanpa pengelola.
+ */
+async function releaseMaterials(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  fromUserId: string,
+  transfer: boolean,
+) {
+  const owned = { organizationId, trainerId: fromUserId };
+  if ((await tx.material.count({ where: owned })) === 0) return null;
+  const receiver = transfer
+    ? await tx.membership.findFirst({
+        where: {
+          organizationId,
+          status: "ACTIVE",
+          role: "TRAINER",
+          userId: { not: fromUserId },
+        },
+        orderBy: { createdAt: "asc" },
+        select: { userId: true },
+      })
+    : null;
+  if (receiver) {
+    await tx.material.updateMany({
+      where: owned,
+      data: { trainerId: receiver.userId },
+    });
+    return receiver.userId;
+  }
+  await tx.material.updateMany({
+    where: { ...owned, status: "PUBLISHED" },
+    data: { status: "ARCHIVED", archivedAt: new Date() },
+  });
+  return null;
+}
+
+function notifyMaterialsTransferred(
+  receiverId: string | null,
+  organizationId: string,
+  userName: string,
+) {
+  if (!receiverId) return;
+  return notify([receiverId], "material.transferred", {
+    organizationId,
+    userName,
+  });
+}
+
 /** Keluarkan anggota: akses dicabut, acaranya dialihkan ke admin yang mengeluarkan. */
 export async function removeMemberAction(
   membershipId: string,
@@ -263,6 +328,7 @@ export async function removeMemberAction(
   const member = await activeMemberOf(organizationId, membershipId);
   if (!member) return { error: "Anggota tidak ditemukan." };
   let transferred: { id: string; title: string }[] = [];
+  let materialReceiverId: string | null = null;
   const result = await guarded(() =>
     db.$transaction(async (tx) => {
       const current = await tx.membership.findFirst({
@@ -285,9 +351,20 @@ export async function removeMemberAction(
         current.userId,
         user.id,
       );
+      materialReceiverId = await releaseMaterials(
+        tx,
+        organizationId,
+        current.userId,
+        true,
+      );
     }, SERIALIZABLE),
   );
   if (!result.ok) return result;
+  await notifyMaterialsTransferred(
+    materialReceiverId,
+    organizationId,
+    member.user.name,
+  );
   await Promise.all(
     transferred.map((event) =>
       notify([user.id], "event.transferred", {
@@ -340,25 +417,29 @@ export async function reviewTrainerRequestAction(
   });
   if (!member) return { error: "Pemohon bukan anggota aktif organisasi." };
   const approved = decision === "approve";
-  await db.$transaction([
-    db.trainerRequest.update({
-      where: { id: request.id },
-      data: {
-        status: approved ? "APPROVED" : "REJECTED",
-        rejectionReason: parsedReason?.data ?? null,
-        reviewedById: user.id,
-        reviewedAt: new Date(),
-      },
-    }),
-    ...(approved
-      ? [
-          db.membership.update({
-            where: { id: member.id },
-            data: { role: "TRAINER" },
-          }),
-        ]
-      : []),
-  ]);
+  const result = await guarded(() =>
+    db.$transaction(async (tx) => {
+      const reviewed = await tx.trainerRequest.updateMany({
+        where: { id: request.id, organizationId, status: "PENDING" },
+        data: {
+          status: approved ? "APPROVED" : "REJECTED",
+          rejectionReason: parsedReason?.data ?? null,
+          reviewedById: user.id,
+          reviewedAt: new Date(),
+        },
+      });
+      if (reviewed.count === 0)
+        throw new RuleError("Pengajuan sudah ditinjau.");
+      if (!approved) return;
+      const promoted = await tx.membership.updateMany({
+        where: { id: member.id, organizationId, status: "ACTIVE" },
+        data: { role: "TRAINER" },
+      });
+      if (promoted.count === 0)
+        throw new RuleError("Pemohon bukan anggota aktif organisasi.");
+    }, SERIALIZABLE),
+  );
+  if (!result.ok) return result;
   await notify(
     [request.userId],
     approved ? "trainer-request.approved" : "trainer-request.rejected",
@@ -394,6 +475,7 @@ export async function leaveOrganizationAction(): Promise<OrgActionState> {
   const user = await requireUser();
   let transferred: { id: string; title: string }[] = [];
   let receiverId: string | null = null;
+  let materialReceiverId: string | null = null;
   let organizationId = "";
   const result = await guarded(() =>
     db.$transaction(async (tx) => {
@@ -426,9 +508,20 @@ export async function leaveOrganizationAction(): Promise<OrgActionState> {
           user.id,
           receiverId,
         );
+      materialReceiverId = await releaseMaterials(
+        tx,
+        organizationId,
+        user.id,
+        true,
+      );
     }, SERIALIZABLE),
   );
   if (!result.ok) return result;
+  await notifyMaterialsTransferred(
+    materialReceiverId,
+    organizationId,
+    user.name,
+  );
   if (receiverId)
     await Promise.all(
       transferred.map((event) =>
@@ -445,4 +538,55 @@ export async function leaveOrganizationAction(): Promise<OrgActionState> {
     userName: user.name,
   });
   redirect("/dikeluarkan");
+}
+
+/** Alihkan pengelola acara ke anggota aktif lain di organisasi. */
+export async function transferEventAction(
+  eventId: string,
+  membershipId: string,
+): Promise<OrgActionState> {
+  const { organizationId } = await requireOrganizationAdmin("member:manage");
+  const receiver = await activeMemberOf(organizationId, membershipId);
+  if (!receiver) return { error: "Anggota tidak ditemukan." };
+  const event = await db.event.findFirst({
+    where: { id: eventId, organizationId, status: { not: "DRAFT" } },
+    select: { id: true, title: true, creatorId: true },
+  });
+  if (!event) return { error: "Acara tidak ditemukan." };
+  if (event.creatorId === receiver.userId)
+    return {
+      error: `${receiver.user.name} sudah menjadi pengelola acara ini.`,
+    };
+  const result = await guarded(() =>
+    db.$transaction(async (tx) => {
+      const stillActive = await tx.membership.count({
+        where: { id: receiver.id, organizationId, status: "ACTIVE" },
+      });
+      if (stillActive === 0) throw new RuleError("Anggota tidak ditemukan.");
+      const moved = await tx.event.updateMany({
+        where: { id: event.id, organizationId, creatorId: event.creatorId },
+        data: {
+          creatorId: receiver.userId,
+          transferredFromId: event.creatorId,
+        },
+      });
+      if (moved.count === 0)
+        throw new RuleError(
+          "Pengelola acara sudah berubah. Muat ulang halaman.",
+        );
+    }, SERIALIZABLE),
+  );
+  if (!result.ok) return result;
+  const previous = await db.user.findUnique({
+    where: { id: event.creatorId },
+    select: { name: true },
+  });
+  await notify([receiver.userId], "event.transferred", {
+    organizationId,
+    eventId: event.id,
+    eventTitle: event.title,
+    userName: previous?.name,
+  });
+  refresh();
+  return { ok: true };
 }

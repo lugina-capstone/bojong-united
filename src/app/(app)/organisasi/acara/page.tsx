@@ -18,6 +18,7 @@ import { LinkTabs } from "@/app/(app)/_components/link-tabs";
 import { SearchParamInput } from "@/app/(app)/_components/list-controls";
 import { ListFooter } from "@/app/(app)/_components/list-footer";
 import { SectionCard } from "@/app/(app)/_components/section-card";
+import { EventActions } from "@/app/(app)/organisasi/acara/event-actions";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterBar } from "@/components/ui/filter-bar";
@@ -90,6 +91,7 @@ export default async function OrganizationEventsPage({
     closed,
     archived,
     participants,
+    members,
   ] = await Promise.all([
     db.organization.findUniqueOrThrow({
       where: { id: organizationId },
@@ -122,7 +124,21 @@ export default async function OrganizationEventsPage({
     db.event.count({ where: { organizationId, status: "CLOSED" } }),
     db.event.count({ where: { organizationId, status: "ARCHIVED" } }),
     db.enrollment.count({ where: { event: { organizationId } } }),
+    db.membership.findMany({
+      where: { organizationId, status: "ACTIVE" },
+      orderBy: { user: { name: "asc" } },
+      select: {
+        id: true,
+        userId: true,
+        user: { select: { name: true, email: true } },
+      },
+    }),
   ]);
+  const memberOptions = members.map((member) => ({
+    value: member.id,
+    label: `${member.user.name} (${member.user.email})`,
+    userId: member.userId,
+  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -197,6 +213,7 @@ export default async function OrganizationEventsPage({
                 <TableHead>Pengelola</TableHead>
                 <TableHead>Peserta</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -231,6 +248,18 @@ export default async function OrganizationEventsPage({
                     <Badge tone={STATUS[event.status].tone}>
                       {STATUS[event.status].label}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {event.status !== "DRAFT" && (
+                      <EventActions
+                        event={{
+                          id: event.id,
+                          title: event.title,
+                          creatorId: event.creatorId,
+                        }}
+                        members={memberOptions}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
