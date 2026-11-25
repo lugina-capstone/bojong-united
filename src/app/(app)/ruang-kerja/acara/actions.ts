@@ -275,7 +275,7 @@ export async function saveCertificateAction(
   eventId: string,
   input: unknown,
 ): Promise<EventActionState> {
-  const { event } = await requireOwnEvent(eventId);
+  const { event, organizationId } = await requireOwnEvent(eventId);
   if (event.status !== "DRAFT") return { error: "Acara sudah diterbitkan." };
   const parsed = certificateSchema.safeParse(input);
   if (!parsed.success) {
@@ -285,6 +285,20 @@ export async function saveCertificateAction(
     };
   }
   const data = parsed.data;
+  if (data.certificateEnabled && data.certificateTemplateId) {
+    const template = await db.certificateTemplate.findFirst({
+      where: {
+        id: data.certificateTemplateId,
+        OR: [{ organizationId }, { organizationId: null }],
+      },
+      select: { id: true },
+    });
+    if (!template)
+      return {
+        error: "Periksa kembali isian yang ditandai.",
+        fieldErrors: { certificateTemplateId: "Templat tidak ditemukan" },
+      };
+  }
   await db.event.update({
     where: { id: eventId },
     data: {

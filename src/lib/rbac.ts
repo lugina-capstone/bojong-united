@@ -23,12 +23,7 @@ export const roleLabels: Record<Role, string> = {
 
 export const organizationAdminLabel = "Admin Organisasi";
 
-const pesertaPermissions = [
-  "event:join",
-  "material:enroll",
-  "organization:create",
-  "organization:join",
-] as const;
+const pesertaPermissions = ["event:join", "material:enroll"] as const;
 
 const pengajarPermissions = ["event:manage", "assessment:manage"] as const;
 

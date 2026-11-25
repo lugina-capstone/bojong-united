@@ -9,6 +9,7 @@ import {
   canInviteToTeam,
   canRemoveTeamMember,
   eventPhase,
+  maskEmail,
 } from "@/lib/event-rules";
 import { notify } from "@/lib/notifications";
 import { hasStarted, requireParticipant } from "@/lib/participant-access";
@@ -90,6 +91,24 @@ async function leaderTeam(teamId: string, userId: string) {
   });
 }
 
+const BUSY = "Permintaan lain sedang diproses. Coba lagi.";
+
+/** Jalankan transaksi Serializable; null jika bentrok dengan transaksi lain. */
+async function serializable<T>(
+  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T | null> {
+  try {
+    return await db.$transaction(fn, { isolationLevel: "Serializable" });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2034"
+    )
+      return null;
+    throw error;
+  }
+}
+
 export type InviteeResult = {
   id: string;
   name: string;
@@ -131,7 +150,7 @@ export async function searchInviteesAction(
   return users.map((u) => ({
     id: u.id,
     name: u.name,
-    email: u.email,
+    email: maskEmail(u.email),
     state:
       u.enrollments.length > 0
         ? "in-event"
@@ -162,26 +181,33 @@ export async function inviteTeamMemberAction(
   });
   if (!invitee || invitee.id === user.id)
     return { error: "Peserta tidak ditemukan." };
-  const [inEvent, pending, already] = await Promise.all([
-    db.enrollment.count({
-      where: { eventId: team.eventId, userId: inviteeId },
-    }),
-    db.teamInvite.count({ where: { teamId, status: "PENDING" } }),
-    db.teamInvite.count({
-      where: { teamId, inviteeId, status: "PENDING" },
-    }),
-  ]);
-  if (already) return { error: "Peserta ini sudah diundang." };
-  const rule = canInviteToTeam({
-    maxMembers: team.event.maxTeamMembers ?? 1,
-    joined: team._count.members,
-    pending,
-    inviteeHasTeam: inEvent > 0,
+  // Serializable: dua undangan bersamaan tidak boleh melebihi slot atau menggandakan undangan.
+  const result = await serializable(async (tx) => {
+    const [inEvent, joined, pending, already] = await Promise.all([
+      tx.enrollment.count({
+        where: { eventId: team.eventId, userId: inviteeId },
+      }),
+      tx.enrollment.count({ where: { teamId } }),
+      tx.teamInvite.count({ where: { teamId, status: "PENDING" } }),
+      tx.teamInvite.count({
+        where: { teamId, inviteeId, status: "PENDING" },
+      }),
+    ]);
+    if (already) return { error: "Peserta ini sudah diundang." };
+    const rule = canInviteToTeam({
+      maxMembers: team.event.maxTeamMembers ?? 1,
+      joined,
+      pending,
+      inviteeHasTeam: inEvent > 0,
+    });
+    if (!rule.allowed) return { error: rule.reason };
+    return tx.teamInvite.create({
+      data: { teamId, inviteeId, inviterId: user.id },
+    });
   });
-  if (!rule.allowed) return { error: rule.reason };
-  const invite = await db.teamInvite.create({
-    data: { teamId, inviteeId, inviterId: user.id },
-  });
+  if (!result) return { error: BUSY };
+  if ("error" in result) return { error: result.error };
+  const invite = result;
   await notify([inviteeId], "team.invited", {
     userName: user.name,
     teamName: team.name,
@@ -240,27 +266,32 @@ export async function respondInviteAction(
 
   if (hasStarted(team.event) || team.event.status !== "PUBLISHED")
     return { error: "Acara sudah dimulai, undangan tidak bisa diterima." };
-  if (team._count.members >= (team.event.maxTeamMembers ?? 1))
-    return { error: "Slot anggota tim sudah penuh." };
   try {
-    await db.$transaction([
-      db.teamInvite.update({
-        where: { id: inviteId },
+    const result = await serializable(async (tx) => {
+      const joined = await tx.enrollment.count({ where: { teamId: team.id } });
+      if (joined >= (team.event.maxTeamMembers ?? 1))
+        return { error: "Slot anggota tim sudah penuh." };
+      const accepted = await tx.teamInvite.updateMany({
+        where: { id: inviteId, status: "PENDING" },
         data: { status: "ACCEPTED", respondedAt: new Date() },
-      }),
-      db.enrollment.create({
+      });
+      if (accepted.count === 0)
+        return { error: "Undangan sudah tidak berlaku." };
+      await tx.enrollment.create({
         data: { eventId: team.eventId, userId: user.id, teamId: team.id },
-      }),
-      db.teamInvite.updateMany({
+      });
+      await tx.teamInvite.updateMany({
         where: {
           inviteeId: user.id,
           status: "PENDING",
-          id: { not: inviteId },
           team: { eventId: team.eventId },
         },
         data: { status: "CANCELLED", respondedAt: new Date() },
-      }),
-    ]);
+      });
+      return { ok: true };
+    });
+    if (!result) return { error: BUSY };
+    if ("error" in result) return { error: result.error };
   } catch (error) {
     if (isUniqueViolation(error))
       return { error: "Anda sudah terdaftar di acara ini." };

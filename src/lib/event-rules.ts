@@ -136,3 +136,10 @@ export function canDeleteEvent(status: string, participantCount: number): Rule {
 export function certificateNumber(random: string, now = new Date()) {
   return `BCR-${now.getFullYear()}-${random.toUpperCase()}`;
 }
+
+/** Samarkan email untuk ditampilkan ke peserta lain: "dimas@x.id" → "di***@x.id". */
+export function maskEmail(email: string) {
+  const at = email.lastIndexOf("@");
+  if (at < 1) return "***";
+  return `${email.slice(0, Math.min(2, at - 1) || 1)}***${email.slice(at)}`;
+}

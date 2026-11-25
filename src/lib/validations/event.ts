@@ -1,3 +1,4 @@
+import { isWebUrl, WEB_URL_ERROR } from "@/lib/web-url";
 import { z } from "zod";
 
 const text = (min: number, max: number, label: string) =>
@@ -166,6 +167,7 @@ export const submissionSchema = z.object({
     .trim()
     .url({ error: "Tautan tidak valid" })
     .max(500)
+    .refine(isWebUrl, { error: WEB_URL_ERROR })
     .nullable()
     .optional()
     .or(z.literal("").transform(() => null)),

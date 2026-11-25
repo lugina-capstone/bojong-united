@@ -10,6 +10,7 @@ import { DeleteRubricButton } from "@/app/(app)/ruang-kerja/rubrik/_components/d
 import { RubricEditor } from "@/app/(app)/ruang-kerja/rubrik/_components/rubric-editor";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
+import { canManageRubric } from "@/lib/rubric-access";
 import { requireTeacher } from "@/lib/teacher-access";
 
 export const metadata: Metadata = { title: "Edit rubrik" };
@@ -18,12 +19,12 @@ export default async function EditRubricPage({
   params,
 }: PageProps<"/ruang-kerja/rubrik/[id]/edit">) {
   const { id } = await params;
-  const { organizationId } = await requireTeacher();
+  const { user, organizationId } = await requireTeacher();
   const [rubric, fields] = await Promise.all([
     loadRubric(id, organizationId),
     rubricFields(organizationId),
   ]);
-  if (!rubric) notFound();
+  if (!rubric || !canManageRubric(rubric, user)) notFound();
   return (
     <div className="flex flex-col gap-6">
       <nav className="text-small text-muted-foreground" aria-label="Breadcrumb">
@@ -48,7 +49,7 @@ export default async function EditRubricPage({
             <Badge tone={rubric.locked ? "warning" : "success"}>
               {rubric.locked
                 ? "Terkunci · disimpan sebagai versi baru"
-                : "Dapat diedit · belum dipakai menilai"}
+                : "Dapat diedit · belum dipakai acara terbit"}
             </Badge>
             <DeleteRubricButton
               rubricId={rubric.id}

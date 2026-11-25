@@ -1,3 +1,4 @@
+import { WebLink } from "@/components/ui/web-link";
 import {
   BookOpenIcon,
   CheckIcon,
@@ -238,10 +239,8 @@ export default async function LearnPage({
                 </p>
               )}
               {current.link && (
-                <a
+                <WebLink
                   href={current.link}
-                  target="_blank"
-                  rel="noreferrer"
                   className={buttonVariants({
                     variant: "secondary",
                     className: "w-fit",
@@ -249,7 +248,7 @@ export default async function LearnPage({
                 >
                   <ExternalLinkIcon aria-hidden="true" />
                   Buka tautan materi
-                </a>
+                </WebLink>
               )}
               {current.file && !current.content && (
                 <p className="text-small text-muted-foreground">

@@ -20,7 +20,7 @@ import {
 } from "@/lib/notifications";
 import { generateOrganizationCode } from "@/lib/organization-code";
 import { OTP_RESEND_SECONDS, OTP_VALID_MINUTES, otpResendKey } from "@/lib/otp";
-import { requireUser } from "@/lib/session";
+import { type CurrentUser, requireUser } from "@/lib/session";
 import {
   forgotPasswordSchema,
   joinOrganizationSchema,
@@ -256,15 +256,27 @@ export async function registerOrganizationAction(
   return { ok: true, email: parsed.data.email };
 }
 
-/** Akun yang sedang masuk (dikeluarkan atau Peserta) membuat organisasi baru. */
+/**
+ * Hanya akun yang baru keluar/dikeluarkan dari organisasi yang boleh pindah organisasi.
+ * Akun Peserta harus dihapus dulu, lalu mendaftar ulang sebagai organisasi.
+ */
+function organizationChoiceBlocked(user: CurrentUser) {
+  if (user.membership?.status === "ACTIVE")
+    return "Akun ini masih tergabung di organisasi.";
+  if (user.membership?.status !== "REMOVED")
+    return "Akun Peserta tidak bisa bergabung ke organisasi. Hapus akun ini, lalu daftar ulang sebagai organisasi.";
+  return null;
+}
+
+/** Akun yang baru keluar/dikeluarkan membuat organisasi baru. */
 export async function createOrganizationAction(
   input: unknown,
 ): Promise<FormState> {
   const user = await requireUser();
+  const blocked = organizationChoiceBlocked(user);
+  if (blocked) return { error: blocked };
   const parsed = organizationDataSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
-  if (user.membership?.status === "ACTIVE")
-    return { error: "Akun ini masih tergabung di organisasi." };
   await db.membership.deleteMany({ where: { userId: user.id } });
   const organization = await createOrganization(
     user.id,
@@ -279,11 +291,11 @@ export async function createOrganizationAction(
   return { ok: true };
 }
 
-/** Akun yang sedang masuk (dikeluarkan atau Peserta) bergabung dengan kode. */
+/** Akun yang baru keluar/dikeluarkan bergabung dengan kode. */
 export async function joinOrganizationAction(code: string): Promise<FormState> {
   const user = await requireUser();
-  if (user.membership?.status === "ACTIVE")
-    return { error: "Akun ini masih tergabung di organisasi." };
+  const blocked = organizationChoiceBlocked(user);
+  if (blocked) return { error: blocked };
   const parsed = organizationCodeSchema.safeParse(code);
   const organization = parsed.success
     ? await db.organization.findUnique({

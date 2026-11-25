@@ -185,12 +185,12 @@ Helper ini membaca header request, jadi komponen yang memanggilnya harus berada 
 
 Akses efektif (`role` dan `isOrganizationAdmin`) ditentukan oleh `resolveAccess` di `@/lib/rbac`. Membership hanya berlaku jika `status = ACTIVE` dan organisasinya `APPROVED`.
 
-| Peran         | Kondisi                                                                            | Izin                                                                        |
-| ------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Administrator | `isAdministrator = true`                                                           | `organization:review`, `organization:manage`, `user:manage`                 |
-| Trainer       | Membership `TRAINER`                                                               | `event:manage`, `assessment:manage`, `material:manage`                      |
-| Guru / Asesor | Membership `GURU` atau `ASESOR`                                                    | `event:manage`, `assessment:manage`, `trainer-request:create`               |
-| Peserta       | Tanpa membership aktif, atau organisasinya belum disetujui, ditolak, atau nonaktif | `event:join`, `material:enroll`, `organization:create`, `organization:join` |
+| Peran         | Kondisi                                                                            | Izin                                                          |
+| ------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Administrator | `isAdministrator = true`                                                           | `organization:review`, `organization:manage`, `user:manage`   |
+| Trainer       | Membership `TRAINER`                                                               | `event:manage`, `assessment:manage`, `material:manage`        |
+| Guru / Asesor | Membership `GURU` atau `ASESOR`                                                    | `event:manage`, `assessment:manage`, `trainer-request:create` |
+| Peserta       | Tanpa membership aktif, atau organisasinya belum disetujui, ditolak, atau nonaktif | `event:join`, `material:enroll`                               |
 
 Admin Organisasi bukan peran tersendiri: membership dengan `isAdmin = true` mendapat izin perannya ditambah `member:manage`, `organization:update`, dan `trainer-request:review` (lihat `permissionsOf`).
 

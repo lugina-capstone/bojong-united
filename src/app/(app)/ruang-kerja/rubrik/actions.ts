@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 
 import { db } from "@/lib/db";
+import { canManageRubric, lockedRubricWhere } from "@/lib/rubric-access";
 import { requireTeacher } from "@/lib/teacher-access";
 import { rubricSchema } from "@/lib/validations/event";
 
@@ -19,6 +20,9 @@ function fieldErrorsOf(issues: { path: PropertyKey[]; message: string }[]) {
     errors[issue.path.map(String).join(".")] ??= issue.message;
   return errors;
 }
+
+const NOT_OWNER =
+  "Hanya pembuat rubrik atau Admin Organisasi yang bisa mengubahnya. Salin rubrik ini untuk membuat versi Anda.";
 
 function criteriaData(
   criteria: ReturnType<typeof rubricSchema.parse>["criteria"],
@@ -59,7 +63,7 @@ export async function createRubricAction(
 }
 
 /**
- * Simpan perubahan rubrik. Jika rubrik sudah dipakai menilai, perubahan disimpan sebagai
+ * Simpan perubahan rubrik. Jika rubrik terkunci (dipakai menilai atau acara terbit), perubahan disimpan sebagai
  * versi baru (salinan) dan versi lama tetap utuh untuk nilai yang sudah ada.
  */
 export async function updateRubricAction(
@@ -71,6 +75,7 @@ export async function updateRubricAction(
     where: { id: rubricId, organizationId, archivedAt: null },
   });
   if (!rubric) return { error: "Rubrik tidak ditemukan." };
+  if (!canManageRubric(rubric, user)) return { error: NOT_OWNER };
   const parsed = rubricSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -86,7 +91,9 @@ export async function updateRubricAction(
   });
   if (!field) return { fieldErrors: { fieldId: "Bidang tidak ditemukan" } };
   const used =
-    (await db.gradeScore.count({ where: { criterion: { rubricId } } })) > 0;
+    (await db.rubric.count({
+      where: { AND: [{ id: rubricId }, lockedRubricWhere] },
+    })) > 0;
   if (used) {
     const copy = await db.rubric.create({
       data: {
@@ -172,12 +179,17 @@ export async function copyRubricAction(
 export async function deleteRubricAction(
   rubricId: string,
 ): Promise<RubricActionState & { archived?: boolean }> {
-  const { organizationId } = await requireTeacher();
+  const { user, organizationId } = await requireTeacher();
   const rubric = await db.rubric.findFirst({
     where: { id: rubricId, organizationId, archivedAt: null },
-    select: { id: true, _count: { select: { milestones: true } } },
+    select: {
+      id: true,
+      creatorId: true,
+      _count: { select: { milestones: true } },
+    },
   });
   if (!rubric) return { error: "Rubrik tidak ditemukan." };
+  if (!canManageRubric(rubric, user)) return { error: NOT_OWNER };
   if (rubric._count.milestones > 0) {
     await db.rubric.update({
       where: { id: rubricId },

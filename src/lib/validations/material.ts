@@ -1,3 +1,4 @@
+import { isWebUrl, WEB_URL_ERROR } from "@/lib/web-url";
 import { z } from "zod";
 
 import { MATERIAL_COVERS } from "@/lib/material-rules";
@@ -38,7 +39,12 @@ export const materialSectionSchema = z
     content: z.string().trim().max(10000).default(""),
     fileId: z.string().nullable().default(null),
     link: z
-      .union([z.literal(""), z.url({ error: "Tautan tidak valid" })])
+      .union([
+        z.literal(""),
+        z
+          .url({ error: "Tautan tidak valid" })
+          .refine(isWebUrl, { error: WEB_URL_ERROR }),
+      ])
       .default(""),
     durationMinutes: z
       .number({ error: "Durasi harus berupa angka" })

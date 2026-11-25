@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@/generated/prisma/client";
 import { refresh } from "next/cache";
 
 import { issueCertificateIfEligible } from "@/lib/assessment";
@@ -138,16 +139,27 @@ export async function submitMilestoneAction(
       };
   }
 
-  const submission = await db.submission.create({
-    data: {
-      milestoneId,
-      userId: user.id,
-      version: (latest?.version ?? 0) + 1,
-      fileId: fileId ?? null,
-      link: link ?? null,
-      text: text ?? null,
-    },
-  });
+  let submission;
+  try {
+    submission = await db.submission.create({
+      data: {
+        milestoneId,
+        userId: user.id,
+        version: (latest?.version ?? 0) + 1,
+        fileId: fileId ?? null,
+        link: link ?? null,
+        text: text ?? null,
+      },
+    });
+  } catch (error) {
+    // Dua kiriman bersamaan berebut nomor versi atau berkas yang sama.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    )
+      return { error: "Pengumpulan ini sudah terkirim." };
+    throw error;
+  }
   await notify(
     [event.creatorId],
     isRevision ? "submission.revised" : "submission.new",

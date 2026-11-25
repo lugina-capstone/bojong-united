@@ -40,15 +40,14 @@ import {
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/format";
+import { canManageRubric, lockedRubricWhere } from "@/lib/rubric-access";
 import { requireTeacher } from "@/lib/teacher-access";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Kelola rubrik" };
 
 const PATH = "/ruang-kerja/rubrik";
-const used: Prisma.RubricWhereInput = {
-  criteria: { some: { scores: { some: {} } } },
-};
+const used: Prisma.RubricWhereInput = lockedRubricWhere;
 const TABS = [
   { value: "semua", label: "Semua", where: {} },
   { value: "terkunci", label: "Terkunci", where: used },
@@ -58,7 +57,7 @@ const TABS = [
 export default async function RubricsPage({
   searchParams,
 }: PageProps<"/ruang-kerja/rubrik">) {
-  const { organizationId } = await requireTeacher();
+  const { user, organizationId } = await requireTeacher();
   const params = (await searchParams) as SearchParams;
   const tab = TABS.find((t) => t.value === param(params, "tab")) ?? TABS[0];
   const q = param(params, "q");
@@ -104,7 +103,9 @@ export default async function RubricsPage({
             select: { id: true },
             take: 1,
           },
-          milestones: { select: { eventId: true } },
+          milestones: {
+            select: { eventId: true, event: { select: { status: true } } },
+          },
         },
       }),
       db.rubric.count({ where }),
@@ -152,7 +153,7 @@ export default async function RubricsPage({
       </div>
       <SectionCard
         title="Daftar rubrik penilaian"
-        description="Lihat detail skala 1–5, edit rubrik yang belum dipakai menilai, atau buat salinan baru."
+        description="Lihat detail skala 1–5, edit rubrik Anda yang belum dipakai acara terbit, atau buat salinan baru."
       >
         <div className="flex flex-col gap-3 px-4 pb-4 sm:px-5">
           <SearchParamInput
@@ -217,7 +218,10 @@ export default async function RubricsPage({
             </TableHeader>
             <TableBody>
               {rubrics.map((rubric) => {
-                const locked = rubric.criteria.length > 0;
+                const locked =
+                  rubric.criteria.length > 0 ||
+                  rubric.milestones.some((m) => m.event.status !== "DRAFT");
+                const canManage = canManageRubric(rubric, user);
                 const events = new Set(rubric.milestones.map((m) => m.eventId))
                   .size;
                 return (
@@ -288,7 +292,7 @@ export default async function RubricsPage({
                           <EyeIcon aria-hidden="true" />
                           Lihat
                         </Link>
-                        {locked ? (
+                        {locked || !canManage ? (
                           <CopyRubricButton rubricId={rubric.id} />
                         ) : (
                           <Link
@@ -322,9 +326,9 @@ export default async function RubricsPage({
       </SectionCard>
       <p className="flex items-start gap-2 text-small text-muted-foreground">
         <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-        Rubrik yang sudah dipakai menilai peserta otomatis terkunci agar riwayat
-        nilai tetap konsisten. Gunakan Salin untuk membuat versi baru yang dapat
-        diedit.
+        Rubrik yang sudah dipakai acara terbit atau menilai peserta otomatis
+        terkunci agar riwayat nilai tetap konsisten. Gunakan Salin untuk membuat
+        versi baru yang dapat diedit.
       </p>
     </div>
   );

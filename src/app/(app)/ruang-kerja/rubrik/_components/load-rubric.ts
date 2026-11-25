@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { lockedRubricWhere } from "@/lib/rubric-access";
 
 /** Bidang bawaan + bidang organisasi untuk form rubrik. */
 export function rubricFields(organizationId: string) {
@@ -29,7 +30,8 @@ export async function loadRubric(id: string, organizationId: string) {
   });
   if (!rubric) return null;
   const locked =
-    (await db.gradeScore.count({ where: { criterion: { rubricId: id } } })) > 0;
+    (await db.rubric.count({ where: { AND: [{ id }, lockedRubricWhere] } })) >
+    0;
   const events = [
     ...new Map(rubric.milestones.map((m) => [m.event.id, m.event])).values(),
   ];
