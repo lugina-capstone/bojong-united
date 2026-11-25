@@ -8,7 +8,11 @@ function AppShell({
 }: React.ComponentProps<typeof Header> & { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-background">
-      <Sidebar access={header.access} workspace={header.workspace} />
+      <Sidebar
+        access={header.access}
+        workspace={header.workspace}
+        user={header.user}
+      />
       <div className="flex min-h-dvh flex-col lg:pl-60">
         <Header {...header} />
         <main id="konten" className="flex-1 px-4 py-6 sm:px-8 lg:px-12 lg:py-8">

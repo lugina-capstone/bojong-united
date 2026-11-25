@@ -44,4 +44,4 @@ function GoogleButton({
   );
 }
 
-export { GoogleButton };
+export { GoogleButton, GoogleLogo };
