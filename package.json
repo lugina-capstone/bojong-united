@@ -35,7 +35,7 @@
     "input-otp": "^1.5.0",
     "lucide-react": "^1.78.0",
     "next": "16.4.6",
-    "nodemailer": "8.0.11",
+    "nodemailer": "10.5.0",
     "pdf-lib": "1.17.1",
     "pg": "8.23.1",
     "react": "19.3.0",
@@ -52,7 +52,6 @@
     "@commitlint/config-conventional": "^21.2.4",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
-    "@types/nodemailer": "8.0.2",
     "@types/pg": "8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -72,5 +71,11 @@
   },
   "engines": {
     "node": ">=22.22.1"
+  },
+  "overrides": {
+    "effect": "3.22.4",
+    "@ts-morph/common": {
+      "minimatch": "11.0.9"
+    }
   }
 }
