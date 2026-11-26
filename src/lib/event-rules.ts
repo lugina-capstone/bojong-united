@@ -28,6 +28,20 @@ export function eventPhase(
   return "ongoing";
 }
 
+/** Label status acara di halaman Admin Organisasi; acara terbit yang sudah lewat tanggal akhirnya "Selesai". */
+export function organizationEventStatus(
+  event: Parameters<typeof eventPhase>[0],
+  now = new Date(),
+) {
+  const phase = eventPhase(event, now);
+  if (phase === "draft") return { label: "Draf", tone: "neutral" } as const;
+  if (phase === "archived")
+    return { label: "Diarsipkan", tone: "neutral" } as const;
+  if (phase === "finished")
+    return { label: "Selesai", tone: "primary" } as const;
+  return { label: "Aktif", tone: "success" } as const;
+}
+
 /** Filter Prisma untuk acara yang belum berakhir (fase `upcoming` atau `ongoing`). */
 export function unfinishedEventWhere(now = new Date()) {
   return {

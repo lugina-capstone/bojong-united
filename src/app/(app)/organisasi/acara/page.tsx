@@ -33,8 +33,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Prisma } from "@/generated/prisma/client";
-import type { EventStatus } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
+import {
+  organizationEventStatus,
+  unfinishedEventWhere,
+} from "@/lib/event-rules";
 import { formatDate, formatNumber } from "@/lib/format";
 import { requireOrganizationAdmin } from "@/lib/organization-access";
 
@@ -42,23 +45,26 @@ export const metadata: Metadata = { title: "Acara organisasi" };
 
 const PATH = "/organisasi/acara";
 
-const TABS: { value: string; label: string; status: EventStatus[] }[] = [
-  {
-    value: "semua",
-    label: "Semua",
-    status: ["PUBLISHED", "CLOSED", "ARCHIVED"],
-  },
-  { value: "aktif", label: "Aktif", status: ["PUBLISHED"] },
-  { value: "selesai", label: "Selesai", status: ["CLOSED"] },
-  { value: "diarsipkan", label: "Diarsipkan", status: ["ARCHIVED"] },
-];
-
-const STATUS = {
-  DRAFT: { label: "Draf", tone: "neutral" },
-  PUBLISHED: { label: "Aktif", tone: "success" },
-  CLOSED: { label: "Selesai", tone: "primary" },
-  ARCHIVED: { label: "Diarsipkan", tone: "neutral" },
-} as const;
+// Acara terbit yang tanggal akhirnya sudah lewat dihitung "Selesai", sama seperti di Ruang Kerja.
+function tabs(now: Date): {
+  value: string;
+  label: string;
+  where: Prisma.EventWhereInput;
+}[] {
+  const finished: Prisma.EventWhereInput = {
+    OR: [{ status: "CLOSED" }, { status: "PUBLISHED", endsAt: { lt: now } }],
+  };
+  return [
+    {
+      value: "semua",
+      label: "Semua",
+      where: { status: { in: ["PUBLISHED", "CLOSED", "ARCHIVED"] } },
+    },
+    { value: "aktif", label: "Aktif", where: unfinishedEventWhere(now) },
+    { value: "selesai", label: "Selesai", where: finished },
+    { value: "diarsipkan", label: "Diarsipkan", where: { status: "ARCHIVED" } },
+  ];
+}
 
 function dateRange(start: Date | null, end: Date | null) {
   if (!start && !end) return "Tanggal belum diatur";
@@ -72,6 +78,7 @@ export default async function OrganizationEventsPage({
   const { user, organizationId } =
     await requireOrganizationAdmin("member:manage");
   const params = (await searchParams) as SearchParams;
+  const TABS = tabs(new Date());
   const tab = TABS.find((t) => t.value === param(params, "tab")) ?? TABS[0]!;
   const q = param(params, "q");
   const page = pageOf(params);
@@ -80,7 +87,7 @@ export default async function OrganizationEventsPage({
     organizationId,
     ...(q ? { title: { contains: q, mode: "insensitive" } } : {}),
   };
-  const where: Prisma.EventWhereInput = { ...base, status: { in: tab.status } };
+  const where: Prisma.EventWhereInput = { AND: [base, tab.where] };
 
   const [
     organization,
@@ -98,9 +105,7 @@ export default async function OrganizationEventsPage({
       select: { name: true },
     }),
     Promise.all(
-      TABS.map((t) =>
-        db.event.count({ where: { ...base, status: { in: t.status } } }),
-      ),
+      TABS.map((t) => db.event.count({ where: { AND: [base, t.where] } })),
     ),
     db.event.findMany({
       where,
@@ -120,8 +125,8 @@ export default async function OrganizationEventsPage({
       },
     }),
     db.event.count({ where }),
-    db.event.count({ where: { organizationId, status: "PUBLISHED" } }),
-    db.event.count({ where: { organizationId, status: "CLOSED" } }),
+    db.event.count({ where: { organizationId, ...TABS[1]!.where } }),
+    db.event.count({ where: { organizationId, ...TABS[2]!.where } }),
     db.event.count({ where: { organizationId, status: "ARCHIVED" } }),
     db.enrollment.count({ where: { event: { organizationId } } }),
     db.membership.findMany({
@@ -245,8 +250,8 @@ export default async function OrganizationEventsPage({
                     {formatNumber(event._count.enrollments)}
                   </TableCell>
                   <TableCell>
-                    <Badge tone={STATUS[event.status].tone}>
-                      {STATUS[event.status].label}
+                    <Badge tone={organizationEventStatus(event).tone}>
+                      {organizationEventStatus(event).label}
                     </Badge>
                   </TableCell>
                   <TableCell>

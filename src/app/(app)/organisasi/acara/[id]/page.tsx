@@ -8,16 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { db } from "@/lib/db";
+import { organizationEventStatus } from "@/lib/event-rules";
 import { formatDate, formatNumber } from "@/lib/format";
 import { requireOrganizationAdmin } from "@/lib/organization-access";
 
 export const metadata: Metadata = { title: "Detail acara organisasi" };
-
-const STATUS = {
-  PUBLISHED: { label: "Aktif", tone: "success" },
-  CLOSED: { label: "Selesai", tone: "primary" },
-  ARCHIVED: { label: "Diarsipkan", tone: "neutral" },
-} as const;
 
 /** Ringkasan baca-saja sebuah acara untuk Admin Organisasi. */
 export default async function OrganizationEventPage({
@@ -46,7 +41,7 @@ export default async function OrganizationEventPage({
     },
   });
   if (!event || event.status === "DRAFT") notFound();
-  const status = STATUS[event.status];
+  const status = organizationEventStatus(event);
 
   const facts = [
     { label: "Pengelola", value: event.creator.name },
