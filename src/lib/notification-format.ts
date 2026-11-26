@@ -177,7 +177,7 @@ export function describeNotification(
       return {
         title: "Pengajuan Trainer ditolak",
         body: payload.reason ?? "Pengajuan Trainer Anda ditolak.",
-        href: "/ruang-kerja",
+        href: "/ruang-kerja/profil",
         icon: "x",
         tone: "danger",
       };
