@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
     rubric: {
       findFirst: vi.fn(),
       count: vi.fn(),
+      aggregate: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -93,9 +94,16 @@ describe("rubrik yang dipakai acara terbit", () => {
     });
     mocks.db.subjectField.findFirst.mockResolvedValue({ id: "bidang" });
     mocks.db.rubric.count.mockResolvedValue(1);
-    mocks.db.rubric.create.mockResolvedValue({ id: "r2" });
+    // Versi 2 sudah ada, jadi salinan dari versi 1 harus menjadi versi 3.
+    mocks.db.rubric.aggregate.mockResolvedValue({ _max: { version: 2 } });
+    mocks.db.rubric.create.mockResolvedValue({ id: "r3" });
     const result = await updateRubricAction("r1", input);
-    expect(result.rubricId).toBe("r2");
+    expect(result.rubricId).toBe("r3");
+    expect(mocks.db.rubric.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ version: 3, sourceRubricId: "r1" }),
+      }),
+    );
     expect(mocks.db.rubric.update).not.toHaveBeenCalled();
     expect(mocks.db.$transaction).not.toHaveBeenCalled();
   });

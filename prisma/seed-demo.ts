@@ -664,7 +664,7 @@ export async function seedDemo(
       title: "Workshop Wireframe Sehari",
       fieldId: bidangUiux!.id,
       startsAt: daysFromNow(20),
-      endsAt: daysFromNow(20),
+      endsAt: daysFromNow(21),
       draftStep: 2,
     },
   });
