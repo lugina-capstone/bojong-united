@@ -511,6 +511,58 @@ export async function seedScenarios(
     data: { materialId: ctx.materiPoster.id, userId: nanda.id },
   });
 
+  // --- Trainer yang aman dikeluarkan: punya satu materi dan satu acara untuk uji pengalihan ---
+  const wahyu = await ctx.createMember(
+    "Wahyu Setiawan",
+    "trainer.keluar",
+    demoOrg.id,
+    "TRAINER",
+  );
+  const materiWahyu = await db.material.create({
+    data: {
+      organizationId: demoOrg.id,
+      trainerId: wahyu.id,
+      categoryId: categories.desainProduk.id,
+      title: "Dasar Sketsa Produk",
+      description: "Teknik sketsa cepat untuk ide produk.",
+      level: "BEGINNER",
+      coverColor: "sand",
+      status: "PUBLISHED",
+      publishedAt: daysFromNow(-3),
+      sections: {
+        create: [
+          { order: 1, title: "Garis dan bentuk", content: "Latihan garis." },
+          {
+            order: 2,
+            title: "Perspektif",
+            content: "Satu dan dua titik hilang.",
+          },
+        ],
+      },
+    },
+  });
+  await db.materialEnrollment.create({
+    data: { materialId: materiWahyu.id, userId: galih.id },
+  });
+  await db.event.create({
+    data: {
+      organizationId: demoOrg.id,
+      creatorId: wahyu.id,
+      title: "Tantangan Sketsa Produk",
+      description: "Buat tiga sketsa produk rumah tangga.",
+      fieldId: fields.uiux.id,
+      startsAt: daysFromNow(5),
+      endsAt: daysFromNow(25),
+      status: "PUBLISHED",
+      draftStep: 5,
+      publishedAt: daysFromNow(-1),
+      materials: { create: { materialId: materiWahyu.id } },
+      milestones: {
+        create: [milestone(1, "Tiga sketsa", 15, ctx.rubrikPoster.id)],
+      },
+    },
+  });
+
   // --- Acara selesai: dibuat Guru lain, dinilai Asesor, ada lulus, tidak lulus, dan akun terhapus ---
   const infografis = await db.event.create({
     data: {

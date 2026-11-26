@@ -28,6 +28,7 @@ Data demo dibuat oleh `npm run db:seed` jika `DEMO_PASSWORD` diisi di `.env`. Ha
 | `guru2`               | Sari Dewanti   | Guru (BECRAFT1)                       | Acara selesai dengan rekap dan sertifikat; rubrik sendiri                                           |
 | `asesor`              | Rina Kusuma    | Asesor (BECRAFT1)                     | Acara tim berjalan dan akan datang, 1 kiriman menunggu dinilai, pengajuan Trainer ditolak           |
 | `trainer`             | Andi Pratama   | Trainer (BECRAFT1)                    | Materi terbit, draf, arsip, khusus acara, tanpa acara; acara akan datang                            |
+| `trainer.keluar`      | Wahyu Setiawan | Trainer (BECRAFT1)                    | 1 materi dan 1 acara; dipakai untuk uji mengeluarkan anggota                                        |
 | `admin.organisasi2`   | Yoga Permana   | Admin Organisasi + Guru (POLTEK01)    | 1 acara berjalan, 1 rubrik                                                                          |
 | `trainer2`            | Tari Anggraini | Trainer (POLTEK01)                    | 1 materi terbit                                                                                     |
 | `peserta`             | Dimas Saputra  | Peserta                               | Lulus 2 acara, 2 sertifikat, materi selesai, ketua kelompok                                         |
@@ -59,6 +60,7 @@ Ada juga satu akun Peserta yang sudah dihapus (tanpa login): kiriman dan nilainy
 | Hackathon Aplikasi Sekolah        | `asesor`            | Tim      | Berjalan; tim penuh, undangan dibatalkan, dinilai/menunggu/revisi |
 | Tantangan Desain Kartu Nama       | `trainer`           | Individu | Akan datang, belum ada peserta, materi khusus acara terlampir     |
 | Pelatihan Dasar Desain Presentasi | `admin.organisasi`  | Individu | Dialihkan dari anggota yang dikeluarkan; 1 kiriman teks menunggu  |
+| Tantangan Sketsa Produk           | `trainer.keluar`    | Individu | Akan datang; dialihkan saat pembuatnya dikeluarkan                |
 | Tantangan Riset Pengguna Kampus   | `admin.organisasi2` | Individu | Organisasi lain (POLTEK01)                                        |
 | Kelas Ilustrasi Digital           | `nonaktif`          | Individu | Organisasi nonaktif; tidak tampil untuk Peserta                   |
 
@@ -75,7 +77,7 @@ Ada juga satu akun Peserta yang sudah dihapus (tanpa login): kiriman dan nilainy
 ### Admin Organisasi (`admin.organisasi`)
 
 1. Setujui atau tolak pengajuan Trainer milik `guru`.
-2. Ubah peran `guru2`, jadikan atau cabut admin, lalu keluarkan anggota; acara dan materinya dialihkan.
+2. Ubah peran `guru2`, jadikan atau cabut admin, lalu keluarkan `trainer.keluar`; acara "Tantangan Sketsa Produk" dan materi "Dasar Sketsa Produk" dialihkan.
 3. Lihat "Pelatihan Dasar Desain Presentasi" yang dialihkan dari `dikeluarkan`, dan nilai kiriman `galih`.
 4. Ubah profil organisasi, unggah logo, dan buat ulang kode organisasi.
 5. Kelola bidang: ubah nama "Pengembangan Aplikasi" (sudah dipakai, hanya admin) dan coba hapus (ditolak).
