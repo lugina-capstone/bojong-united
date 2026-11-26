@@ -97,7 +97,10 @@ Ada juga satu akun Peserta yang sudah dihapus (tanpa login): kiriman dan nilainy
 
 1. Nilai kiriman `nanda` di "Hackathon Aplikasi Sekolah" dengan "Rubrik Proyek Aplikasi".
 2. Lihat permintaan revisi untuk `rizky` dan kiriman `ayu` yang sudah dinilai; nama tim tampil di daftar.
-3. Lihat tim, undangan, dan anggota "Proyek Aplikasi Kantin Sekolah" sebelum acara mulai.
+3. Lihat isi tim "Proyek Aplikasi Kantin Sekolah" sebelum acara mulai di Pantau Progres
+   dan Peserta Acara: ketua `peserta` dan anggota `nanda` yang sudah diterima. Undangan
+   yang menunggu (`rizky`) atau ditolak (`ayu`) tidak tampil bagi pengajar; periksa dari
+   akun Peserta.
 4. Lihat nilai yang diberikan di "Kompetisi Infografis Kemerdekaan", termasuk baris "Akun dihapus".
 5. Lihat notifikasi pengajuan Trainer ditolak, lalu ajukan ulang dengan topik lain.
 
