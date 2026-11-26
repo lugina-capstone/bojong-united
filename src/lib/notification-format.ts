@@ -291,7 +291,8 @@ export function describeNotification(
       return {
         title: "Undangan tim",
         body: `${name} mengundang Anda ke ${payload.teamName ?? "tim"} · ${payload.eventTitle ?? ""}`,
-        href: `/beranda?undangan=${payload.inviteId}`,
+        // Terima/Tolak ada di detail acara; notifikasi lama tanpa eventId jatuh ke Jelajah.
+        href: payload.eventId ? `/jelajah/${payload.eventId}` : "/jelajah",
         icon: "users",
         tone: "primary",
       };

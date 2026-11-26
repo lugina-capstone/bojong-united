@@ -33,7 +33,10 @@ import {
   sectionKindLabels,
   type SectionKind,
 } from "@/lib/material-rules";
-import { uploadFile } from "@/lib/upload-client";
+import {
+  INVALID_FILE_MESSAGE,
+  uploadFileWithReason,
+} from "@/lib/upload-client";
 import { KIND_ICON, KIND_TONE } from "@/lib/material-section-ui";
 import { cn } from "@/lib/utils";
 import { allowedFileTypes, MAX_FILE_SIZE } from "@/lib/validations/file";
@@ -136,12 +139,16 @@ function StepContent({
       return;
     }
     setUpload({ name: file.name, size: file.size });
-    const uploaded = await uploadFile(file);
+    const result = await uploadFileWithReason(file);
+    const uploaded = result.file;
     if (!uploaded) {
       setUpload({
         name: file.name,
         size: file.size,
-        error: "Unggahan gagal dan tidak tersimpan. Unggah ulang.",
+        error:
+          result.reason === "invalid"
+            ? INVALID_FILE_MESSAGE
+            : "Unggahan gagal dan tidak tersimpan. Unggah ulang.",
       });
       return;
     }

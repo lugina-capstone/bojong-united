@@ -1031,6 +1031,7 @@ export async function seedScenarios(
         userName: dimas.name,
         teamName: ctx.tim.name,
         eventTitle: ctx.proyek.title,
+        eventId: ctx.proyek.id,
         inviteId: invite.id,
       },
     },

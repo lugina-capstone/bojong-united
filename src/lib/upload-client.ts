@@ -5,8 +5,17 @@ export type UploadedFile = {
   contentType: string;
 };
 
-/** Upload berkas ke storage privat lewat URL sementara (/api/files). Null jika gagal. */
-export async function uploadFile(file: File): Promise<UploadedFile | null> {
+export type UploadResult =
+  | { file: UploadedFile }
+  /** `invalid`: isi berkas tidak cocok dengan jenisnya; `failed`: gangguan jaringan atau server. */
+  | { file: null; reason: "invalid" | "failed" };
+
+export const INVALID_FILE_MESSAGE =
+  "Isi berkas tidak sesuai dengan jenisnya. Pilih berkas lain.";
+
+/** Upload berkas ke storage privat lewat URL sementara (/api/files); membedakan berkas yang ditolak dari gangguan unggah. */
+export async function uploadFileWithReason(file: File): Promise<UploadResult> {
+  const failed = { file: null, reason: "failed" } as const;
   try {
     const response = await fetch("/api/files", {
       method: "POST",
@@ -17,7 +26,7 @@ export async function uploadFile(file: File): Promise<UploadedFile | null> {
         size: file.size,
       }),
     });
-    if (!response.ok) return null;
+    if (!response.ok) return failed;
     const { file: created, upload } = (await response.json()) as {
       file: UploadedFile;
       upload: { url: string; headers: Record<string, string> };
@@ -27,12 +36,13 @@ export async function uploadFile(file: File): Promise<UploadedFile | null> {
       headers: upload.headers,
       body: file,
     });
-    if (!put.ok) return null;
+    if (!put.ok) return failed;
     const complete = await fetch(`/api/files/${created.id}/complete`, {
       method: "POST",
     });
-    return complete.ok ? created : null;
+    if (complete.ok) return { file: created };
+    return complete.status === 400 ? { file: null, reason: "invalid" } : failed;
   } catch {
-    return null;
+    return failed;
   }
 }

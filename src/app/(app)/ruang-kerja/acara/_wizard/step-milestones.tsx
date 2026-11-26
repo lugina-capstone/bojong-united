@@ -21,7 +21,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UploadItem } from "@/components/ui/upload-item";
 import { formatDateTime, parseWibInput } from "@/lib/format";
-import { uploadFile } from "@/lib/upload-client";
+import {
+  INVALID_FILE_MESSAGE,
+  uploadFileWithReason,
+} from "@/lib/upload-client";
 import { cn } from "@/lib/utils";
 import { formatLabels, submissionFormats } from "@/lib/validations/event";
 import { allowedFileTypes, MAX_FILE_SIZE } from "@/lib/validations/file";
@@ -107,12 +110,16 @@ function StepMilestones({
       return;
     }
     setUpload({ name: file.name, size: file.size });
-    const uploaded = await uploadFile(file);
+    const result = await uploadFileWithReason(file);
+    const uploaded = result.file;
     if (!uploaded) {
       setUpload({
         name: file.name,
         size: file.size,
-        error: "Unggahan gagal. Coba lagi.",
+        error:
+          result.reason === "invalid"
+            ? INVALID_FILE_MESSAGE
+            : "Unggahan gagal. Coba lagi.",
       });
       return;
     }
