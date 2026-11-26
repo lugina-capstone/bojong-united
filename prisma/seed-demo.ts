@@ -14,7 +14,9 @@ export const DEMO_ORGANIZATION_CODE = "BECRAFT1";
 const LEGACY_DEMO_CODE = "LUGINA25";
 
 const DAY = 24 * 60 * 60 * 1000;
-const daysFromNow = (days: number) => new Date(Date.now() + days * DAY);
+// Dibulatkan ke menit, seperti tanggal yang disimpan form aplikasi.
+const daysFromNow = (days: number) =>
+  new Date(Math.floor((Date.now() + days * DAY) / 60_000) * 60_000);
 
 const levels = (name: string) => ({
   level1: `${name} belum terlihat.`,
@@ -305,10 +307,12 @@ export async function seedDemo(
       materialId: materiPoster.id,
       userId: dimas.id,
       progress: 100,
+      createdAt: daysFromNow(-12),
       completedAt: daysFromNow(-5),
       sections: {
         create: materiPoster.sections.map((section) => ({
           sectionId: section.id,
+          completedAt: daysFromNow(-5),
         })),
       },
     },
@@ -318,10 +322,12 @@ export async function seedDemo(
       materialId: materiPoster.id,
       userId: ayu.id,
       progress: 50,
+      createdAt: daysFromNow(-6),
       sections: {
-        create: materiPoster.sections
-          .slice(0, 2)
-          .map((section) => ({ sectionId: section.id })),
+        create: materiPoster.sections.slice(0, 2).map((section) => ({
+          sectionId: section.id,
+          completedAt: daysFromNow(-4),
+        })),
       },
     },
   });

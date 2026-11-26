@@ -165,3 +165,8 @@ export function maskEmail(email: string) {
   if (at < 1) return "***";
   return `${email.slice(0, Math.min(2, at - 1) || 1)}***${email.slice(at)}`;
 }
+
+/** Form tanggal hanya mengirim sampai menit, jadi tanggal dibandingkan tanpa detik. */
+export function sameMinute(a: Date, b: Date) {
+  return Math.floor(a.getTime() / 60_000) === Math.floor(b.getTime() / 60_000);
+}

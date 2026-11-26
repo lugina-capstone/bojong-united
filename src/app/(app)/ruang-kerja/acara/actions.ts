@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { publishIssues } from "@/lib/event-publish";
-import { canDeleteEvent } from "@/lib/event-rules";
+import { canDeleteEvent, sameMinute } from "@/lib/event-rules";
 import { notify } from "@/lib/notifications";
 import { requireOwnEvent, requireTeacher } from "@/lib/teacher-access";
 import {
@@ -435,6 +435,9 @@ export async function editPublishedEventAction(
   }
   const { milestones: dues, ...data } = parsed.data;
   const fieldErrors: Record<string, string> = {};
+  // Form hanya mengirim sampai menit; tanggal yang tidak diubah dipertahankan apa adanya.
+  if (event.endsAt && sameMinute(data.endsAt, event.endsAt))
+    data.endsAt = event.endsAt;
   if (event.endsAt && data.endsAt < event.endsAt) {
     fieldErrors.endsAt =
       "Tanggal selesai hanya bisa diperpanjang, tidak dimajukan";
@@ -454,8 +457,7 @@ export async function editPublishedEventAction(
     const index = current.findIndex((m) => m.id === due.id);
     const milestone = current[index];
     if (!milestone) return { error: "Milestone tidak ditemukan." };
-    if (milestone.dueAt && due.dueAt.getTime() === milestone.dueAt.getTime())
-      continue;
+    if (milestone.dueAt && sameMinute(due.dueAt, milestone.dueAt)) continue;
     const key = `milestones.${index}.dueAt`;
     if (milestone._count.submissions > 0)
       fieldErrors[key] = "Milestone yang sudah dikumpulkan terkunci";

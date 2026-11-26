@@ -55,7 +55,9 @@ type Context = {
 };
 
 const DAY = 24 * 60 * 60 * 1000;
-const daysFromNow = (days: number) => new Date(Date.now() + days * DAY);
+// Dibulatkan ke menit, seperti tanggal yang disimpan form aplikasi.
+const daysFromNow = (days: number) =>
+  new Date(Math.floor((Date.now() + days * DAY) / 60_000) * 60_000);
 
 const levels = (name: string) => ({
   level1: `${name} belum terlihat.`,
@@ -443,10 +445,12 @@ export async function seedScenarios(
       materialId: materiArsip.id,
       userId: rizky.id,
       progress: 100,
+      createdAt: daysFromNow(-28),
       completedAt: daysFromNow(-20),
       sections: {
         create: materiArsip.sections.map((section) => ({
           sectionId: section.id,
+          completedAt: daysFromNow(-20),
         })),
       },
     },
