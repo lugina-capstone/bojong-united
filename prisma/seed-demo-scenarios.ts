@@ -622,7 +622,7 @@ export async function seedScenarios(
   });
 
   // --- Acara akan datang buatan Trainer, pendaftaran terbuka, dengan materi khusus acara ---
-  const kartuNama = await db.event.create({
+  await db.event.create({
     data: {
       organizationId: demoOrg.id,
       creatorId: andi.id,
@@ -663,6 +663,9 @@ export async function seedScenarios(
       draftStep: 5,
       certificateEnabled: true,
       certificateTemplateId: template.id,
+      certificateTitle: "Sertifikat Pameran Karya",
+      certificateIssuer: demoOrg.name,
+      certificateSigner: budi.name,
       milestones: {
         create: [
           milestone(1, "Pilih karya", 20, ctx.rubrikPoster.id),
@@ -719,7 +722,7 @@ export async function seedScenarios(
       certificateTemplateId: template.id,
       milestones: {
         create: [
-          milestone(1, "Proposal ide", -2, ctx.rubrikAplikasi.id),
+          milestone(1, "Proposal ide", 2, ctx.rubrikAplikasi.id),
           milestone(2, "Demo aplikasi", 18, ctx.rubrikAplikasi.id),
         ],
       },
@@ -878,7 +881,7 @@ export async function seedScenarios(
         },
       },
       {
-        userId: andi.id,
+        userId: budi.id,
         type: "material.attached",
         payload: {
           eventId: ctx.lomba.id,
@@ -952,9 +955,9 @@ export async function seedScenarios(
         userId: nanda.id,
         type: "event.updated",
         payload: {
-          eventId: kartuNama.id,
-          eventTitle: kartuNama.title,
-          change: "Pendaftaran dibuka",
+          eventId: hackathon.id,
+          eventTitle: hackathon.title,
+          change: "Tenggat Proposal ide diperbarui",
         },
       },
     ],
