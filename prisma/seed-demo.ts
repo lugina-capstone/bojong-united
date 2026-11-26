@@ -49,6 +49,7 @@ export async function seedDemo(
         name,
         email: `${emailName}@becraft.test`,
         emailVerified: true,
+        createdAt: daysFromNow(-30),
       },
     });
     await db.account.create({
@@ -75,6 +76,7 @@ export async function seedDemo(
         ...data,
         contactEmail: `kontak.${data.code.toLowerCase()}@becraft.test`,
         contactPhone: "081200000000",
+        ...(reviewed ? { createdAt: daysFromNow(-25) } : {}),
         reviewedById: reviewed ? administratorId : null,
         reviewedAt: reviewed ? daysFromNow(-20) : null,
         deactivatedAt: data.status === "DISABLED" ? daysFromNow(-2) : null,

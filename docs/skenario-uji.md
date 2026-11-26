@@ -69,7 +69,7 @@ Ada juga satu akun Peserta yang sudah dihapus (tanpa login): kiriman dan nilainy
 1. Setujui `Lembaga Kreatif Bandung`; masuk sebagai `pemohon` dan pastikan Ruang Kerja terbuka.
 2. Tolak `Yayasan Cipta Karya` dengan alasan; masuk sebagai `pemohon2` dan pastikan alasannya tampil.
 3. Aktifkan kembali `Komunitas Desain Nonaktif`; "Kelas Ilustrasi Digital" kembali tampil di Jelajah.
-4. Nonaktifkan `Politeknik Karya Mandiri`; `nanda` tidak lagi bisa membuka acaranya.
+4. Nonaktifkan `Politeknik Karya Mandiri`; acaranya hilang dari Jelajah, dan `nanda` masih bisa membaca ruang acara dari Beranda tetapi tidak bisa mengumpulkan tugas ("Acara dijeda").
 5. Buka notifikasi pengajuan organisasi dan pastikan tautannya menuju halaman persetujuan.
 
 ### Admin Organisasi (`admin.organisasi`)
