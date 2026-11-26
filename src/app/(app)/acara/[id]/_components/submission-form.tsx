@@ -21,7 +21,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UploadItem } from "@/components/ui/upload-item";
 import { formatFileSize } from "@/lib/format";
-import { uploadFile, type UploadedFile } from "@/lib/upload-client";
+import {
+  INVALID_FILE_MESSAGE,
+  uploadFileWithReason,
+  type UploadedFile,
+} from "@/lib/upload-client";
 import { MAX_FILE_SIZE } from "@/lib/validations/file";
 
 type UploadState =
@@ -68,14 +72,17 @@ export function SubmissionForm({
       return;
     }
     setUpload({ status: "uploading", name: file.name, size: file.size });
-    const uploaded = await uploadFile(file);
+    const uploaded = await uploadFileWithReason(file);
     setUpload(
-      uploaded
-        ? { status: "done", file: uploaded }
+      uploaded.file
+        ? { status: "done", file: uploaded.file }
         : {
             status: "failed",
             file,
-            error: "Unggahan gagal. Periksa koneksi lalu coba lagi.",
+            error:
+              uploaded.reason === "invalid"
+                ? INVALID_FILE_MESSAGE
+                : "Unggahan gagal. Periksa koneksi lalu coba lagi.",
           },
     );
   }

@@ -95,6 +95,13 @@ export async function updateRubricAction(
       where: { AND: [{ id: rubricId }, lockedRubricWhere] },
     })) > 0;
   if (used) {
+    // Nomor versi berikutnya dihitung dari seluruh keluarga rubrik, bukan dari rubrik yang diedit,
+    // supaya mengedit versi lama tidak menghasilkan nomor yang sudah dipakai.
+    const rootId = rubric.sourceRubricId ?? rubric.id;
+    const latest = await db.rubric.aggregate({
+      where: { OR: [{ id: rootId }, { sourceRubricId: rootId }] },
+      _max: { version: true },
+    });
     const copy = await db.rubric.create({
       data: {
         organizationId,
@@ -102,8 +109,8 @@ export async function updateRubricAction(
         title: parsed.data.title,
         description: parsed.data.description,
         fieldId: field.id,
-        version: rubric.version + 1,
-        sourceRubricId: rubric.sourceRubricId ?? rubric.id,
+        version: (latest._max.version ?? rubric.version) + 1,
+        sourceRubricId: rootId,
         criteria: { create: criteriaData(parsed.data.criteria) },
       },
     });

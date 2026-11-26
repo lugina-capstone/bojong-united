@@ -28,6 +28,20 @@ export function eventPhase(
   return "ongoing";
 }
 
+/** Label status acara di halaman Admin Organisasi; acara terbit yang sudah lewat tanggal akhirnya "Selesai". */
+export function organizationEventStatus(
+  event: Parameters<typeof eventPhase>[0],
+  now = new Date(),
+) {
+  const phase = eventPhase(event, now);
+  if (phase === "draft") return { label: "Draf", tone: "neutral" } as const;
+  if (phase === "archived")
+    return { label: "Diarsipkan", tone: "neutral" } as const;
+  if (phase === "finished")
+    return { label: "Selesai", tone: "primary" } as const;
+  return { label: "Aktif", tone: "success" } as const;
+}
+
 /** Filter Prisma untuk acara yang belum berakhir (fase `upcoming` atau `ongoing`). */
 export function unfinishedEventWhere(now = new Date()) {
   return {
@@ -150,4 +164,9 @@ export function maskEmail(email: string) {
   const at = email.lastIndexOf("@");
   if (at < 1) return "***";
   return `${email.slice(0, Math.min(2, at - 1) || 1)}***${email.slice(at)}`;
+}
+
+/** Form tanggal hanya mengirim sampai menit, jadi tanggal dibandingkan tanpa detik. */
+export function sameMinute(a: Date, b: Date) {
+  return Math.floor(a.getTime() / 60_000) === Math.floor(b.getTime() / 60_000);
 }

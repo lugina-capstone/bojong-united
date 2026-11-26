@@ -9,7 +9,6 @@ import {
   LandmarkIcon,
   LayoutDashboardIcon,
   ListChecksIcon,
-  MessagesSquareIcon,
   PanelsTopLeftIcon,
   Settings2Icon,
   ShieldCheckIcon,
@@ -112,11 +111,7 @@ const LIBRARY_SECTION: NavSection = {
       href: "/ruang-kerja/rubrik",
       icon: ListChecksIcon,
     },
-    {
-      label: "Survei",
-      href: "/ruang-kerja/survei",
-      icon: MessagesSquareIcon,
-    },
+    // Menu "Survei" (Figma) ditambahkan lagi saat halaman /ruang-kerja/survei dibuat.
   ],
 };
 

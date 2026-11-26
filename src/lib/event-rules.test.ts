@@ -8,6 +8,8 @@ import {
   eventPhase,
   finalScore,
   milestoneScore,
+  organizationEventStatus,
+  sameMinute,
   shouldIssueCertificate,
   unlockedMilestoneIndex,
 } from "@/lib/event-rules";
@@ -16,6 +18,25 @@ const now = new Date("2026-05-10T00:00:00Z");
 const day = 24 * 60 * 60 * 1000;
 
 describe("event rules", () => {
+  it("melabeli acara terbit yang sudah lewat tanggal akhirnya sebagai Selesai", () => {
+    const past = {
+      startsAt: new Date(now.getTime() - 3 * day),
+      endsAt: new Date(now.getTime() - day),
+    };
+    expect(
+      organizationEventStatus({ ...past, status: "PUBLISHED" }, now).label,
+    ).toBe("Selesai");
+    expect(
+      organizationEventStatus(
+        { status: "PUBLISHED", startsAt: past.startsAt, endsAt: null },
+        now,
+      ).label,
+    ).toBe("Aktif");
+    expect(
+      organizationEventStatus({ ...past, status: "ARCHIVED" }, now).label,
+    ).toBe("Diarsipkan");
+  });
+
   it("menentukan fase acara dari status dan tanggal", () => {
     const base = {
       startsAt: new Date(now.getTime() - day),
@@ -136,5 +157,14 @@ describe("event rules", () => {
 
   it("nomor sertifikat memakai tahun terbit dan kode acak kapital", () => {
     expect(certificateNumber("a1b2c3d4", now)).toBe("BCR-2026-A1B2C3D4");
+  });
+});
+
+describe("sameMinute", () => {
+  it("menganggap tanggal tersimpan berdetik sama dengan kiriman form bermenit", () => {
+    const stored = new Date("2026-12-16T10:48:59.389Z");
+    expect(sameMinute(new Date("2026-12-16T10:48:00Z"), stored)).toBe(true);
+    expect(sameMinute(new Date("2026-12-16T10:47:00Z"), stored)).toBe(false);
+    expect(sameMinute(new Date("2026-12-16T10:49:00Z"), stored)).toBe(false);
   });
 });

@@ -152,24 +152,7 @@ Autentikasi memakai [Better Auth](https://www.better-auth.com) dengan sesi di da
 - **Email + password:** password di-hash dengan scrypt, minimal 8 karakter. Email wajib diverifikasi sebelum bisa login. Email verifikasi dan reset password dikirim lewat SMTP; di lokal, buka inbox Mailpit di `http://localhost:8025`.
 - **Google:** aktif jika `GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_SECRET` diisi. Redirect URI: `<BETTER_AUTH_URL>/api/auth/callback/google`. Akun Google dengan email yang sama otomatis ditautkan ke akun yang emailnya sudah terverifikasi.
 - **Administrator pertama:** isi `ADMIN_EMAIL` dan `ADMIN_PASSWORD` di `.env`, lalu jalankan `npm run db:seed`.
-- **Data demo (lokal saja):** isi `DEMO_PASSWORD` sebelum `npm run db:seed` untuk membuat organisasi dengan semua status, akun semua role, acara individu dan tim, revisi, nilai di bawah KKM, sertifikat, materi, dan pengajuan Trainer. Semua akun memakai kata sandi `DEMO_PASSWORD` dan email `@becraft.test`:
-
-  | Email                           | Peran / kondisi                                      |
-  | ------------------------------- | ---------------------------------------------------- |
-  | `admin.organisasi@becraft.test` | Trainer + Admin Organisasi, SMK Harapan Bangsa       |
-  | `guru@becraft.test`             | Guru, punya pengajuan Trainer yang menunggu          |
-  | `asesor@becraft.test`           | Asesor, pengajuan Trainer ditolak, pembuat acara tim |
-  | `trainer@becraft.test`          | Trainer, pemilik materi                              |
-  | `peserta@becraft.test`          | Peserta, lulus dan bersertifikat, ketua kelompok     |
-  | `ayu@becraft.test`              | Peserta, revisi versi 2 menunggu pemeriksaan         |
-  | `rizky@becraft.test`            | Peserta, nilai di bawah KKM, punya undangan tim      |
-  | `nanda@becraft.test`            | Peserta, anggota kelompok                            |
-  | `galih@becraft.test`            | Peserta, survei milestone belum diisi                |
-  | `peserta.baru@becraft.test`     | Peserta tanpa acara                                  |
-  | `dikeluarkan@becraft.test`      | Anggota yang dikeluarkan                             |
-  | `pemohon@becraft.test`          | Pemohon organisasi yang menunggu persetujuan         |
-  | `ditolak@becraft.test`          | Pemohon organisasi yang ditolak                      |
-  | `nonaktif@becraft.test`         | Admin organisasi yang dinonaktifkan                  |
+- **Data demo (lokal dan staging saja):** isi `DEMO_PASSWORD` sebelum `npm run db:seed` untuk membuat organisasi dengan semua status, akun semua role, acara dengan semua status (individu dan tim), revisi, nilai di bawah KKM, sertifikat, materi, notifikasi, dan organisasi kedua untuk uji isolasi. Semua akun memakai kata sandi `DEMO_PASSWORD` dan email `@becraft.test`. Daftar akun dan skenario uji per role ada di [docs/skenario-uji.md](docs/skenario-uji.md). Seed dilewati jika data demo sudah ada; untuk mengulang, jalankan `npx prisma migrate reset` lalu `npm run db:seed`.
 
 Di komponen client, gunakan `authClient` dari `@/lib/auth-client` (`signIn.email`, `signIn.social`, `signUp.email`, `signOut`, `requestPasswordReset`, `resetPassword`). Skema form ada di `@/lib/validations/auth`.
 

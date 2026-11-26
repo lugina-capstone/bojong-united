@@ -80,6 +80,7 @@ export type MemberSummary = {
   isAdmin: boolean;
   isSelf: boolean;
   eventCount: number;
+  materialCount: number;
 };
 
 type DialogKind = "role" | "admin" | "remove" | null;
@@ -350,6 +351,15 @@ function MemberActions({
                 tone: "success",
                 text: `${member.eventCount} acara yang dibuat ${firstName} tetap milik organisasi dan dialihkan ke Anda.`,
               },
+              ...(member.materialCount > 0
+                ? [
+                    {
+                      icon: CircleCheckIcon,
+                      tone: "success" as const,
+                      text: `${member.materialCount} materi milik ${firstName} dialihkan ke Trainer aktif lain di organisasi. Jika tidak ada, materi yang terbit diarsipkan.`,
+                    },
+                  ]
+                : []),
               {
                 icon: CircleCheckIcon,
                 tone: "success",

@@ -144,7 +144,10 @@ export default async function MembersPage({
                 name: true,
                 email: true,
                 _count: {
-                  select: { createdEvents: { where: { organizationId } } },
+                  select: {
+                    createdEvents: { where: { organizationId } },
+                    materials: { where: { organizationId } },
+                  },
                 },
               },
             },
@@ -188,7 +191,10 @@ export default async function MembersPage({
                 email: true,
                 accounts: { select: { providerId: true } },
                 _count: {
-                  select: { createdEvents: { where: { organizationId } } },
+                  select: {
+                    createdEvents: { where: { organizationId } },
+                    materials: { where: { organizationId } },
+                  },
                 },
                 createdEvents: {
                   where: { organizationId, status: { not: "DRAFT" } },
@@ -372,6 +378,7 @@ export default async function MembersPage({
                         isAdmin: member.isAdmin,
                         isSelf: member.userId === user.id,
                         eventCount: member.user._count.createdEvents,
+                        materialCount: member.user._count.materials,
                       }}
                     />
                   </TableCell>
@@ -459,6 +466,7 @@ export default async function MembersPage({
                 isAdmin: profile.isAdmin,
                 isSelf: profile.userId === user.id,
                 eventCount: profile.user._count.createdEvents,
+                materialCount: profile.user._count.materials,
               }}
             />
           </div>
