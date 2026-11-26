@@ -6,6 +6,7 @@ import type {
   OrganizationStatus,
   OrganizationType,
 } from "../src/generated/prisma/enums";
+import { seedScenarios } from "./seed-demo-scenarios";
 
 /** Kode organisasi demo utama. Seed demo dilewati jika organisasi ini sudah ada. */
 export const DEMO_ORGANIZATION_CODE = "BECRAFT1";
@@ -150,9 +151,15 @@ export async function seedDemo(
     demoOrg.id,
     "TRAINER",
   );
-  await createMember("Fajar Hidayat", "dikeluarkan", demoOrg.id, "GURU", {
-    removed: true,
-  });
+  const fajar = await createMember(
+    "Fajar Hidayat",
+    "dikeluarkan",
+    demoOrg.id,
+    "GURU",
+    {
+      removed: true,
+    },
+  );
   await createMember("Dewi Lestari", "pemohon", pending.id, "GURU", {
     isAdmin: true,
   });
@@ -368,6 +375,7 @@ export async function seedDemo(
         ],
       },
     },
+    include: { criteria: { orderBy: { order: "asc" } } },
   });
 
   const template = await db.certificateTemplate.create({
@@ -676,40 +684,32 @@ export async function seedDemo(
     },
   });
 
-  await db.notification.createMany({
-    data: [
-      {
-        userId: rizky.id,
-        type: "team_invite",
-        payload: { eventId: proyek.id, teamId: tim.id, inviterId: dimas.id },
-      },
-      {
-        userId: ayu.id,
-        type: "revision_requested",
-        payload: { eventId: lomba.id, submissionId: ayuV1.id },
-        readAt: daysFromNow(-1),
-      },
-      {
-        userId: dimas.id,
-        type: "certificate_issued",
-        payload: { eventId: lomba.id },
-      },
-      {
-        userId: rina.id,
-        type: "trainer_request_rejected",
-        payload: {
-          reason: "Materi serupa sudah tersedia. Silakan ajukan topik lain.",
-        },
-      },
-      {
-        userId: siti.id,
-        type: "trainer_request_created",
-        payload: { userId: budi.id },
-      },
-    ],
+  await seedScenarios(db, {
+    administratorId,
+    createUser,
+    createMember,
+    createOrganization,
+    demoOrg,
+    pending,
+    users: { siti, budi, rina, andi, fajar, dimas, ayu, rizky, nanda, galih },
+    rubrikPoster,
+    rubrikAplikasi,
+    template,
+    surveyQuestions,
+    fields: {
+      uiux: bidangUiux!,
+      poster: bidangPoster!,
+      aplikasi: bidangAplikasi,
+    },
+    categories: { desainProduk, desainKomunikasi, fotografi },
+    lomba,
+    proyek,
+    tim,
+    ayuRevision: ayuV1,
+    materiPoster,
   });
 
   console.log(
-    "Data demo siap. Akun demo: admin.organisasi, guru, asesor, trainer, peserta, ayu, rizky, nanda, galih, peserta.baru, dikeluarkan, pemohon, ditolak, nonaktif (@becraft.test).",
+    "Data demo siap. Daftar akun dan skenario: docs/skenario-uji.md.",
   );
 }
