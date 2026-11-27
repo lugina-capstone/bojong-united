@@ -9,17 +9,24 @@ import { OTP_LENGTH } from "@/lib/otp";
 function OtpSlot({ index, invalid }: { index: number; invalid?: boolean }) {
   const context = React.useContext(OTPInputContext);
   const slot = context.slots[index];
+  const allEmpty = context.slots.every((item) => !item.char);
+  const showError = Boolean(invalid && (slot?.char || allEmpty));
   return (
     <div
       data-active={slot?.isActive || undefined}
       data-filled={slot?.char ? true : undefined}
       className={cn(
         "relative flex h-14.5 min-w-0 flex-1 items-center justify-center rounded-lg border border-input bg-card text-stat text-foreground transition-colors data-filled:border-label data-active:border-2 data-active:border-primary-400 data-active:bg-primary-50",
-        invalid &&
+        showError &&
           "border-[1.5px] border-danger-500 data-filled:border-danger-500",
       )}
     >
-      {slot?.char}
+      {slot?.char ||
+        (!slot?.isActive && (
+          <span aria-hidden="true" className="text-h2 text-border">
+            –
+          </span>
+        ))}
       {slot?.hasFakeCaret && (
         <span
           aria-hidden="true"

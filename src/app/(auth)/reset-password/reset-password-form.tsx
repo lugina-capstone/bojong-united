@@ -30,6 +30,14 @@ function PasswordStrength({ password }: { password: string }) {
       : level === 2
         ? "bg-warning-500"
         : "bg-danger-500";
+  const labelTone =
+    level >= 3
+      ? "text-success-600"
+      : level === 2
+        ? "text-warning-700"
+        : level === 1
+          ? "text-danger-600"
+          : "text-label";
   return (
     <div
       id="password-strength"
@@ -49,7 +57,7 @@ function PasswordStrength({ password }: { password: string }) {
         </div>
         <span
           role="status"
-          className="min-w-10 text-right text-caption-strong text-label"
+          className={cn("min-w-10 text-right text-caption-strong", labelTone)}
         >
           {STRENGTH_LABEL[level]}
         </span>

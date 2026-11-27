@@ -1,4 +1,4 @@
-import { ArrowUpRightIcon, CompassIcon } from "lucide-react";
+import { ArrowUpRightIcon, CompassIcon, SearchXIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -19,6 +19,7 @@ import { ExploreCard } from "@/app/(app)/jelajah/_components/explore-card";
 import { MaterialExplore } from "@/app/(app)/jelajah/_components/material-explore";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IconBox } from "@/components/ui/icon-box";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { phaseWhere, visibleEventWhere } from "@/lib/event-query";
@@ -125,15 +126,28 @@ export default async function JelajahPage({
   const logos = await Promise.all(
     events.map((e) => logoUrlOf(e.organization.logo)),
   );
+  const hasFilters = Boolean(q || orgId || fieldId || status);
+  const selectedFieldName = fieldId
+    ? fields.find((f) => f.id === fieldId)?.name
+    : undefined;
+  const emptyFilterDescription = (() => {
+    const parts: string[] = [];
+    if (q) parts.push(`kata kunci “${q}”`);
+    if (selectedFieldName) parts.push(`di kategori ${selectedFieldName}`);
+    if (parts.length === 0) {
+      return "Belum ada acara yang sesuai dengan filter pilihan Anda. Coba ubah atau hapus filter.";
+    }
+    return `Belum ada acara untuk ${parts.join(" ")}. Coba kata kunci lain, ubah kategori, atau hapus filter.`;
+  })();
 
   return (
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-5 rounded-2xl bg-primary-50 p-5 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex max-w-xl flex-col gap-2">
-          <p className="text-overline text-primary-500">
+          <p className="text-overline text-primary-500 uppercase">
             Jelajahi. Pelajari. Wujudkan.
           </p>
-          <h1 className="text-display text-foreground">
+          <h1 className="text-display text-tone-navy-fg">
             Temukan ruang untuk bertumbuh.
           </h1>
           <p className="text-small text-label">
@@ -141,20 +155,23 @@ export default async function JelajahPage({
             karya, satu milestone pada satu waktu.
           </p>
         </div>
-        <dl className="flex gap-8 border-primary-200 lg:border-l lg:pl-8">
-          <div>
-            <dt className="text-caption text-muted-foreground">Total acara</dt>
-            <dd className="text-display text-primary-600">{totalAll}</dd>
-          </div>
-          <div>
-            <dt className="text-caption text-muted-foreground">
-              Belum diikuti
-            </dt>
-            <dd className="text-display text-primary-600">
-              {totalAll - joinedAll}
-            </dd>
-          </div>
-        </dl>
+        <div className="flex flex-col gap-3 border-primary-200 lg:border-l lg:pl-8">
+          <p className="text-h3 text-tone-navy-fg">
+            Belajar lewat proyek nyata
+          </p>
+          <dl className="flex gap-8">
+            <div className="flex flex-col">
+              <dd className="text-stat text-primary-500">{totalAll}</dd>
+              <dt className="text-caption text-subtle">Total acara</dt>
+            </div>
+            <div className="flex flex-col">
+              <dd className="text-stat text-primary-500">
+                {totalAll - joinedAll}
+              </dd>
+              <dt className="text-caption text-subtle">Belum diikuti</dt>
+            </div>
+          </dl>
+        </div>
       </section>
 
       <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
@@ -196,7 +213,7 @@ export default async function JelajahPage({
             {
               value: "acara",
               label: "Acara",
-              count: totalAll,
+              count: tab === "acara" && hasFilters ? total : totalAll,
               href: hrefWith(PATH, params, { tab: null, page: null }),
             },
             {
@@ -208,7 +225,7 @@ export default async function JelajahPage({
             {
               value: "diikuti",
               label: "Diikuti",
-              count: joinedAll,
+              count: tab === "diikuti" && hasFilters ? total : joinedAll,
               href: hrefWith(PATH, params, { tab: "diikuti", page: null }),
             },
           ]}
@@ -227,50 +244,76 @@ export default async function JelajahPage({
       </div>
 
       {events.length === 0 ? (
-        <EmptyState
-          icon={CompassIcon}
-          title={
-            tab === "diikuti" && !q
-              ? "Belum ada acara yang diikuti"
-              : "Tidak ada acara yang cocok"
-          }
-          description={
-            tab === "diikuti"
-              ? "Ikuti acara dari tab Acara untuk mulai berkarya."
-              : "Coba ubah kata kunci atau filter."
-          }
-        />
-      ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          {events.map((event, index) => (
-            <ExploreCard
-              key={event.id}
-              event={event}
-              phase={eventPhase(event, now)}
-              joined={event.enrollments.length > 0}
-              logoUrl={logos[index] ?? null}
-            />
-          ))}
-        </div>
-      )}
-      <ListFooter
-        page={page}
-        pageSize={pageSize}
-        total={total}
-        noun="acara"
-        pageSizeControl={
-          <SearchParamSelect
-            name="per"
-            label="Jumlah acara per halaman"
-            options={PAGE_SIZES.map((n) => ({
-              value: String(n),
-              label: String(n),
-            }))}
-            defaultValue={String(PAGE_SIZE)}
+        tab === "diikuti" && !hasFilters ? (
+          <EmptyState
+            icon={CompassIcon}
+            title="Belum ada acara yang diikuti"
+            description="Ikuti acara dari tab Acara untuk mulai berkarya."
+            action={
+              <Link href={PATH} className={buttonVariants()}>
+                Lihat semua acara
+              </Link>
+            }
           />
-        }
-        hrefFor={(p) => hrefWith(PATH, params, { page: p })}
-      />
+        ) : (
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card px-6 py-12 text-center shadow-sm">
+            <IconBox icon={SearchXIcon} tone="primary" size="xl" />
+            <div className="flex max-w-md flex-col gap-1.5">
+              <h2 className="text-h2 text-foreground">
+                Tidak ada acara yang cocok
+              </h2>
+              <p className="text-body text-muted-foreground">
+                {emptyFilterDescription}
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3">
+              {hasFilters && (
+                <Link
+                  href={tab === "diikuti" ? `${PATH}?tab=diikuti` : PATH}
+                  className={buttonVariants({ variant: "secondary" })}
+                >
+                  Hapus semua filter
+                </Link>
+              )}
+              <Link href={PATH} className={buttonVariants()}>
+                Lihat semua acara
+              </Link>
+            </div>
+          </div>
+        )
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            {events.map((event, index) => (
+              <ExploreCard
+                key={event.id}
+                event={event}
+                phase={eventPhase(event, now)}
+                joined={event.enrollments.length > 0}
+                logoUrl={logos[index] ?? null}
+              />
+            ))}
+          </div>
+          <ListFooter
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            noun="acara"
+            pageSizeControl={
+              <SearchParamSelect
+                name="per"
+                label="Jumlah acara per halaman"
+                options={PAGE_SIZES.map((n) => ({
+                  value: String(n),
+                  label: String(n),
+                }))}
+                defaultValue={String(PAGE_SIZE)}
+              />
+            }
+            hrefFor={(p) => hrefWith(PATH, params, { page: p })}
+          />
+        </>
+      )}
     </div>
   );
 }

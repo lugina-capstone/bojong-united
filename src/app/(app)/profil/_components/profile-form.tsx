@@ -24,17 +24,23 @@ import {
 } from "@/lib/validations/profile";
 
 import { type ProfileFormState, updateProfileAction } from "../actions";
+import { AvatarCropField } from "./avatar-crop-field";
 import { CertificatePreview } from "./certificate-preview";
 
 const FORM_ID = "form-edit-profil";
 
-/** Form "Edit informasi profil": nama lengkap dan nomor HP, dengan pratinjau e-sertifikat. */
+/** Form "Edit informasi profil": foto profil, nama lengkap, dan nomor HP, dengan pratinjau e-sertifikat. */
 export function ProfileForm({
   initial,
   email,
   emailNote,
 }: {
-  initial: { name: string; phone: string | null };
+  initial: {
+    name: string;
+    phone: string | null;
+    avatarFileId: string | null;
+    avatarUrl: string | null;
+  };
   email: string;
   emailNote: string;
 }) {
@@ -42,15 +48,39 @@ export function ProfileForm({
     name: initial.name,
     phone: initial.phone ? formatPhone(initial.phone) : "",
   });
+  const [avatar, setAvatar] = React.useState<{
+    fileId: string | null;
+    previewUrl: string | null;
+  }>({
+    fileId: initial.avatarFileId,
+    previewUrl: initial.avatarUrl,
+  });
   const [state, setState] = React.useState<ProfileFormState>({});
   const [pending, startTransition] = React.useTransition();
   const errors = state.fieldErrors ?? {};
 
+  React.useEffect(() => {
+    const url = avatar.previewUrl;
+    return () => {
+      if (url && url.startsWith("blob:")) URL.revokeObjectURL(url);
+    };
+  }, [avatar.previewUrl]);
+
   const name = values.name.trim();
   const phone = normalizePhone(values.phone);
+  const avatarChanged = avatar.fileId !== initial.avatarFileId;
   const nameChanged = name !== initial.name;
   const phoneChanged = phone !== (initial.phone ?? "");
   const changes = [
+    ...(avatarChanged
+      ? [
+          {
+            label: "Foto profil",
+            from: initial.avatarFileId ? "Foto saat ini" : "Inisial",
+            to: avatar.fileId ? "Foto baru" : "Dihapus (inisial)",
+          },
+        ]
+      : []),
     ...(nameChanged
       ? [{ label: "Nama lengkap", from: initial.name, to: name || "(kosong)" }]
       : []),
@@ -68,7 +98,11 @@ export function ProfileForm({
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    const parsed = profileSchema.safeParse(values);
+    const payload = {
+      ...values,
+      ...(avatarChanged ? { avatarFileId: avatar.fileId } : {}),
+    };
+    const parsed = profileSchema.safeParse(payload);
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
       for (const issue of parsed.error.issues)
@@ -76,7 +110,7 @@ export function ProfileForm({
       setState({ fieldErrors });
       return;
     }
-    startTransition(async () => setState(await updateProfileAction(values)));
+    startTransition(async () => setState(await updateProfileAction(payload)));
   }
 
   const actions = (
@@ -112,8 +146,8 @@ export function ProfileForm({
             )}
           </div>
           <p className="text-body text-muted-foreground">
-            Perbarui nama lengkap atau nomor HP Anda. Pratinjau e-sertifikat
-            diperbarui langsung.
+            Perbarui foto, nama lengkap, atau nomor HP Anda. Pratinjau
+            e-sertifikat diperbarui langsung.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>
@@ -127,6 +161,13 @@ export function ProfileForm({
             className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 sm:p-6"
           >
             {state.error && <Alert tone="danger" title={state.error} />}
+            <AvatarCropField
+              name={name || initial.name}
+              previewUrl={avatar.previewUrl}
+              changed={avatarChanged}
+              error={errors.avatar}
+              onChange={setAvatar}
+            />
             <FormField
               id="name"
               label="Nama lengkap"

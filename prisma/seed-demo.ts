@@ -39,7 +39,53 @@ export async function seedDemo(
     where: { code: { in: [DEMO_ORGANIZATION_CODE, LEGACY_DEMO_CODE] } },
   });
   if (existing) {
-    console.log("Data demo sudah ada, dilewati.");
+    // Lengkapi secara idempoten data demo Tahap 2 (fokus perbaikan, batas revisi, catatan revisi v2) tanpa menimpa data lain.
+    const rizkyRev = await db.revisionRequest.findFirst({
+      where: {
+        dueAt: null,
+        submission: {
+          status: "REVISION_REQUESTED",
+          user: { email: "rizky@becraft.test" },
+        },
+      },
+      select: { id: true },
+    });
+    if (rizkyRev) {
+      await db.revisionRequest.update({
+        where: { id: rizkyRev.id },
+        data: {
+          focusPoints: [
+            {
+              title: "Tambahkan minimal 3 temuan masalah utama",
+              detail:
+                "Hubungkan setiap masalah dengan pengguna sasaran di kampus.",
+            },
+            {
+              title: "Urutkan prioritas solusi",
+              detail: "Jelaskan fitur inti yang perlu dikerjakan lebih dahulu.",
+            },
+            {
+              title: "Lampirkan alur penggunaan singkat",
+              detail:
+                "Sertakan sketsa atau diagram alur dari awal hingga selesai.",
+            },
+          ],
+          dueAt: daysFromNow(7),
+        },
+      });
+    }
+    await db.submission.updateMany({
+      where: {
+        version: 2,
+        revisionNote: null,
+        user: { email: "ayu@becraft.test" },
+      },
+      data: {
+        revisionNote:
+          "Hierarki judul sudah diperjelas dengan ukuran kontras dan satu alternatif palet warna hijau-biru telah ditambahkan.",
+      },
+    });
+    console.log("Data demo sudah ada (backfill Tahap 2 selesai).");
     return;
   }
 
@@ -505,7 +551,11 @@ export async function seedDemo(
     milestoneId: string,
     userId: string,
     scores: number[] | null,
-    { version = 1, graderId = budi.id } = {},
+    {
+      version = 1,
+      graderId = budi.id,
+      revisionNote,
+    }: { version?: number; graderId?: string; revisionNote?: string } = {},
   ) {
     const submission = await db.submission.create({
       data: {
@@ -513,6 +563,7 @@ export async function seedDemo(
         userId,
         version,
         link: `https://example.com/karya/${userId}/${milestoneId}/v${version}`,
+        revisionNote: revisionNote ?? null,
         status: scores ? "GRADED" : "SUBMITTED",
       },
     });
@@ -569,9 +620,24 @@ export async function seedDemo(
       submissionId: ayuV1.id,
       requestedById: budi.id,
       note: "Perjelas hierarki judul dan tambahkan satu alternatif warna.",
+      focusPoints: [
+        {
+          title: "Perjelas hierarki judul utama",
+          detail: "Gunakan ukuran kontras agar pesan utama langsung terbaca.",
+        },
+        {
+          title: "Tambahkan satu alternatif palet warna",
+          detail: "Bandingkan keterbacaan teks pada kedua variasi.",
+        },
+      ],
+      dueAt: daysFromNow(5),
     },
   });
-  await submitAndGrade(sketsa!.id, ayu.id, null, { version: 2 });
+  await submitAndGrade(sketsa!.id, ayu.id, null, {
+    version: 2,
+    revisionNote:
+      "Hierarki judul sudah diperjelas dengan ukuran kontras dan satu alternatif palet warna hijau-biru telah ditambahkan.",
+  });
   await fillSurvey(sketsa!, ayu.id);
 
   // Rizky: dinilai di bawah KKM.

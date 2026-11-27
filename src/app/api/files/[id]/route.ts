@@ -43,6 +43,12 @@ export async function GET(
     (await db.submission.count({
       where: { fileId: id, milestone: { event: isOrgMember } },
     })) > 0 ||
+    (await db.submissionFile.count({
+      where: { fileId: id, submission: { milestone: { event: isOrgMember } } },
+    })) > 0 ||
+    (await db.user.count({
+      where: { avatarFileId: id, status: "ACTIVE" },
+    })) > 0 ||
     (await db.materialSection.count({
       where: {
         fileId: id,

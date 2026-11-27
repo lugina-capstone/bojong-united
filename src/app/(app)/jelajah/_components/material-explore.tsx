@@ -1,8 +1,8 @@
 import {
+  ArrowRightIcon,
   ArrowUpRightIcon,
   BookOpenIcon,
-  CircleCheckIcon,
-  HistoryIcon,
+  SearchXIcon,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -20,6 +20,7 @@ import {
 import { ListFooter } from "@/app/(app)/_components/list-footer";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IconBox } from "@/components/ui/icon-box";
 import { MaterialCard } from "@/components/ui/material-card";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
@@ -100,33 +101,35 @@ export async function MaterialExplore({
       }),
     ]);
 
+  const hasFilters = Boolean(q || categoryId || orgId || level);
+
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-5 rounded-2xl bg-primary-50 p-5 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
+      <section className="flex flex-col gap-5 rounded-2xl border border-primary-100 bg-primary-50 p-5 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex max-w-xl flex-col gap-2">
-          <p className="text-overline text-primary-500">
+          <p className="text-overline text-primary-500 uppercase">
             Belajar mandiri. Kapan saja.
           </p>
-          <h1 className="text-display text-foreground">
+          <h1 className="text-display text-tone-navy-fg">
             Perdalam ilmu lewat materi pilihan.
           </h1>
-          <p className="text-small text-label">
+          <p className="text-body text-label">
             Ikuti materi dari sekolah, lembaga, atau perusahaan mana pun — tanpa
             tugas, tenggat, atau nilai.
           </p>
         </div>
         <dl className="flex gap-8 border-primary-200 lg:border-l lg:pl-8">
-          <div>
+          <div className="flex flex-col">
+            <dd className="text-stat text-primary-500">{totalAll}</dd>
             <dt className="text-caption text-muted-foreground">
               Materi tersedia
             </dt>
-            <dd className="text-display text-primary-600">{totalAll}</dd>
           </div>
-          <div>
+          <div className="flex flex-col">
+            <dd className="text-stat text-primary-500">{learning}</dd>
             <dt className="text-caption text-muted-foreground">
               Sedang diikuti
             </dt>
-            <dd className="text-display text-primary-600">{learning}</dd>
           </div>
         </dl>
       </section>
@@ -175,7 +178,7 @@ export async function MaterialExplore({
             {
               value: "materi",
               label: "Materi",
-              count: totalAll,
+              count: hasFilters ? total : totalAll,
               href: `${PATH}?tab=materi`,
             },
             {
@@ -190,32 +193,62 @@ export async function MaterialExplore({
           href="/portofolio?tab=belajar"
           className={buttonVariants({
             variant: "secondary",
-            className: "w-fit",
+            size: "sm",
+            className: "w-fit shrink-0",
           })}
         >
-          <HistoryIcon aria-hidden="true" />
           Riwayat belajar
+          <ArrowUpRightIcon aria-hidden="true" />
         </Link>
       </div>
       {cards.length === 0 ? (
-        <EmptyState
-          icon={BookOpenIcon}
-          title="Tidak ada materi yang cocok"
-          description="Coba ubah kata kunci atau filter."
-        />
+        hasFilters ? (
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card px-6 py-12 text-center shadow-sm">
+            <IconBox icon={SearchXIcon} tone="primary" size="xl" />
+            <div className="flex max-w-md flex-col gap-1.5">
+              <h2 className="text-h2 text-foreground">
+                Tidak ada materi yang cocok
+              </h2>
+              <p className="text-body text-muted-foreground">
+                Coba ubah kata kunci, tingkat, atau hapus filter untuk melihat
+                semua materi.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link
+                href={`${PATH}?tab=materi`}
+                className={buttonVariants({ variant: "secondary" })}
+              >
+                Hapus semua filter
+              </Link>
+              <Link href={`${PATH}?tab=materi`} className={buttonVariants()}>
+                Lihat semua materi
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <EmptyState
+            icon={BookOpenIcon}
+            title="Belum ada materi tersedia"
+            description="Materi mandiri yang diterbitkan penyelenggara akan tampil di sini."
+          />
+        )
       ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {cards.map((m) => {
-            const done = Boolean(m.enrollment?.completedAt);
-            const learningNow = Boolean(m.enrollment) && !done;
-            return (
-              <div key={m.id} className="flex flex-col gap-3 rounded-2xl">
+        <>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {cards.map((m) => {
+              const done = Boolean(m.enrollment?.completedAt);
+              const learningNow = Boolean(m.enrollment) && !done;
+              return (
                 <MaterialCard
+                  key={m.id}
                   title={m.title}
                   category={m.category}
                   description={m.description}
-                  organization={`${m.organization} · ${m.trainer}`}
+                  organization={m.organization}
+                  trainer={m.trainer}
                   organizationLogo={m.logoUrl}
+                  levelLabel={materialLevelLabels[m.level]}
                   sections={m.sections}
                   duration={formatDuration(m.minutes)}
                   learners={m.learners}
@@ -228,52 +261,55 @@ export async function MaterialExplore({
                   }
                   progress={m.enrollment?.progress ?? 0}
                   cover={m.cover}
-                  className="flex-1 sm:max-w-none"
-                />
-                {done && (
-                  <p className="flex items-center gap-1.5 text-caption text-success-700">
-                    <CircleCheckIcon aria-hidden="true" className="size-4" />
-                    Selesai · tersimpan di Riwayat belajar
-                  </p>
-                )}
-                <Link
-                  href={
-                    m.enrollment ? `/materi/${m.id}` : `/jelajah/materi/${m.id}`
+                  className="sm:max-w-none"
+                  action={
+                    <Link
+                      href={
+                        m.enrollment
+                          ? `/materi/${m.id}`
+                          : `/jelajah/materi/${m.id}`
+                      }
+                      className={buttonVariants({
+                        variant: done ? "secondary" : "primary",
+                        className: "w-full",
+                      })}
+                    >
+                      {done
+                        ? "Buka lagi"
+                        : learningNow
+                          ? "Lanjutkan belajar"
+                          : "Lihat detail & ikuti"}
+                      {learningNow ? (
+                        <ArrowRightIcon aria-hidden="true" />
+                      ) : (
+                        <ArrowUpRightIcon aria-hidden="true" />
+                      )}
+                    </Link>
                   }
-                  className={buttonVariants({
-                    variant: done ? "secondary" : "primary",
-                  })}
-                >
-                  {done
-                    ? "Buka lagi"
-                    : learningNow
-                      ? "Lanjutkan belajar"
-                      : "Lihat detail & ikuti"}
-                  <ArrowUpRightIcon aria-hidden="true" />
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      <ListFooter
-        page={page}
-        pageSize={pageSize}
-        total={total}
-        noun="materi"
-        pageSizeControl={
-          <SearchParamSelect
-            name="per"
-            label="Jumlah materi per halaman"
-            options={PAGE_SIZES.map((n) => ({
-              value: String(n),
-              label: String(n),
-            }))}
-            defaultValue={String(PAGE_SIZE)}
+                />
+              );
+            })}
+          </div>
+          <ListFooter
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            noun="materi"
+            pageSizeControl={
+              <SearchParamSelect
+                name="per"
+                label="Jumlah materi per halaman"
+                options={PAGE_SIZES.map((n) => ({
+                  value: String(n),
+                  label: String(n),
+                }))}
+                defaultValue={String(PAGE_SIZE)}
+              />
+            }
+            hrefFor={(p) => hrefWith(PATH, params, { page: p })}
           />
-        }
-        hrefFor={(p) => hrefWith(PATH, params, { page: p })}
-      />
+        </>
+      )}
     </div>
   );
 }

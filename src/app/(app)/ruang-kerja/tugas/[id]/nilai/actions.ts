@@ -9,16 +9,21 @@ import {
 import { db } from "@/lib/db";
 import { eventPhase, milestoneScore } from "@/lib/event-rules";
 import { notify } from "@/lib/notifications";
+import { isRevisionOverdue } from "@/lib/submission-helpers";
 import { gradeSchema, revisionSchema } from "@/lib/validations/event";
 
 export type GradeActionState = { ok?: boolean; error?: string };
 
-/** Pengumpulan versi terbaru yang menunggu dinilai, di acara organisasi penilai. */
-async function pendingSubmission(submissionId: string) {
+/** Pengumpulan versi terbaru yang menunggu dinilai (atau revisinya lewat tenggat), di acara organisasi penilai. */
+async function pendingSubmission(
+  submissionId: string,
+  options?: { allowOverdueRevision?: boolean },
+) {
   const submission = await db.submission.findUnique({
     where: { id: submissionId },
     include: {
       user: { select: { name: true } },
+      revisionRequest: { select: { dueAt: true } },
       milestone: {
         include: {
           event: { select: { id: true, title: true } },
@@ -36,7 +41,14 @@ async function pendingSubmission(submissionId: string) {
       version: { gt: submission.version },
     },
   });
-  if (newer > 0 || submission.status !== "SUBMITTED")
+  const canGradeExpiredRevision =
+    Boolean(options?.allowOverdueRevision) &&
+    submission.status === "REVISION_REQUESTED" &&
+    isRevisionOverdue(submission.revisionRequest?.dueAt);
+  if (
+    newer > 0 ||
+    (submission.status !== "SUBMITTED" && !canGradeExpiredRevision)
+  )
     return { error: "Pengumpulan ini sudah diproses." } as const;
   return { submission, ...ctx } as const;
 }
@@ -46,7 +58,9 @@ export async function gradeSubmissionAction(
   submissionId: string,
   input: unknown,
 ): Promise<GradeActionState> {
-  const found = await pendingSubmission(submissionId);
+  const found = await pendingSubmission(submissionId, {
+    allowOverdueRevision: true,
+  });
   if ("error" in found) return { error: found.error };
   const { submission, user } = found;
   const parsed = gradeSchema.safeParse(input);
@@ -75,7 +89,7 @@ export async function gradeSubmissionAction(
         },
       }),
       db.submission.update({
-        where: { id: submissionId, status: "SUBMITTED" },
+        where: { id: submissionId, status: submission.status },
         data: { status: "GRADED" },
       }),
     ]);
@@ -111,10 +125,22 @@ export async function requestRevisionAction(
   }
   const parsed = revisionSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]!.message };
+  if (parsed.data.dueAt && parsed.data.dueAt <= new Date()) {
+    return { error: "Batas pengiriman revisi harus setelah waktu saat ini." };
+  }
+  const focusPoints = parsed.data.focusPoints.map((fp) =>
+    fp.detail ? { title: fp.title, detail: fp.detail } : { title: fp.title },
+  );
   try {
     await db.$transaction([
       db.revisionRequest.create({
-        data: { submissionId, requestedById: user.id, note: parsed.data.note },
+        data: {
+          submissionId,
+          requestedById: user.id,
+          note: parsed.data.note,
+          focusPoints,
+          dueAt: parsed.data.dueAt,
+        },
       }),
       db.submission.update({
         where: { id: submissionId, status: "SUBMITTED" },

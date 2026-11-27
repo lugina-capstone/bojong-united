@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcwIcon, SendIcon } from "lucide-react";
+import { PlusIcon, RotateCcwIcon, SendIcon, Trash2Icon } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 
@@ -27,8 +27,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { milestoneScore } from "@/lib/event-rules";
+import { parseWibInput } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type Criterion = {
@@ -56,6 +58,10 @@ export function GradePanel({
   const [confirm, setConfirm] = React.useState(false);
   const [revisionOpen, setRevisionOpen] = React.useState(false);
   const [note, setNote] = React.useState("");
+  const [focusPoints, setFocusPoints] = React.useState<
+    { title: string; detail: string }[]
+  >([]);
+  const [dueAtInput, setDueAtInput] = React.useState("");
   const [error, setError] = React.useState("");
   const [pending, startTransition] = React.useTransition();
   const filled = criteria.filter((c) => scores[c.id]).length;
@@ -81,8 +87,28 @@ export function GradePanel({
       setError("Catatan revisi minimal 10 karakter.");
       return;
     }
+    const cleanedFocuses = focusPoints
+      .map((fp) => ({
+        title: fp.title.trim(),
+        detail: fp.detail.trim() || undefined,
+      }))
+      .filter((fp) => fp.title.length > 0);
+    if (cleanedFocuses.some((fp) => fp.title.length < 2)) {
+      setError("Setiap judul fokus perbaikan minimal 2 karakter.");
+      return;
+    }
+    const dueAt = dueAtInput ? parseWibInput(dueAtInput) : null;
+    if (dueAt && Number.isNaN(dueAt.getTime())) {
+      setError("Format batas revisi tidak valid.");
+      return;
+    }
+    setError("");
     startTransition(async () => {
-      const res = await requestRevisionAction(submissionId, { note });
+      const res = await requestRevisionAction(submissionId, {
+        note,
+        focusPoints: cleanedFocuses,
+        dueAt: dueAt ? dueAt.toISOString() : null,
+      });
       if (res.ok) {
         setRevisionOpen(false);
         toast.success("Permintaan revisi dikirim.");
@@ -232,24 +258,143 @@ export function GradePanel({
       </AlertDialog>
 
       <Dialog open={revisionOpen} onOpenChange={setRevisionOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="flex max-h-[85dvh] flex-col overflow-hidden sm:max-w-lg">
+          <DialogHeader className="shrink-0 pr-6">
             <DialogTitle>Minta revisi</DialogTitle>
             <DialogDescription>
               {participantName} akan menerima notifikasi dan mengirim versi
               berikutnya.
             </DialogDescription>
           </DialogHeader>
-          <Textarea
-            aria-label="Catatan revisi"
-            rows={5}
-            maxLength={2000}
-            placeholder="Jelaskan bagian yang perlu diperbaiki…"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-          {error && <p className="text-caption text-danger-600">{error}</p>}
-          <DialogFooter>
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="revision-note-input"
+                className="text-small-strong text-foreground"
+              >
+                Catatan revisi *
+              </label>
+              <Textarea
+                id="revision-note-input"
+                rows={4}
+                maxLength={2000}
+                placeholder="Jelaskan bagian yang perlu diperbaiki…"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-small-strong text-foreground">
+                  Fokus perbaikan (opsional, maks. 3)
+                </span>
+                {focusPoints.length < 3 && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setFocusPoints((prev) => [
+                        ...prev,
+                        { title: "", detail: "" },
+                      ])
+                    }
+                  >
+                    <PlusIcon aria-hidden="true" />
+                    Tambah poin
+                  </Button>
+                )}
+              </div>
+              {focusPoints.length === 0 ? (
+                <p className="text-caption text-muted-foreground">
+                  Tambahkan 1–3 butir fokus perbaikan agar peserta melihat
+                  daftar cek bernomor 01–03.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  {focusPoints.map((fp, idx) => (
+                    <div
+                      key={idx}
+                      className="flex flex-col gap-2 rounded-xl border border-border bg-muted/40 p-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-caption-strong text-primary-600">
+                          Fokus {String(idx + 1).padStart(2, "0")}
+                        </span>
+                        <Button
+                          type="button"
+                          size="icon-sm"
+                          variant="ghost"
+                          aria-label={`Hapus fokus ${idx + 1}`}
+                          onClick={() =>
+                            setFocusPoints((prev) =>
+                              prev.filter((_, i) => i !== idx),
+                            )
+                          }
+                        >
+                          <Trash2Icon aria-hidden="true" />
+                        </Button>
+                      </div>
+                      <Input
+                        aria-label={`Judul fokus perbaikan ${idx + 1}`}
+                        maxLength={140}
+                        placeholder="Mis. Tambahkan minimal 3 temuan utama"
+                        value={fp.title}
+                        onChange={(e) =>
+                          setFocusPoints((prev) =>
+                            prev.map((item, i) =>
+                              i === idx
+                                ? { ...item, title: e.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
+                      <Input
+                        aria-label={`Rincian fokus perbaikan ${idx + 1}`}
+                        maxLength={300}
+                        placeholder="Rincian singkat (opsional)"
+                        value={fp.detail}
+                        onChange={(e) =>
+                          setFocusPoints((prev) =>
+                            prev.map((item, i) =>
+                              i === idx
+                                ? { ...item, detail: e.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="revision-due-input"
+                className="text-small-strong text-foreground"
+              >
+                Batas pengiriman revisi (WIB, opsional)
+              </label>
+              <Input
+                id="revision-due-input"
+                type="datetime-local"
+                value={dueAtInput}
+                onChange={(e) => setDueAtInput(e.target.value)}
+              />
+              <p className="text-caption text-muted-foreground">
+                Jika diisi dan terlewat, peserta tidak dapat mengunggah revisi
+                lagi dan Anda tetap dapat menilai versi sebelumnya.
+              </p>
+            </div>
+          </div>
+          {error && (
+            <p className="shrink-0 text-caption text-danger-600">{error}</p>
+          )}
+          <DialogFooter className="shrink-0">
             <Button
               variant="secondary"
               disabled={pending}

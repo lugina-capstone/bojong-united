@@ -18,7 +18,7 @@ function LinkTabs({
     <nav
       aria-label={label}
       className={cn(
-        "flex max-w-full gap-6 overflow-x-auto border-b border-border px-4 sm:px-5",
+        "flex max-w-full gap-6 overflow-x-auto overflow-y-hidden border-b border-border px-4 sm:px-5",
         className,
       )}
     >
@@ -31,9 +31,9 @@ function LinkTabs({
             scroll={false}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "group/tab -mb-px inline-flex items-center gap-1.5 border-b-2 border-transparent px-1 py-3 text-body-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:shadow-focus-ring",
+              "group/tab relative inline-flex items-center gap-1.5 px-1 py-3 text-body-medium whitespace-nowrap text-muted-foreground transition-colors outline-none after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-transparent hover:text-foreground focus-visible:shadow-focus-ring",
               isActive &&
-                "border-primary-500 text-body-strong text-primary-500",
+                "text-body-strong text-primary-500 after:bg-primary-500",
             )}
           >
             {tab.label}

@@ -20,6 +20,7 @@ import {
   registerMemberAction,
 } from "@/app/(auth)/actions";
 import { AuthHeading, AuthPanel } from "@/components/layout/auth-panel";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FormField, fieldDescribedBy } from "@/components/ui/form-field";
 import { InputWithIcon } from "@/components/ui/input";
@@ -29,7 +30,8 @@ import type { OrganizationType } from "@/generated/prisma/enums";
 type CodeCheck =
   { valid: true; name: string; type: OrganizationType } | { valid: false };
 
-const INVALID_CODE = "Kode tidak valid atau organisasi tidak aktif.";
+const INVALID_CODE =
+  "Kode tidak ditemukan atau sudah tidak aktif. Periksa kembali, atau minta kode terbaru ke admin organisasi.";
 
 function OrganizationPreview({
   name,
@@ -45,16 +47,16 @@ function OrganizationPreview({
         <Icon aria-hidden="true" className="size-4.5" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <p className="text-body-strong text-foreground">{name}</p>
-        <p className="text-caption text-muted-foreground">{label}</p>
-        <p className="text-small text-label">
+        <p className="text-h3 text-foreground">{name}</p>
+        <p className="text-small text-muted-foreground">{label}</p>
+        <p className="text-small text-success-700">
           Anda akan bergabung sebagai anggota organisasi ini.
         </p>
       </div>
-      <span className="flex items-center gap-1 text-caption-strong text-success-700">
-        <CircleCheckIcon aria-hidden="true" className="size-3.5" />
+      <Badge tone="success">
+        <CircleCheckIcon aria-hidden="true" />
         Kode valid
-      </span>
+      </Badge>
     </div>
   );
 }
@@ -98,7 +100,7 @@ function JoinForm() {
       <AuthPanel
         topStart={
           <BackButton onClick={() => setVerifyEmail(undefined)}>
-            Kembali ke pendaftaran
+            Kembali ke data pendaftaran
           </BackButton>
         }
         footer={OTP_ORGANIZATION_FOOTER}
@@ -106,6 +108,7 @@ function JoinForm() {
       >
         <OtpStep
           organization="gabung"
+          organizationName={check?.valid ? check.name : undefined}
           email={verifyEmail}
           onChangeEmail={() => setVerifyEmail(undefined)}
         />
@@ -160,6 +163,7 @@ function JoinForm() {
           id="code"
           label="Kode organisasi"
           required
+          description="Minta kode ke admin organisasi Anda. Huruf besar/kecil tidak dibedakan."
           error={errors.code}
         >
           <InputWithIcon
@@ -180,7 +184,10 @@ function JoinForm() {
               if (!check) checkCode(event.target.value);
             }}
             aria-invalid={Boolean(errors.code)}
-            aria-describedby={fieldDescribedBy("code", { error: errors.code })}
+            aria-describedby={fieldDescribedBy("code", {
+              error: errors.code,
+              description: true,
+            })}
           />
         </FormField>
         {check?.valid && (

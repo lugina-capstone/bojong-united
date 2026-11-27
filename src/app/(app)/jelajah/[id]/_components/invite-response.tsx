@@ -29,9 +29,17 @@ function InviteResponse({
       const result = await respondInviteAction(inviteId, accept);
       if (!result.ok)
         return void toast.error(result.error ?? "Gagal menjawab undangan.");
-      toast.success(
-        accept ? `Anda bergabung ke ${teamName}.` : "Undangan ditolak.",
-      );
+      if (accept) {
+        toast.success(`Anda bergabung ke ${teamName}`, {
+          description: eventTitle
+            ? `${eventTitle} otomatis terdaftar di Beranda.`
+            : "Acara otomatis terdaftar di Beranda.",
+        });
+      } else {
+        toast.info("Undangan ditolak", {
+          description: `${inviterName} akan menerima pemberitahuan.`,
+        });
+      }
       router.refresh();
     });
   }

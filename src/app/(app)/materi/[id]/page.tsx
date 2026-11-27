@@ -13,7 +13,9 @@ import type * as React from "react";
 import Link from "next/link";
 
 import { SectionActions } from "@/app/(app)/materi/_components/section-actions";
+import { Alert } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
+import { IconBox } from "@/components/ui/icon-box";
 import { Progress } from "@/components/ui/progress";
 import { COVER_CLASS } from "@/lib/event-cover";
 import { formatFileSize } from "@/lib/format";
@@ -94,7 +96,7 @@ export default async function LearnPage({
             <BookOpenIcon aria-hidden="true" className="size-5" />
           </span>
           <div className="flex min-w-0 flex-col">
-            <h1 className="text-h1 break-words text-foreground">
+            <h1 className="text-h2 break-words text-foreground">
               {material.title}
             </h1>
             <p className="text-small text-muted-foreground">
@@ -122,13 +124,10 @@ export default async function LearnPage({
       )}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 lg:self-start">
-          <h2 className="flex items-center gap-2 text-h3 text-foreground">
-            <ListChecksIcon
-              aria-hidden="true"
-              className="size-4 text-primary-500"
-            />
-            Bagian materi
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <IconBox icon={ListChecksIcon} tone="primary" size="sm" />
+            <h2 className="text-h3 text-foreground">Bagian materi</h2>
+          </div>
           <ol className="flex flex-col gap-1">
             {sections.map((s, i) => {
               const kind = sectionKind({
@@ -232,23 +231,45 @@ export default async function LearnPage({
                 </div>
               );
             })()}
-            <div className="flex min-h-40 flex-col gap-3 rounded-xl bg-muted p-4 sm:p-6">
+            <div className="flex min-h-64 flex-col gap-3 rounded-xl bg-muted p-4 sm:p-8">
               {current.content && (
                 <p className="text-body whitespace-pre-line text-label">
                   {current.content}
                 </p>
               )}
-              {current.link && (
-                <WebLink
-                  href={current.link}
-                  className={buttonVariants({
-                    variant: "secondary",
-                    className: "w-fit",
-                  })}
-                >
-                  <ExternalLinkIcon aria-hidden="true" />
-                  Buka tautan materi
-                </WebLink>
+              {current.link && !current.content && !current.file ? (
+                <div className="mx-auto my-auto flex w-full max-w-md flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 text-center shadow-xs">
+                  <span className="text-overline text-primary-500 uppercase">
+                    Bagian {index + 1}
+                  </span>
+                  <h3 className="text-h2 text-foreground">{current.title}</h3>
+                  <p className="max-w-full truncate text-small text-muted-foreground">
+                    {current.link}
+                  </p>
+                  <WebLink
+                    href={current.link}
+                    className={buttonVariants({
+                      variant: "secondary",
+                      className: "mt-1 w-fit",
+                    })}
+                  >
+                    <ExternalLinkIcon aria-hidden="true" />
+                    Buka tautan materi
+                  </WebLink>
+                </div>
+              ) : (
+                current.link && (
+                  <WebLink
+                    href={current.link}
+                    className={buttonVariants({
+                      variant: "secondary",
+                      className: "w-fit",
+                    })}
+                  >
+                    <ExternalLinkIcon aria-hidden="true" />
+                    Buka tautan materi
+                  </WebLink>
+                )
               )}
               {current.file?.contentType === "application/pdf" ? (
                 <iframe
@@ -273,11 +294,10 @@ export default async function LearnPage({
               prevHref={index > 0 ? href(index - 1) : null}
               nextHref={index < sections.length - 1 ? href(index + 1) : null}
             />
-            <p className="flex items-start gap-2 rounded-xl bg-primary-50 p-3 text-caption text-primary-700">
-              <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            <Alert tone="info">
               Materi ini tidak memiliki tugas atau penilaian. Tandai bagian
               selesai untuk mencatat progres di Riwayat belajar.
-            </p>
+            </Alert>
           </section>
         )}
       </div>

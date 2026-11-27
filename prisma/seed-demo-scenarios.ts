@@ -122,6 +122,8 @@ export async function seedScenarios(
       text?: boolean;
       survey?: boolean;
       revisionNote?: string;
+      revisionFocusPoints?: { title: string; detail?: string }[];
+      revisionDueAt?: Date;
       daysAgo?: number;
     } = {},
   ) {
@@ -150,6 +152,8 @@ export async function seedScenarios(
           submissionId: submission.id,
           requestedById: options.graderId ?? budi.id,
           note: options.revisionNote,
+          focusPoints: options.revisionFocusPoints ?? [],
+          dueAt: options.revisionDueAt ?? null,
         },
       });
     }
@@ -840,7 +844,23 @@ export async function seedScenarios(
   });
   await submit(proposal!, rizky.id, {
     graderId: rina.id,
-    revisionNote: "Jelaskan pengguna sasaran dan masalah yang diselesaikan.",
+    revisionNote:
+      "Jelaskan pengguna sasaran dan masalah yang diselesaikan secara lebih terstruktur.",
+    revisionFocusPoints: [
+      {
+        title: "Tambahkan minimal 3 temuan masalah utama",
+        detail: "Hubungkan setiap masalah dengan pengguna sasaran di kampus.",
+      },
+      {
+        title: "Urutkan prioritas solusi",
+        detail: "Jelaskan fitur inti yang perlu dikerjakan lebih dahulu.",
+      },
+      {
+        title: "Lampirkan alur penggunaan singkat",
+        detail: "Sertakan sketsa atau diagram alur dari awal hingga selesai.",
+      },
+    ],
+    revisionDueAt: daysFromNow(7),
     daysAgo: 3,
   });
 

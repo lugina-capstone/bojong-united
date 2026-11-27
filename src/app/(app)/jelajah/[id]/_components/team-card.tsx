@@ -83,13 +83,17 @@ function TeamCard({
 
   function run(
     action: () => Promise<{ ok?: boolean; error?: string }>,
-    done: string,
+    done: { title: string; description?: string; tone?: "success" | "info" },
     after?: () => void,
   ) {
     startTransition(async () => {
       const result = await action();
       if (!result.ok) return void toast.error(result.error ?? "Gagal.");
-      toast.success(done);
+      if (done.tone === "info") {
+        toast.info(done.title, { description: done.description });
+      } else {
+        toast.success(done.title, { description: done.description });
+      }
       after?.();
       router.refresh();
     });
@@ -101,9 +105,11 @@ function TeamCard({
         <h2 className="text-h2 text-foreground">Anggota tim · {teamName}</h2>
         <p className="text-small text-muted-foreground">
           {members.length} dari {maxMembers} slot terisi.{" "}
-          {started
-            ? "Acara sudah dimulai, susunan tim tidak bisa diubah."
-            : `Anggota bisa bergabung atau dikeluarkan sampai acara dimulai pada ${startLabel}.`}{" "}
+          {!isLeader
+            ? "Hanya ketua yang dapat menambah atau mengeluarkan anggota."
+            : started
+              ? "Acara sudah dimulai, susunan tim tidak bisa diubah."
+              : `Anggota yang sudah bergabung bisa dikeluarkan sampai acara dimulai pada ${startLabel}.`}{" "}
           Setiap anggota mengumpulkan tugasnya sendiri.
         </p>
       </div>
@@ -121,7 +127,9 @@ function TeamCard({
                 ) : (
                   <div className="flex items-center gap-2">
                     <Badge tone="success">
-                      {member.userId === currentUserId ? "Anda" : "Bergabung"}
+                      {member.userId === currentUserId
+                        ? "Bergabung (Anda)"
+                        : "Bergabung"}
                     </Badge>
                     {isLeader && !started && (
                       <Button
@@ -154,10 +162,11 @@ function TeamCard({
                           size="sm"
                           disabled={pending}
                           onClick={() =>
-                            run(
-                              () => cancelInviteAction(invite.id),
-                              "Undangan dibatalkan.",
-                            )
+                            run(() => cancelInviteAction(invite.id), {
+                              tone: "info",
+                              title: `Undangan untuk ${invite.name} dibatalkan`,
+                              description: "Slot kelompok kembali tersedia.",
+                            })
                           }
                         >
                           Batalkan undangan
@@ -235,7 +244,10 @@ function TeamCard({
                         onClick={() =>
                           run(
                             () => inviteTeamMemberAction(teamId, result.id),
-                            `Undangan dikirim ke ${result.name}.`,
+                            {
+                              title: `Undangan terkirim ke ${result.name}`,
+                              description: `Statusnya Menunggu sampai ${result.name.split(" ")[0] ?? result.name} menerima atau menolak.`,
+                            },
                             () =>
                               setResults((list) =>
                                 list.map((r) =>
@@ -293,7 +305,10 @@ function TeamCard({
                 removing &&
                 run(
                   () => removeTeamMemberAction(removing.enrollmentId),
-                  `${removing.name} dikeluarkan dari tim.`,
+                  {
+                    title: `${removing.name} dikeluarkan dari kelompok`,
+                    description: `${removing.name.split(" ")[0] ?? removing.name} tidak lagi terdaftar di acara ini.`,
+                  },
                   () => setRemoving(null),
                 )
               }

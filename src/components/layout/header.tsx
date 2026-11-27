@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { BellIcon, MenuIcon } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { BellIcon, ChevronDownIcon, MenuIcon } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { activeHref, navFor } from "@/components/layout/nav";
 import { SidebarContent } from "@/components/layout/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,20 +18,91 @@ import { SearchInput } from "@/components/ui/search-input";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import type { Access } from "@/lib/rbac";
 
+function searchTargetFor(access: Access) {
+  if (access.role === "PESERTA") {
+    return { href: "/jelajah", placeholder: "Cari acara atau materi…" };
+  }
+  if (access.role === "TRAINER") {
+    return { href: "/ruang-kerja/materi", placeholder: "Cari materi…" };
+  }
+  if (access.role === "ADMINISTRATOR") {
+    return { href: "/admin/organisasi", placeholder: "Cari organisasi…" };
+  }
+  return {
+    href: "/ruang-kerja/acara",
+    placeholder: "Cari acara atau peserta…",
+  };
+}
+
+function HeaderSearch({
+  href,
+  placeholder,
+}: {
+  href: string;
+  placeholder: string;
+}) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlQuery = searchParams.get("q") ?? "";
+  const [prevUrl, setPrevUrl] = React.useState(urlQuery);
+  const [query, setQuery] = React.useState(urlQuery);
+
+  if (urlQuery !== prevUrl) {
+    setPrevUrl(urlQuery);
+    setQuery(urlQuery);
+  }
+
+  function submitSearch(event: React.FormEvent) {
+    event.preventDefault();
+    const trimmed = query.trim();
+    router.push(trimmed ? `${href}?q=${encodeURIComponent(trimmed)}` : href);
+  }
+
+  return (
+    <form onSubmit={submitSearch} className="hidden w-65 md:block">
+      <SearchInput
+        aria-label="Cari"
+        placeholder={placeholder}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
+    </form>
+  );
+}
+
+function subrouteBreadcrumb(pathname: string): string[] | null {
+  if (pathname === "/profil/edit") {
+    return ["Akun", "Profil", "Edit informasi"];
+  }
+  if (pathname.startsWith("/portofolio/")) {
+    return ["Portofolio", "Detail karya"];
+  }
+  if (pathname === "/sertifikat" || pathname.startsWith("/sertifikat/")) {
+    return ["Portofolio", "Sertifikat"];
+  }
+  if (pathname === "/materi" || pathname.startsWith("/materi/")) {
+    return ["Portofolio", "Riwayat belajar"];
+  }
+  if (pathname.startsWith("/jelajah/materi/")) {
+    return ["Jelajah", "Materi"];
+  }
+  return null;
+}
+
 /** Header sticky 80 px: tombol drawer (< 1024 px), breadcrumb, cari, notifikasi, menu akun. */
 function Header({
   access,
   workspace,
   user,
   breadcrumb,
-  searchPlaceholder = "Cari acara atau peserta…",
+  searchPlaceholder,
   notificationCount = 0,
   notifications,
   accountMenu,
 }: {
   access: Access;
   workspace: string;
-  user: { name: string; roleLabel: string };
+  user: { name: string; roleLabel: string; avatarUrl?: string | null };
   breadcrumb?: React.ReactNode;
   searchPlaceholder?: string;
   notificationCount?: number;
@@ -46,6 +117,10 @@ function Header({
   const current = activeHref(sections, pathname);
   const section = sections.find((s) => s.items.some((i) => i.href === current));
   const page = section?.items.find((i) => i.href === current);
+  const crumbs =
+    subrouteBreadcrumb(pathname) ??
+    (section && page ? [section.label, page.label] : null);
+  const searchTarget = searchTargetFor(access);
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card px-4 sm:px-8 lg:h-20 lg:gap-4 lg:px-12">
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -68,21 +143,41 @@ function Header({
       </Sheet>
       <div className="min-w-0 flex-1 truncate text-body text-muted-foreground">
         {breadcrumb ??
-          (section && page && (
+          (crumbs && (
             <nav aria-label="Breadcrumb">
-              {section.label}
-              <span aria-hidden="true" className="mx-2">
-                /
-              </span>
-              <span className="text-foreground">{page.label}</span>
+              {crumbs.map((part, idx) => (
+                <React.Fragment key={`${part}-${idx}`}>
+                  {idx > 0 && (
+                    <span aria-hidden="true" className="mx-2">
+                      /
+                    </span>
+                  )}
+                  <span
+                    className={
+                      idx === crumbs.length - 1 ? "text-foreground" : undefined
+                    }
+                  >
+                    {part}
+                  </span>
+                </React.Fragment>
+              ))}
             </nav>
           ))}
       </div>
-      <SearchInput
-        aria-label="Cari"
-        placeholder={searchPlaceholder}
-        className="hidden w-65 md:block"
-      />
+      <React.Suspense
+        fallback={
+          <SearchInput
+            aria-label="Cari"
+            placeholder={searchPlaceholder ?? searchTarget.placeholder}
+            className="hidden w-65 md:block"
+          />
+        }
+      >
+        <HeaderSearch
+          href={searchTarget.href}
+          placeholder={searchPlaceholder ?? searchTarget.placeholder}
+        />
+      </React.Suspense>
       {notifications ?? (
         <div className="relative">
           <IconButton label="Notifikasi" className="border-transparent">
@@ -98,6 +193,9 @@ function Header({
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-2.5 rounded-lg p-1 outline-none focus-visible:shadow-focus-ring">
           <Avatar>
+            {user.avatarUrl && (
+              <AvatarImage src={user.avatarUrl} alt={user.name} />
+            )}
             <AvatarFallback>{initialsOf(user.name)}</AvatarFallback>
           </Avatar>
           <span className="hidden min-w-0 flex-col text-left sm:flex">
@@ -108,6 +206,10 @@ function Header({
               {user.roleLabel}
             </span>
           </span>
+          <ChevronDownIcon
+            aria-hidden="true"
+            className="hidden size-4 shrink-0 text-muted-foreground sm:block"
+          />
         </DropdownMenuTrigger>
         {accountMenu && (
           <DropdownMenuContent align="end" className="w-65">

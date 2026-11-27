@@ -24,6 +24,7 @@ export const getCurrentUser = cache(async () => {
       name: true,
       email: true,
       image: true,
+      avatarFileId: true,
       isAdministrator: true,
       status: true,
       membership: {

@@ -9,6 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { requireAssessableEvent } from "@/lib/assessment";
 import { kkmStatusLabel, loadEventResults } from "@/lib/event-results";
 import { formatDateTime, formatScore } from "@/lib/format";
+import { filesOfSubmission } from "@/lib/submission-helpers";
 
 export const metadata: Metadata = { title: "Karya peserta" };
 
@@ -110,17 +111,18 @@ export default async function WorkDetailPage({
                   Versi {c.latest.version} ·{" "}
                   {formatDateTime(c.latest.submittedAt)}
                 </span>
-                {c.latest.file && (
+                {filesOfSubmission(c.latest).map((file) => (
                   <a
-                    href={`/api/files/${c.latest.file.id}`}
+                    key={file.id}
+                    href={`/api/files/${file.id}`}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex w-fit items-center gap-1.5 text-small text-primary-600 hover:underline"
                   >
-                    {c.latest.file.name}
+                    {file.name}
                     <ExternalLinkIcon aria-hidden="true" className="size-4" />
                   </a>
-                )}
+                ))}
                 {c.latest.link && (
                   <WebLink
                     href={c.latest.link}

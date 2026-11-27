@@ -16,6 +16,11 @@ import { requireAssessableEvent } from "@/lib/assessment";
 import { eventPhase } from "@/lib/event-rules";
 import { db } from "@/lib/db";
 import { formatDateTime, formatFileSize, formatScore } from "@/lib/format";
+import {
+  filesOfSubmission,
+  isRevisionOverdue,
+  parseRevisionFocusPoints,
+} from "@/lib/submission-helpers";
 
 export const metadata: Metadata = { title: "Penilaian peserta" };
 
@@ -49,6 +54,14 @@ export default async function GradePage({
     orderBy: { version: "desc" },
     include: {
       file: { select: { id: true, name: true, size: true, contentType: true } },
+      files: {
+        orderBy: { position: "asc" },
+        include: {
+          file: {
+            select: { id: true, name: true, size: true, contentType: true },
+          },
+        },
+      },
       revisionRequest: { include: { requestedBy: { select: { name: true } } } },
       grade: {
         include: {
@@ -59,6 +72,12 @@ export default async function GradePage({
     },
   });
   const latest = versions[0]!;
+  const revisionOverdue =
+    latest.status === "REVISION_REQUESTED" &&
+    isRevisionOverdue(latest.revisionRequest?.dueAt);
+  const latestRevisionFocuses = latest.revisionRequest
+    ? parseRevisionFocusPoints(latest.revisionRequest.focusPoints)
+    : [];
   const survey = milestone.survey
     ? await db.surveyResponse.findUnique({
         where: {
@@ -74,7 +93,9 @@ export default async function GradePage({
     where: { eventId_userId: { eventId: id, userId: submission.userId } },
     select: { team: { select: { name: true } } },
   });
-  const canGrade = latest.status === "SUBMITTED" && Boolean(milestone.rubric);
+  const canGrade =
+    (latest.status === "SUBMITTED" || revisionOverdue) &&
+    Boolean(milestone.rubric);
 
   return (
     <div className="flex flex-col gap-6">
@@ -124,114 +145,184 @@ export default async function GradePage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="flex min-w-0 flex-col gap-6">
           {latest.status === "REVISION_REQUESTED" && (
-            <section className="flex flex-col gap-2 rounded-2xl border border-warning-200 bg-warning-50 p-5 sm:p-6">
-              <Badge tone="warning" className="w-fit">
-                Revisi
-              </Badge>
+            <section className="flex flex-col gap-3 rounded-2xl border border-warning-200 bg-warning-50 p-5 sm:p-6">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge
+                  tone={revisionOverdue ? "danger" : "warning"}
+                  className="w-fit"
+                >
+                  {revisionOverdue ? "Batas revisi terlewat" : "Revisi"}
+                </Badge>
+                {latest.revisionRequest?.dueAt && (
+                  <span className="text-caption text-muted-foreground">
+                    Batas revisi: {formatDateTime(latest.revisionRequest.dueAt)}{" "}
+                    WIB
+                  </span>
+                )}
+              </div>
               <h2 className="text-h2 text-foreground">
-                Menunggu unggah ulang peserta
+                {revisionOverdue
+                  ? "Peserta tidak mengirim revisi tepat waktu"
+                  : "Menunggu unggah ulang peserta"}
               </h2>
-              <p className="text-small text-label">
+              <p className="text-small whitespace-pre-line text-label">
                 {latest.revisionRequest?.note}
               </p>
+              {latestRevisionFocuses.length > 0 && (
+                <ol className="flex flex-col gap-1.5 text-small text-label">
+                  {latestRevisionFocuses.map((fp, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="font-semibold text-primary-600">
+                        {String(idx + 1).padStart(2, "0")}.
+                      </span>
+                      <span>
+                        <span className="font-semibold">{fp.title}</span>
+                        {fp.detail ? ` — ${fp.detail}` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {revisionOverdue && (
+                <p className="text-caption text-muted-foreground">
+                  Anda dapat langsung memberi nilai pada versi ini melalui
+                  lembar penilaian di samping.
+                </p>
+              )}
             </section>
           )}
-          {versions.map((v) => (
-            <section
-              key={v.id}
-              className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 sm:p-6"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-h3 text-foreground">Bukti pekerjaan</h2>
-                <span className="text-caption text-muted-foreground">
-                  Versi {v.version} · {formatDateTime(v.submittedAt)}
-                </span>
-              </div>
-              {v.file && (
-                <FileItem
-                  name={v.file.name}
-                  meta={formatFileSize(v.file.size)}
-                  kind={
-                    v.file.contentType.startsWith("image/") ? "image" : "file"
-                  }
-                  action={
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      aria-label={`Buka ${v.file.name}`}
-                      nativeButton={false}
-                      render={
-                        <a
-                          href={`/api/files/${v.file.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        />
-                      }
-                    >
-                      <ExternalLinkIcon aria-hidden="true" />
-                    </Button>
-                  }
-                />
-              )}
-              {v.file?.contentType.startsWith("image/") && (
-                <figure className="flex flex-col gap-2 rounded-lg border border-border bg-muted p-3">
-                  <figcaption className="text-caption text-muted-foreground">
-                    Pratinjau gambar
-                  </figcaption>
-                  {/* eslint-disable-next-line @next/next/no-img-element -- URL sementara dari storage privat */}
-                  <img
-                    src={`/api/files/${v.file.id}`}
-                    alt={`Pratinjau ${v.file.name}`}
-                    loading="lazy"
-                    className="max-h-128 w-full rounded-md object-contain"
-                  />
-                </figure>
-              )}
-              {v.link && (
-                <WebLink
-                  href={v.link}
-                  className="truncate text-small text-primary-600 underline"
-                />
-              )}
-              {v.text && (
-                <p className="text-small whitespace-pre-line text-label">
-                  {v.text}
-                </p>
-              )}
-              {v.revisionRequest && (
-                <p className="rounded-lg bg-warning-50 p-3 text-caption text-warning-700">
-                  Revisi diminta oleh {v.revisionRequest.requestedBy.name}:{" "}
-                  {v.revisionRequest.note}
-                </p>
-              )}
-              {v.grade && (
-                <div className="flex flex-col gap-2 rounded-lg bg-muted p-3 text-small">
-                  <p className="text-small-strong text-foreground">
-                    Nilai {formatScore(v.grade.score)} · dinilai{" "}
-                    {v.grade.grader.name}
-                  </p>
-                  <ul className="flex flex-col gap-1 text-label">
-                    {[...v.grade.scores]
-                      .sort((a, b) => a.criterion.order - b.criterion.order)
-                      .map((s) => (
-                        <li
-                          key={s.criterionId}
-                          className="flex justify-between"
-                        >
-                          <span>{s.criterion.name}</span>
-                          <span>{s.score} / 5</span>
-                        </li>
-                      ))}
-                  </ul>
-                  {v.grade.feedback && (
-                    <p className="whitespace-pre-line text-label">
-                      {v.grade.feedback}
-                    </p>
-                  )}
+          {versions.map((v) => {
+            const subFiles = filesOfSubmission(v);
+            const revFocuses = v.revisionRequest
+              ? parseRevisionFocusPoints(v.revisionRequest.focusPoints)
+              : [];
+            return (
+              <section
+                key={v.id}
+                className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 sm:p-6"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-h3 text-foreground">Bukti pekerjaan</h2>
+                  <span className="text-caption text-muted-foreground">
+                    Versi {v.version} · {formatDateTime(v.submittedAt)} WIB
+                  </span>
                 </div>
-              )}
-            </section>
-          ))}
+                {subFiles.map((file) => (
+                  <div key={file.id} className="flex flex-col gap-2">
+                    <FileItem
+                      name={file.name}
+                      meta={formatFileSize(file.size)}
+                      kind={
+                        file.contentType.startsWith("image/") ? "image" : "file"
+                      }
+                      action={
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          aria-label={`Buka ${file.name}`}
+                          nativeButton={false}
+                          render={
+                            <a
+                              href={`/api/files/${file.id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            />
+                          }
+                        >
+                          <ExternalLinkIcon aria-hidden="true" />
+                        </Button>
+                      }
+                    />
+                    {file.contentType.startsWith("image/") && (
+                      <figure className="flex flex-col gap-2 rounded-lg border border-border bg-muted p-3">
+                        <figcaption className="text-caption text-muted-foreground">
+                          Pratinjau {file.name}
+                        </figcaption>
+                        {/* eslint-disable-next-line @next/next/no-img-element -- URL sementara dari storage privat */}
+                        <img
+                          src={`/api/files/${file.id}`}
+                          alt={`Pratinjau ${file.name}`}
+                          loading="lazy"
+                          className="max-h-128 w-full rounded-md object-contain"
+                        />
+                      </figure>
+                    )}
+                  </div>
+                ))}
+                {v.link && (
+                  <WebLink
+                    href={v.link}
+                    className="truncate text-small text-primary-600 underline"
+                  />
+                )}
+                {v.text && (
+                  <p className="text-small whitespace-pre-line text-label">
+                    {v.text}
+                  </p>
+                )}
+                {v.revisionNote && (
+                  <div className="flex flex-col gap-1 rounded-lg border border-primary-100 bg-primary-50/70 p-3 text-small">
+                    <span className="text-caption-strong text-primary-700">
+                      Catatan revisi peserta
+                    </span>
+                    <p className="whitespace-pre-line text-label">
+                      {v.revisionNote}
+                    </p>
+                  </div>
+                )}
+                {v.revisionRequest && (
+                  <div className="flex flex-col gap-1.5 rounded-lg bg-warning-50 p-3 text-caption text-warning-700">
+                    <p>
+                      Revisi diminta oleh {v.revisionRequest.requestedBy.name}:{" "}
+                      {v.revisionRequest.note}
+                    </p>
+                    {v.revisionRequest.dueAt && (
+                      <p>
+                        Batas revisi: {formatDateTime(v.revisionRequest.dueAt)}{" "}
+                        WIB
+                      </p>
+                    )}
+                    {revFocuses.length > 0 && (
+                      <ol className="flex flex-col gap-0.5 pl-4">
+                        {revFocuses.map((fp, idx) => (
+                          <li key={idx} className="list-decimal">
+                            {fp.title}
+                            {fp.detail ? ` — ${fp.detail}` : ""}
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
+                )}
+                {v.grade && (
+                  <div className="flex flex-col gap-2 rounded-lg bg-muted p-3 text-small">
+                    <p className="text-small-strong text-foreground">
+                      Nilai {formatScore(v.grade.score)} · dinilai{" "}
+                      {v.grade.grader.name}
+                    </p>
+                    <ul className="flex flex-col gap-1 text-label">
+                      {[...v.grade.scores]
+                        .sort((a, b) => a.criterion.order - b.criterion.order)
+                        .map((s) => (
+                          <li
+                            key={s.criterionId}
+                            className="flex justify-between"
+                          >
+                            <span>{s.criterion.name}</span>
+                            <span>{s.score} / 5</span>
+                          </li>
+                        ))}
+                    </ul>
+                    {v.grade.feedback && (
+                      <p className="whitespace-pre-line text-label">
+                        {v.grade.feedback}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
         <aside className="flex flex-col gap-4">
           {canGrade ? (
@@ -239,7 +330,9 @@ export default async function GradePage({
               submissionId={latest.id}
               participantName={submission.user.name}
               kkm={event.kkm}
-              canRequestRevision={eventPhase(event) === "ongoing"}
+              canRequestRevision={
+                latest.status === "SUBMITTED" && eventPhase(event) === "ongoing"
+              }
               criteria={milestone.rubric!.criteria.map((c) => ({
                 id: c.id,
                 name: c.name,

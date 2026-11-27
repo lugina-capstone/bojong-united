@@ -9,7 +9,14 @@ import { requireHomeRole } from "@/app/(app)/home-guard";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { lockAfterFailure, MAX_FAILED_LOGINS } from "@/lib/login-lock";
-import { changePasswordSchema, profileSchema } from "@/lib/validations/profile";
+import { sniffImageType } from "@/lib/organization-rules";
+import { deleteObject, readObjectHead } from "@/lib/storage";
+import {
+  avatarContentTypes,
+  changePasswordSchema,
+  MAX_AVATAR_SIZE,
+  profileSchema,
+} from "@/lib/validations/profile";
 
 export type ProfileFormState = {
   ok?: boolean;
@@ -26,14 +33,84 @@ function fieldErrorsOf(error: z.ZodError): ProfileFormState {
   return { fieldErrors };
 }
 
-/** Simpan nama lengkap dan nomor HP Peserta, lalu kembali ke Profil. */
+/** Simpan foto profil, nama lengkap, dan nomor HP Peserta, lalu kembali ke Profil. */
 export async function updateProfileAction(
   input: unknown,
 ): Promise<ProfileFormState> {
   const user = await requireHomeRole(["PESERTA"]);
   const parsed = profileSchema.safeParse(input);
   if (!parsed.success) return fieldErrorsOf(parsed.error);
-  await db.user.update({ where: { id: user.id }, data: parsed.data });
+
+  const { name, phone, avatarFileId } = parsed.data;
+  let previousAvatar: { id: string; key: string } | null = null;
+
+  if (avatarFileId !== undefined) {
+    const current = await db.user.findUniqueOrThrow({
+      where: { id: user.id },
+      select: { avatar: { select: { id: true, key: true } } },
+    });
+    previousAvatar = current.avatar;
+
+    if (avatarFileId && avatarFileId !== previousAvatar?.id) {
+      const file = await db.file.findFirst({
+        where: { id: avatarFileId, ownerId: user.id, status: "UPLOADED" },
+        select: {
+          key: true,
+          size: true,
+          contentType: true,
+          userAvatar: { select: { id: true } },
+          organizationLogo: { select: { id: true } },
+          milestoneAttachment: { select: { fileId: true } },
+          submission: { select: { id: true } },
+          submissionAttachment: { select: { submissionId: true } },
+          submissionDraftFile: { select: { draftId: true } },
+          materialSection: { select: { id: true } },
+        },
+      });
+      const unused =
+        file &&
+        !file.userAvatar &&
+        !file.organizationLogo &&
+        !file.milestoneAttachment &&
+        !file.submission &&
+        !file.submissionAttachment &&
+        !file.submissionDraftFile &&
+        !file.materialSection;
+      const valid =
+        unused &&
+        file.size <= MAX_AVATAR_SIZE &&
+        (avatarContentTypes as readonly string[]).includes(file.contentType) &&
+        sniffImageType(await readObjectHead(file.key, 8)) === file.contentType;
+      if (!valid) {
+        return {
+          fieldErrors: {
+            avatar: "Foto profil harus JPG atau PNG, maks. 2 MB.",
+          },
+        };
+      }
+    }
+  }
+
+  await db.user.update({
+    where: { id: user.id },
+    data: {
+      name,
+      phone,
+      ...(avatarFileId !== undefined ? { avatarFileId } : {}),
+    },
+  });
+
+  if (
+    avatarFileId !== undefined &&
+    previousAvatar &&
+    previousAvatar.id !== avatarFileId
+  ) {
+    await db.file
+      .delete({ where: { id: previousAvatar.id } })
+      .catch(() => undefined);
+    await deleteObject(previousAvatar.key).catch(() => undefined);
+  }
+
   redirect("/profil?tersimpan=1");
 }
 

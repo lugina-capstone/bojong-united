@@ -11,7 +11,7 @@ import {
   navFor,
   type NavItem as NavItemData,
 } from "@/components/layout/nav";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { initialsOf, OrgLogo } from "@/components/ui/org-logo";
 import { organizationAdminLabel, roleLabels, type Access } from "@/lib/rbac";
 
@@ -93,7 +93,7 @@ function SidebarContent({
   access: Access;
   /** Nama organisasi di kartu atas, mis. "SMK Harapan Bangsa". */
   workspace: string;
-  user: { name: string; roleLabel: string };
+  user: { name: string; roleLabel: string; avatarUrl?: string | null };
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -136,6 +136,9 @@ function SidebarContent({
         </a>
         <div className="flex items-center gap-2.5 rounded-lg bg-muted p-3">
           <Avatar>
+            {user.avatarUrl && (
+              <AvatarImage src={user.avatarUrl} alt={user.name} />
+            )}
             <AvatarFallback>{initialsOf(user.name)}</AvatarFallback>
           </Avatar>
           <div className="flex min-w-0 flex-col">

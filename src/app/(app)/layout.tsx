@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { respondInviteAction } from "@/app/(app)/jelajah/actions";
 import { markNotificationsReadAction } from "@/app/(app)/notification-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { NotificationBell } from "@/components/layout/notification-bell";
@@ -24,7 +25,11 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
     <AppShell
       access={access}
       workspace={user.membership?.organization.name ?? "Becraft"}
-      user={{ name: user.name, roleLabel: accessLabel(access) }}
+      user={{
+        name: user.name,
+        roleLabel: accessLabel(access),
+        avatarUrl: user.avatarFileId ? `/api/files/${user.avatarFileId}` : null,
+      }}
       accountMenu={<SignOutMenuItem />}
       notifications={
         <NotificationBell
@@ -34,6 +39,9 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
           }))}
           unread={unread}
           onMarkRead={markNotificationsReadAction}
+          onRespondInvite={
+            user.role === "PESERTA" ? respondInviteAction : undefined
+          }
         />
       }
     >

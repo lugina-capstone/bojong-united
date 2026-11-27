@@ -16,6 +16,7 @@ function Toaster(props: ToasterProps) {
       theme="light"
       position="top-right"
       duration={3000}
+      closeButton
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4 text-success-500" />,
@@ -37,6 +38,8 @@ function Toaster(props: ToasterProps) {
           toast: "cn-toast shadow-md text-small",
           title: "text-small-strong",
           description: "text-small text-input!",
+          closeButton:
+            "!border-border/20 !bg-overlay !text-input hover:!text-inverse",
         },
       }}
       {...props}

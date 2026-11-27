@@ -4,19 +4,19 @@ import { cn } from "@/lib/utils";
 import { Loader2Icon } from "lucide-react";
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-transparent font-semibold whitespace-nowrap transition-colors outline-none select-none focus-visible:shadow-focus-ring disabled:pointer-events-none aria-disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "group/button inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border font-semibold whitespace-nowrap transition-colors outline-none select-none focus-visible:shadow-focus-ring disabled:pointer-events-none aria-disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         primary:
-          "bg-primary-500 text-inverse hover:bg-primary-600 active:bg-primary-700 disabled:opacity-45 data-[loading]:bg-primary-600",
+          "border-transparent bg-primary-500 text-inverse hover:bg-primary-600 active:bg-primary-700 disabled:opacity-45 data-[loading]:bg-primary-600",
         secondary:
           "border-input bg-card text-foreground hover:bg-muted active:border-primary-200 active:bg-border disabled:border-border disabled:bg-muted disabled:text-subtle data-[loading]:bg-muted",
         danger:
-          "bg-danger-500 text-inverse hover:bg-danger-700 active:bg-danger-700 disabled:opacity-45 data-[loading]:bg-danger-700",
+          "border-transparent bg-danger-500 text-inverse hover:bg-danger-700 active:bg-danger-700 disabled:opacity-45 data-[loading]:bg-danger-700",
         ghost:
-          "text-primary-500 hover:bg-primary-50 active:bg-primary-100 disabled:text-subtle data-[loading]:bg-primary-50",
-        link: "h-auto! px-0! text-primary-500 underline-offset-4 hover:underline",
+          "border-transparent text-primary-500 hover:bg-primary-50 active:bg-primary-100 disabled:text-subtle data-[loading]:bg-primary-50",
+        link: "h-auto! border-transparent px-0! text-primary-500 underline-offset-4 hover:underline",
       },
       size: {
         lg: "h-11 px-4.5 text-button [&_svg:not([class*='size-'])]:size-4",

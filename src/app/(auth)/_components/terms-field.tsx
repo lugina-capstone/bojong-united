@@ -40,8 +40,8 @@ function TermsField({
             className="text-small-strong text-primary-500"
           >
             Kebijakan Privasi
-          </Link>
-          .
+          </Link>{" "}
+          Becraft.
         </span>
       </label>
       {error && (

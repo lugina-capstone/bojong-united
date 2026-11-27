@@ -49,7 +49,9 @@ function ExploreCard({
           COVER_CLASS[coverToneFor(event.id)],
         )}
       >
-        <p className="truncate text-overline">{event.field?.name ?? "Umum"}</p>
+        <p className="truncate text-overline uppercase">
+          {event.field?.name ?? "Umum"}
+        </p>
         <h2 className="line-clamp-2 text-h2">{event.title}</h2>
       </div>
       <div className="flex flex-1 flex-col gap-3 p-5">

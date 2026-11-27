@@ -13,7 +13,10 @@ import Link from "next/link";
 
 import { hrefWith, pageOf, param } from "@/app/(app)/_components/href";
 import { LinkTabs } from "@/app/(app)/_components/link-tabs";
-import { SearchParamInput } from "@/app/(app)/_components/list-controls";
+import {
+  SearchParamInput,
+  SearchParamSelect,
+} from "@/app/(app)/_components/list-controls";
 import { ListFooter } from "@/app/(app)/_components/list-footer";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -30,8 +33,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { db } from "@/lib/db";
+import { COVER_CLASS, coverToneFor } from "@/lib/event-cover";
 import { finalScore } from "@/lib/event-rules";
 import { formatDate, formatDateTime, formatScore } from "@/lib/format";
+import { formatDuration, materialCover } from "@/lib/material-rules";
 import { requirePermission } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +44,8 @@ export const metadata: Metadata = { title: "Portofolio" };
 
 const PATH = "/portofolio";
 const PAGE_SIZE = 6;
+const LEARNING_PAGE_SIZE = 10;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const TABS = [
   { value: "karya", label: "Karya" },
   { value: "sertifikat", label: "Sertifikat" },
@@ -49,6 +56,10 @@ const FILTERS = [
   { value: "sertifikat", label: "Sertifikat tersedia" },
   { value: "belum", label: "Penilaian belum lengkap" },
 ] as const;
+const SORT_OPTIONS = [
+  { value: "terbaru", label: "Terbaru" },
+  { value: "terlama", label: "Terlama" },
+];
 
 export default async function PortfolioPage({
   searchParams,
@@ -58,11 +69,12 @@ export default async function PortfolioPage({
   const tab = TABS.find((t) => t.value === param(sp, "tab"))?.value ?? "karya";
   const q = param(sp, "q").trim().toLowerCase();
   const filter = param(sp, "filter");
+  const sort = param(sp, "urut") === "terlama" ? "terlama" : "terbaru";
 
   const [enrollments, materials] = await Promise.all([
     db.enrollment.findMany({
       where: { userId: user.id, event: { status: { not: "DRAFT" } } },
-      orderBy: { event: { endsAt: "desc" } },
+      orderBy: { event: { endsAt: sort === "terlama" ? "asc" : "desc" } },
       select: {
         certificate: {
           select: { number: true, finalScore: true, issuedAt: true },
@@ -105,8 +117,10 @@ export default async function PortfolioPage({
           select: {
             id: true,
             title: true,
+            coverColor: true,
             category: { select: { name: true } },
             organization: { select: { name: true } },
+            sections: { select: { durationMinutes: true } },
           },
         },
       },
@@ -134,8 +148,23 @@ export default async function PortfolioPage({
   );
   const page = pageOf(sp);
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const visibleMaterials = materials.slice(
+    (page - 1) * LEARNING_PAGE_SIZE,
+    page * LEARNING_PAGE_SIZE,
+  );
   const certificates = works.filter((w) => w.certificate);
-  const completedMaterials = materials.filter((m) => m.completedAt).length;
+  const completedMaterials = materials.filter((m) => m.completedAt);
+  const weekAgo = new Date().getTime() - WEEK_MS;
+  const completedThisWeek = completedMaterials.filter(
+    (m) => m.completedAt && m.completedAt.getTime() >= weekAgo,
+  ).length;
+  const totalLearningMinutes = materials.reduce((sum, m) => {
+    const mins = m.material.sections.reduce(
+      (s, x) => s + (x.durationMinutes ?? 0),
+      0,
+    );
+    return sum + Math.round((mins * m.progress) / 100);
+  }, 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -150,19 +179,30 @@ export default async function PortfolioPage({
           value={certificates.length}
         />
         <StatCard
-          icon={FolderOpenIcon}
-          label="Acara diikuti"
-          value={works.length}
-        />
-        <StatCard
           icon={BookOpenIcon}
           label="Materi diikuti"
           value={materials.length}
         />
         <StatCard
           icon={CheckCircle2Icon}
+          tone="success"
           label="Materi selesai"
-          value={completedMaterials}
+          value={completedMaterials.length}
+          delta={
+            completedThisWeek > 0
+              ? `+${completedThisWeek} minggu ini`
+              : undefined
+          }
+        />
+        <StatCard
+          icon={ClockIcon}
+          tone="warning"
+          label="Waktu belajar"
+          value={
+            totalLearningMinutes > 0
+              ? formatDuration(totalLearningMinutes).replace(/^±\s*/, "")
+              : "0 mnt"
+          }
         />
       </div>
 
@@ -192,11 +232,21 @@ export default async function PortfolioPage({
             <h2 className="text-h2 text-foreground md:mr-auto">
               Riwayat karya
             </h2>
-            <div className="md:w-80">
-              <SearchParamInput
-                label="Cari acara"
-                placeholder="Cari nama acara…"
-              />
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+              <div className="sm:w-72">
+                <SearchParamInput
+                  label="Cari acara"
+                  placeholder="Cari nama acara…"
+                />
+              </div>
+              <div className="sm:w-36">
+                <SearchParamSelect
+                  name="urut"
+                  label="Urutkan karya"
+                  options={SORT_OPTIONS}
+                  defaultValue="terbaru"
+                />
+              </div>
             </div>
           </div>
           <nav aria-label="Filter karya" className="flex flex-wrap gap-2">
@@ -234,14 +284,19 @@ export default async function PortfolioPage({
               }
             />
           ) : (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
               {visible.map((w) => (
                 <article
                   key={w.event.id}
-                  className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card"
+                  className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
                 >
-                  <div className="flex flex-col gap-2 bg-primary-50 p-5">
-                    <span className="text-caption-strong text-primary-600 uppercase">
+                  <div
+                    className={cn(
+                      "flex flex-col gap-2.5 p-5",
+                      COVER_CLASS[coverToneFor(w.event.id)],
+                    )}
+                  >
+                    <span className="text-overline uppercase">
                       {w.event.field?.name ?? "Umum"}
                     </span>
                     <span className="text-small text-label">
@@ -251,7 +306,7 @@ export default async function PortfolioPage({
                       {w.event.milestones.map((m) => (
                         <span
                           key={m.id}
-                          className="rounded-md bg-card px-2 py-0.5 text-caption text-label"
+                          className="rounded-md bg-card px-2 py-0.5 text-caption text-muted-foreground"
                         >
                           {m.title}
                         </span>
@@ -260,7 +315,7 @@ export default async function PortfolioPage({
                   </div>
                   <div className="flex flex-1 flex-col gap-4 p-5">
                     <div className="flex flex-col gap-1">
-                      <h3 className="text-h3 text-foreground">
+                      <h3 className="text-h2 text-foreground">
                         {w.event.title}
                       </h3>
                       {w.event.endsAt && (
@@ -273,7 +328,7 @@ export default async function PortfolioPage({
                           aria-hidden="true"
                           className="size-4 text-success-500"
                         />
-                        {w.submitted} dari {w.total} milestone dikumpulkan
+                        {w.submitted} dari {w.total} milestone selesai
                       </span>
                     </div>
                     <div className="flex items-center gap-4 border-t border-border pt-4">
@@ -283,12 +338,12 @@ export default async function PortfolioPage({
                         </span>
                         <span
                           className={cn(
-                            "text-h2",
+                            "text-stat",
                             w.final === null
                               ? "text-subtle"
                               : w.final >= w.event.kkm
-                                ? "text-primary-600"
-                                : "text-danger-700",
+                                ? "text-primary-500"
+                                : "text-danger-600",
                           )}
                         >
                           {w.final === null ? "—" : formatScore(w.final)}
@@ -305,11 +360,11 @@ export default async function PortfolioPage({
                     </div>
                     {w.certificate ? (
                       <div className="flex flex-col gap-1 rounded-xl bg-success-50 p-4">
-                        <span className="flex items-center gap-2 text-body-strong text-success-700">
+                        <span className="flex items-center gap-2 text-h3 text-success-700">
                           <AwardIcon aria-hidden="true" className="size-4" />
                           Sertifikat tersedia
                         </span>
-                        <span className="text-small text-label">
+                        <span className="text-small text-muted-foreground">
                           Terbit otomatis pada{" "}
                           {formatDate(w.certificate.issuedAt)}. Nilai akhir{" "}
                           {formatScore(w.certificate.finalScore)} memenuhi KKM{" "}
@@ -317,31 +372,33 @@ export default async function PortfolioPage({
                         </span>
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-1 rounded-xl bg-muted p-4">
-                        <span className="flex items-center gap-2 text-body-strong text-foreground">
+                      <div className="flex flex-col gap-1 rounded-xl bg-background p-4">
+                        <span className="flex items-center gap-2 text-h3 text-label">
                           <ClockIcon aria-hidden="true" className="size-4" />
                           Sertifikat belum tersedia
                         </span>
-                        <span className="text-small text-label">
+                        <span className="text-small text-muted-foreground">
                           {!w.event.certificateEnabled
                             ? "Acara ini tidak menerbitkan sertifikat."
                             : w.final !== null && w.final < w.event.kkm
                               ? `Nilai akhir belum memenuhi KKM ${w.event.kkm}.`
-                              : `Sertifikat terbit otomatis jika semua milestone dinilai dan nilai akhir minimal ${w.event.kkm}.`}
+                              : `Nilai akhir menunggu seluruh penilaian. Sertifikat terbit otomatis jika nilai akhir memenuhi minimum ${w.event.kkm}.`}
                         </span>
                       </div>
                     )}
-                    <div className="mt-auto grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="mt-auto grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                       <Link
-                        href={`/acara/${w.event.id}`}
-                        className={buttonVariants({ variant: "secondary" })}
+                        href={`/portofolio/${w.event.id}`}
+                        className={buttonVariants({
+                          variant: w.certificate ? "secondary" : "primary",
+                        })}
                       >
                         Lihat acara
                         <ArrowUpRightIcon aria-hidden="true" />
                       </Link>
                       {w.certificate ? (
                         <Link
-                          href={`/sertifikat/${w.certificate.number}`}
+                          href={`/sertifikat/${encodeURIComponent(w.certificate.number)}/terbit`}
                           className={buttonVariants()}
                         >
                           Lihat sertifikat
@@ -350,10 +407,7 @@ export default async function PortfolioPage({
                       ) : (
                         <span
                           aria-disabled="true"
-                          className={buttonVariants({
-                            variant: "secondary",
-                            className: "pointer-events-none opacity-60",
-                          })}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-muted px-4 text-button whitespace-nowrap text-muted-foreground select-none [&_svg]:size-4"
                         >
                           Sertifikat belum tersedia
                           <LockIcon aria-hidden="true" />
@@ -365,13 +419,23 @@ export default async function PortfolioPage({
               ))}
             </div>
           )}
-          <ListFooter
-            page={page}
-            pageSize={PAGE_SIZE}
-            total={filtered.length}
-            noun="acara"
-            hrefFor={(p) => hrefWith(PATH, sp, { page: p })}
-          />
+          {filtered.length > 0 && (
+            <div className="rounded-xl border border-border bg-card">
+              <ListFooter
+                page={page}
+                pageSize={PAGE_SIZE}
+                total={filtered.length}
+                noun="acara"
+                hrefFor={(p) => hrefWith(PATH, sp, { page: p })}
+              />
+            </div>
+          )}
+          <p className="flex items-start gap-2.5 rounded-xl border border-border bg-card p-4 text-small text-muted-foreground">
+            <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            Sertifikat tersimpan otomatis per acara setelah seluruh milestone
+            selesai, seluruh nilai tersedia, dan nilai akhir memenuhi syarat
+            acara. Pemberitahuan penerbitan masuk ke notifikasi Anda.
+          </p>
         </>
       )}
 
@@ -395,10 +459,10 @@ export default async function PortfolioPage({
                 <h3 className="text-h3 text-foreground">{w.event.title}</h3>
                 <span className="text-small text-label">
                   Nilai akhir {formatScore(w.certificate!.finalScore)} · terbit{" "}
-                  {formatDateTime(w.certificate!.issuedAt)}
+                  {formatDateTime(w.certificate!.issuedAt)} WIB
                 </span>
                 <Link
-                  href={`/sertifikat/${w.certificate!.number}`}
+                  href={`/sertifikat/${encodeURIComponent(w.certificate!.number)}/terbit`}
                   className={buttonVariants({ size: "sm", className: "w-fit" })}
                 >
                   Lihat sertifikat
@@ -417,87 +481,102 @@ export default async function PortfolioPage({
             description="Materi mandiri yang Anda ikuti akan tercatat di sini."
           />
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Materi</TableHead>
-                  <TableHead>Penyelenggara</TableHead>
-                  <TableHead>Progres</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Tindakan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {materials.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell>
-                      <div className="flex min-w-56 flex-col">
-                        {m.completedAt ? (
-                          <Link
-                            href={`/materi/${m.material.id}/selesai`}
-                            className="text-small-strong text-foreground hover:text-primary-600"
-                          >
-                            {m.material.title}
-                          </Link>
-                        ) : (
-                          <span className="text-small-strong text-foreground">
-                            {m.material.title}
-                          </span>
-                        )}
-                        <span className="text-caption text-muted-foreground">
-                          {m.material.category.name} ·{" "}
-                          {m.completedAt
-                            ? `Selesai ${formatDate(m.completedAt)}`
-                            : `Terakhir dibuka ${formatDate(m.updatedAt)}`}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-small">
-                      {m.material.organization.name}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex w-36 items-center gap-2">
-                        <Progress
-                          value={m.progress}
-                          label={`Progres ${m.material.title}`}
-                        />
-                        <span className="text-small-strong text-foreground">
-                          {m.progress}%
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        size="sm"
-                        tone={m.completedAt ? "success" : "primary"}
-                      >
-                        {m.completedAt ? "Selesai" : "Sedang belajar"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Link
-                        href={`/materi/${m.material.id}`}
-                        className={buttonVariants({
-                          variant: m.completedAt ? "secondary" : "primary",
-                          size: "sm",
-                        })}
-                      >
-                        {m.completedAt ? "Buka lagi" : "Lanjutkan"}
-                      </Link>
-                    </TableCell>
+          <div className="overflow-hidden rounded-2xl border border-border bg-card">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Materi</TableHead>
+                    <TableHead>Penyelenggara</TableHead>
+                    <TableHead>Progres</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-center">Tindakan</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {visibleMaterials.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell>
+                        <div className="flex min-w-64 items-center gap-3">
+                          <span
+                            className={cn(
+                              "flex size-10 shrink-0 items-center justify-center rounded-lg",
+                              COVER_CLASS[materialCover(m.material.coverColor)],
+                            )}
+                          >
+                            <BookOpenIcon
+                              aria-hidden="true"
+                              className="size-4.5"
+                            />
+                          </span>
+                          <div className="flex min-w-0 flex-col">
+                            {m.completedAt ? (
+                              <Link
+                                href={`/materi/${m.material.id}/selesai`}
+                                className="truncate text-body-strong text-foreground hover:text-primary-600"
+                              >
+                                {m.material.title}
+                              </Link>
+                            ) : (
+                              <span className="truncate text-body-strong text-foreground">
+                                {m.material.title}
+                              </span>
+                            )}
+                            <span className="text-small text-muted-foreground">
+                              {m.completedAt
+                                ? `Selesai ${formatDate(m.completedAt)}`
+                                : `Terakhir dibuka ${formatDate(m.updatedAt)}`}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-small text-label">
+                        {m.material.organization.name}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex w-36 items-center gap-2">
+                          <Progress
+                            value={m.progress}
+                            label={`Progres ${m.material.title}`}
+                          />
+                          <span className="text-small-strong text-foreground">
+                            {m.progress}%
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          size="sm"
+                          tone={m.completedAt ? "success" : "primary"}
+                        >
+                          {m.completedAt ? "Selesai" : "Sedang belajar"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Link
+                          href={`/materi/${m.material.id}`}
+                          className={buttonVariants({
+                            variant: m.completedAt ? "secondary" : "primary",
+                            size: "sm",
+                          })}
+                        >
+                          {m.completedAt ? "Buka lagi" : "Lanjutkan"}
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <ListFooter
+              page={page}
+              pageSize={LEARNING_PAGE_SIZE}
+              total={materials.length}
+              noun="materi"
+              hrefFor={(p) => hrefWith(PATH, { tab: "belajar" }, { page: p })}
+            />
           </div>
         ))}
-
-      <p className="flex items-start gap-2 rounded-2xl border border-border bg-card p-4 text-caption text-muted-foreground">
-        <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-        Sertifikat tersimpan otomatis per acara setelah seluruh milestone
-        selesai, seluruh nilai tersedia, dan nilai akhir memenuhi syarat acara.
-      </p>
     </div>
   );
 }

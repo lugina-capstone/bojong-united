@@ -66,7 +66,7 @@ export async function approveOrganizationAction(
           `Pengajuan organisasi ${organization.name} telah disetujui Administrator Becraft. Anda kini Admin Organisasi.`,
           `Kode organisasi: ${organization.code}. Bagikan kode ini ke guru, asesor, atau trainer agar mereka dapat bergabung.`,
         ],
-        link: { label: "Masuk ke Becraft", path: "/masuk" },
+        link: { label: "Masuk ke Becraft", path: "/masuk?status=disetujui" },
       }),
     ),
   );

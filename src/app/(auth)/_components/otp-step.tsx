@@ -28,10 +28,12 @@ function OtpStep({
   onChangeEmail,
   onVerified,
   organization,
+  organizationName,
 }: {
   email: string;
   /** Pendaftaran organisasi: "baru" mengirim pengajuan, "gabung" langsung aktif. */
   organization?: "baru" | "gabung";
+  organizationName?: string;
   onChangeEmail?: () => void;
   /** Default: arahkan ke beranda sesuai role setelah sesi dibuat. */
   onVerified?: () => void | Promise<void>;
@@ -162,9 +164,17 @@ function OtpStep({
       >
         {organization === "baru"
           ? "Verifikasi & kirim pengajuan"
-          : "Verifikasi & lanjutkan"}
+          : organization === "gabung"
+            ? "Verifikasi & masuk"
+            : "Verifikasi & lanjutkan"}
       </Button>
-      {organization ? (
+      {organization === "gabung" ? (
+        <Alert tone="info">
+          {organizationName
+            ? `Gabung organisasi: akun langsung aktif sebagai anggota ${organizationName} setelah email terverifikasi.`
+            : "Gabung organisasi: akun langsung aktif sebagai anggota organisasi setelah email terverifikasi."}
+        </Alert>
+      ) : organization === "baru" ? (
         <Alert tone="info">
           Organisasi baru: pengajuan dikirim ke Administrator setelah email
           terverifikasi. Gabung organisasi: akun langsung aktif sebagai anggota.

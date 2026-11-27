@@ -64,7 +64,7 @@ function GoogleProfileForm({
           </p>
           <p className="truncate text-caption text-muted-foreground">{email}</p>
         </div>
-        <span className="flex items-center gap-1 rounded-full bg-card px-2 py-0.5 text-caption-strong text-success-700">
+        <span className="flex items-center gap-1 rounded-md bg-success-50 px-2 py-1 text-caption-strong text-success-600">
           <CircleCheckIcon aria-hidden="true" className="size-3.5" />
           Terhubung
         </span>
@@ -110,7 +110,7 @@ function GoogleProfileForm({
             aria-describedby={fieldDescribedBy("phone", { error: phoneError })}
           />
         </FormField>
-        <p className="rounded-lg bg-muted p-3 text-caption text-muted-foreground">
+        <p className="rounded-lg border border-border bg-muted p-3 text-caption text-muted-foreground">
           Becraft hanya menerima nama, email, dan foto profil Google Anda. Kata
           sandi Google tidak pernah dibagikan.
         </p>
@@ -118,7 +118,7 @@ function GoogleProfileForm({
           Selesaikan pendaftaran
         </Button>
       </form>
-      <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
         <form action={signOutAction}>
           <button
             type="submit"
@@ -127,6 +127,9 @@ function GoogleProfileForm({
             Gunakan akun Google lain
           </button>
         </form>
+        <span aria-hidden="true" className="text-small text-subtle">
+          ·
+        </span>
         <form action={signOutToSignUpAction}>
           <button
             type="submit"

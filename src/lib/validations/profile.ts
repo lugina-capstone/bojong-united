@@ -32,7 +32,15 @@ const phone = z
   )
   .transform((value) => value || null);
 
-export const profileSchema = z.object({ name, phone });
+export const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
+export const MIN_AVATAR_DIMENSION = 200;
+export const avatarContentTypes = ["image/png", "image/jpeg"] as const;
+
+export const profileSchema = z.object({
+  name,
+  phone,
+  avatarFileId: z.string().min(1).nullable().optional(),
+});
 
 const newPassword = z
   .string()

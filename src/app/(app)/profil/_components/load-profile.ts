@@ -25,6 +25,8 @@ export async function loadParticipantProfile() {
   return {
     name: user.name,
     email: user.email,
+    avatarFileId: user.avatarFileId,
+    avatarUrl: user.avatarFileId ? `/api/files/${user.avatarFileId}` : null,
     phone: detail.phone,
     emailVerified: detail.emailVerified,
     createdAt: detail.createdAt,

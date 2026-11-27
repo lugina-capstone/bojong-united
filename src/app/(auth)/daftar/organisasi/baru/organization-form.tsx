@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowRightIcon, SendIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  CircleCheckIcon,
+  CircleDotIcon,
+  CircleIcon,
+  ClockIcon,
+  HourglassIcon,
+} from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
@@ -26,33 +33,126 @@ import {
   setOrganizationLogoAction,
   signOutAction,
 } from "@/app/(auth)/actions";
-import { AuthHeading, AuthPanel } from "@/components/layout/auth-panel";
+import {
+  AuthHeading,
+  AuthPanel,
+  AuthTag,
+} from "@/components/layout/auth-panel";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconBox } from "@/components/ui/icon-box";
+import { ORG_TYPES } from "@/components/ui/org-type-selected";
+import type { OrganizationType } from "@/generated/prisma/enums";
+import { formatDateTime } from "@/lib/format";
 
 /** Layar setelah pengajuan organisasi baru atau ajukan ulang terkirim. */
-function SubmittedScreen({ organizationName }: { organizationName: string }) {
+function SubmittedScreen({
+  organizationName,
+  organizationType,
+  applicantName,
+  email,
+  submittedAt,
+}: {
+  organizationName: string;
+  organizationType?: OrganizationType;
+  applicantName?: string;
+  email?: string;
+  submittedAt?: Date;
+}) {
+  const rows: { label: string; value: React.ReactNode }[] = [
+    { label: "Organisasi", value: organizationName },
+    ...(organizationType
+      ? [{ label: "Jenis", value: ORG_TYPES[organizationType].label }]
+      : []),
+    ...(applicantName ? [{ label: "Pemohon", value: applicantName }] : []),
+    ...(submittedAt
+      ? [{ label: "Diajukan", value: `${formatDateTime(submittedAt)} WIB` }]
+      : []),
+  ];
+
   return (
-    <AuthPanel>
+    <AuthPanel topStart={<AuthTag>Pengajuan organisasi</AuthTag>}>
       <AuthHeading
-        icon={<IconBox icon={SendIcon} tone="success" size="lg" />}
+        icon={<IconBox icon={HourglassIcon} tone="warning" size="xl" />}
         title="Pengajuan terkirim"
         description={
-          <>
-            Pengajuan{" "}
-            <span className="text-body-strong text-foreground">
-              {organizationName}
-            </span>{" "}
-            sedang ditinjau Administrator Becraft. Kami kirim email setelah
-            pengajuan disetujui atau ditolak.
-          </>
+          email ? (
+            <>
+              Email Anda sudah terverifikasi. Administrator akan meninjau
+              pengajuan dalam 1–2 hari kerja, lalu mengirim hasilnya ke{" "}
+              <span className="text-body-strong text-foreground">{email}</span>.
+            </>
+          ) : (
+            "Email Anda sudah terverifikasi. Administrator akan meninjau pengajuan dalam 1–2 hari kerja, lalu mengirim hasilnya ke email Anda."
+          )
         }
       />
+      <dl className="flex flex-col gap-2.5 rounded-xl border border-border bg-card p-4">
+        {rows.map(({ label, value }) => (
+          <div
+            key={label}
+            className="flex flex-wrap items-center justify-between gap-2"
+          >
+            <dt className="text-small text-muted-foreground">{label}</dt>
+            <dd className="text-right text-body-strong text-foreground">
+              {value}
+            </dd>
+          </div>
+        ))}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <dt className="text-small text-muted-foreground">Status</dt>
+          <dd>
+            <Badge tone="neutral">
+              <ClockIcon aria-hidden="true" />
+              Menunggu persetujuan
+            </Badge>
+          </dd>
+        </div>
+      </dl>
+      <ul className="flex flex-col gap-2.5 text-body">
+        <li className="flex items-center gap-2.5 text-foreground">
+          <CircleCheckIcon
+            aria-hidden="true"
+            className="size-4.5 shrink-0 text-success-600"
+          />
+          Data organisasi dikirim
+        </li>
+        <li className="flex items-center gap-2.5 text-foreground">
+          <CircleCheckIcon
+            aria-hidden="true"
+            className="size-4.5 shrink-0 text-success-600"
+          />
+          Email terverifikasi
+        </li>
+        <li className="flex items-center gap-2.5 text-foreground">
+          <CircleDotIcon
+            aria-hidden="true"
+            className="size-4.5 shrink-0 text-warning-500"
+          />
+          Ditinjau Administrator — sedang berlangsung
+        </li>
+        <li className="flex items-center gap-2.5 text-muted-foreground">
+          <CircleIcon
+            aria-hidden="true"
+            className="size-4.5 shrink-0 text-subtle"
+          />
+          Akun Admin Organisasi aktif setelah disetujui
+        </li>
+      </ul>
       <form action={signOutAction}>
-        <Button type="submit" size="lg" className="w-full">
-          Kembali ke Masuk
+        <Button type="submit" variant="secondary" size="lg" className="w-full">
+          Kembali ke halaman masuk
         </Button>
       </form>
+      <p className="text-center text-body text-muted-foreground">
+        Ada data yang salah?{" "}
+        <a
+          href="mailto:dukungan@becraft.id"
+          className="text-body-strong text-primary-500 hover:underline"
+        >
+          Hubungi dukungan@becraft.id
+        </a>
+      </p>
     </AuthPanel>
   );
 }
@@ -70,6 +170,7 @@ function OrganizationForm() {
   const [logo, setLogo] = React.useState<File | null>(null);
   const [state, setState] = React.useState<FormState>({});
   const [step, setStep] = React.useState<"form" | "otp" | "done">("form");
+  const [submittedAt, setSubmittedAt] = React.useState<Date>();
   const [registered, setRegistered] = React.useState<{
     personal: typeof personal;
     organization: OrganizationValues;
@@ -79,7 +180,15 @@ function OrganizationForm() {
   const errors = state.fieldErrors ?? {};
 
   if (step === "done")
-    return <SubmittedScreen organizationName={organization.organizationName} />;
+    return (
+      <SubmittedScreen
+        organizationName={organization.organizationName}
+        organizationType={organization.organizationType}
+        applicantName={personal.name}
+        email={state.email ?? personal.email}
+        submittedAt={submittedAt}
+      />
+    );
 
   if (step === "otp" && state.email) {
     return (
@@ -107,6 +216,7 @@ function OrganizationForm() {
                   "Logo gagal diunggah. Anda bisa mengunggahnya nanti di Profil organisasi.",
                 );
             }
+            setSubmittedAt(new Date());
             setStep("done");
           }}
         />

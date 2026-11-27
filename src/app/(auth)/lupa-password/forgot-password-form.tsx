@@ -22,6 +22,7 @@ const FOOTER =
 function ForgotPasswordForm({ expired = false }: { expired?: boolean }) {
   const [email, setEmail] = React.useState("");
   const [state, setState] = React.useState<FormState>({});
+  const [sentNewLink, setSentNewLink] = React.useState(false);
   const [cooldown, setCooldown] = React.useState(0);
   const [pending, startTransition] = React.useTransition();
   const error = state.fieldErrors?.email ?? state.error;
@@ -48,9 +49,13 @@ function ForgotPasswordForm({ expired = false }: { expired?: boolean }) {
   }, [cooldown]);
 
   function submit() {
+    const isReplacement = expired || Boolean(state.ok);
     startTransition(async () => {
       const result = await forgotPasswordAction({ email });
-      if (result.ok) setCooldown(OTP_RESEND_SECONDS);
+      if (result.ok) {
+        setCooldown(OTP_RESEND_SECONDS);
+        if (isReplacement) setSentNewLink(true);
+      }
       // Kirim ulang yang ditolak tetap di layar "Cek email Anda".
       setState((previous) =>
         previous.ok && !result.ok
@@ -67,14 +72,18 @@ function ForgotPasswordForm({ expired = false }: { expired?: boolean }) {
           icon={<IconBox icon={MailCheckIcon} tone="primary" size="lg" />}
           title="Cek email Anda"
           description={
-            <>
-              Jika{" "}
-              <span className="text-body-strong text-foreground">
-                {state.email}
-              </span>{" "}
-              terdaftar, kami sudah mengirim tautan untuk membuat kata sandi
-              baru. Tautan berlaku {RESET_LINK_MINUTES} menit.
-            </>
+            sentNewLink ? (
+              "Tautan baru sudah dikirim. Tautan sebelumnya tidak berlaku lagi."
+            ) : (
+              <>
+                Jika{" "}
+                <span className="text-body-strong text-foreground">
+                  {state.email}
+                </span>{" "}
+                terdaftar, kami sudah mengirim tautan untuk membuat kata sandi
+                baru. Tautan berlaku {RESET_LINK_MINUTES} menit.
+              </>
+            )
           }
         />
         <Link href="/masuk" className={buttonVariants({ size: "lg" })}>

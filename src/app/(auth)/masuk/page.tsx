@@ -1,3 +1,4 @@
+import { RotateCcwIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -24,20 +25,34 @@ async function RejectedAlert() {
   return (
     <Alert tone="danger" title="Pengajuan organisasi ditolak">
       <p>
+        Alasan dari Administrator: “
         {detail?.rejectionReason ??
           "Administrator belum menuliskan alasan penolakan."}
+        ” Data sebelumnya akan terisi otomatis saat mengajukan ulang.
       </p>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         {user.membership?.isAdmin && (
           <Link
             href="/daftar/organisasi/ajukan-ulang"
-            className={buttonVariants({ size: "sm" })}
+            className={buttonVariants({ variant: "secondary", size: "sm" })}
           >
+            <RotateCcwIcon aria-hidden="true" />
             Ajukan ulang
           </Link>
         )}
+        <a
+          href="mailto:dukungan@becraft.id"
+          className="text-small-strong text-danger-500 hover:underline"
+        >
+          Hubungi dukungan
+        </a>
         <form action={signOutAction}>
-          <Button size="sm" variant="secondary" type="submit">
+          <Button
+            size="sm"
+            variant="ghost"
+            type="submit"
+            className="text-danger-700 hover:bg-danger-100"
+          >
             Keluar
           </Button>
         </form>
@@ -59,17 +74,30 @@ function StatusAlert({ status }: { status?: string }) {
   switch (status) {
     case "menunggu":
       return (
-        <Alert tone="warning" title="Pengajuan organisasi sedang ditinjau">
-          Administrator Becraft meninjau pengajuan Anda. Kami kirim email
-          setelah pengajuan disetujui atau ditolak.
+        <Alert tone="warning" title="Akun menunggu persetujuan">
+          Pengajuan organisasi Anda sedang ditinjau Administrator. Anda bisa
+          masuk setelah menerima email persetujuan.
+        </Alert>
+      );
+    case "disetujui":
+      return (
+        <Alert tone="success" title="Organisasi disetujui">
+          Pengajuan organisasi Anda sudah disetujui Administrator. Masuk untuk
+          mulai mengelola organisasi.
         </Alert>
       );
     case "nonaktif":
       return (
         <Alert tone="neutral" title="Organisasi dinonaktifkan">
-          Organisasi Anda sedang dinonaktifkan oleh Administrator Becraft.
-          Hubungi admin organisasi atau Administrator untuk informasi lebih
-          lanjut.
+          Organisasi Anda sedang dinonaktifkan oleh Administrator, sehingga akun
+          anggotanya tidak dapat masuk. Hubungi admin organisasi atau{" "}
+          <a
+            href="mailto:dukungan@becraft.id"
+            className="text-small-strong text-foreground underline"
+          >
+            dukungan@becraft.id
+          </a>
+          .
         </Alert>
       );
     case "ditolak":
@@ -82,7 +110,13 @@ function StatusAlert({ status }: { status?: string }) {
 async function MasukContent({ searchParams }: PageProps<"/masuk">) {
   const params = await searchParams;
   const status = typeof params.status === "string" ? params.status : undefined;
-  const email = typeof params.email === "string" ? params.email : undefined;
+  let email = typeof params.email === "string" ? params.email : undefined;
+  if (!email && status === "ditolak") {
+    const user = await getCurrentUser();
+    if (user?.membership?.organization.status === "REJECTED") {
+      email = user.email;
+    }
+  }
   return (
     <SignInForm
       googleEnabled={googleEnabled}

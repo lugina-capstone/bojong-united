@@ -38,6 +38,12 @@ export async function loadEventResults(eventId: string, kkm: number) {
             link: true,
             text: true,
             file: { select: { id: true, name: true, contentType: true } },
+            files: {
+              orderBy: { position: "asc" },
+              select: {
+                file: { select: { id: true, name: true, contentType: true } },
+              },
+            },
             grade: { select: { score: true, feedback: true } },
           },
         },

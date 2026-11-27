@@ -20,7 +20,7 @@ import { OrgLogo } from "@/components/ui/org-logo";
 import { db } from "@/lib/db";
 import { visibleEventWhere } from "@/lib/event-query";
 import { eventPhase, maskEmail } from "@/lib/event-rules";
-import { formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { logoUrlOf } from "@/lib/organization-access";
 import { hasStarted, requireParticipant } from "@/lib/participant-access";
 import { formatLabels } from "@/lib/validations/event";
@@ -129,6 +129,14 @@ export default async function EventDetailPage({
     .filter(Boolean)
     .join(" / ");
 
+  const isTeamMember = Boolean(
+    enrollment && isTeam && team?.leaderId !== user.id,
+  );
+  const dateRange =
+    event.startsAt && event.endsAt
+      ? `${formatDate(event.startsAt)} – ${formatDate(event.endsAt)}`
+      : wib(event.startsAt);
+
   return (
     <div className="flex flex-col gap-6">
       <Link
@@ -136,12 +144,19 @@ export default async function EventDetailPage({
         className="inline-flex w-fit items-center gap-1.5 text-small text-muted-foreground hover:text-foreground"
       >
         <ArrowLeftIcon aria-hidden="true" className="size-4" />
-        Jelajah / {enrollment ? "Pendaftaran berhasil" : "Detail acara"}
+        Jelajah /{" "}
+        {isTeamMember
+          ? "Bergabung ke tim"
+          : enrollment
+            ? "Pendaftaran berhasil"
+            : "Detail acara"}
       </Link>
 
       <section className="flex flex-col gap-4 rounded-2xl bg-primary-100 p-5 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <p className="text-overline text-primary-600">{fieldLabel}</p>
+          <p className="text-overline text-primary-600 uppercase">
+            {fieldLabel}
+          </p>
           <PhaseBadge phase={phase} />
         </div>
         <h1 className="max-w-2xl text-display text-foreground">
@@ -169,6 +184,7 @@ export default async function EventDetailPage({
           inviteId={invite.id}
           inviterName={invite.team.leader.name}
           teamName={invite.team.name}
+          eventTitle={event.title}
         />
       ))}
 
@@ -205,7 +221,7 @@ export default async function EventDetailPage({
             <p className="text-body whitespace-pre-line text-label">
               {event.description}
             </p>
-            {event.guidelines && (
+            {event.guidelines ? (
               <div className="flex flex-col gap-1 rounded-lg bg-muted p-4">
                 <h3 className="text-small-strong text-foreground">
                   Ketentuan dan arahan
@@ -214,6 +230,17 @@ export default async function EventDetailPage({
                   {event.guidelines}
                 </p>
               </div>
+            ) : (
+              event.milestones.length >= 2 && (
+                <div className="flex flex-col gap-1 rounded-lg bg-muted p-4">
+                  <h3 className="text-small-strong text-foreground">
+                    Dari masalah menjadi solusi
+                  </h3>
+                  <p className="text-small text-label">
+                    {event.milestones.map((m) => m.title).join(" → ")}.
+                  </p>
+                </div>
+              )
             )}
           </section>
 
@@ -312,6 +339,12 @@ export default async function EventDetailPage({
             closedReason={enrollment ? null : closedReason}
             startsAt={wib(event.startsAt)}
             endsAt={wib(event.endsAt)}
+            dateRange={dateRange}
+            creatorName={event.creator.name}
+            milestoneCount={event.milestones.length}
+            maxTeamMembers={event.maxTeamMembers ?? undefined}
+            userName={user.name}
+            userEmail={user.email}
             countLabel={
               isTeam
                 ? `${event._count.teams} kelompok telah terbentuk`
@@ -320,7 +353,9 @@ export default async function EventDetailPage({
           />
 
           <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5">
-            <p className="text-overline text-primary-500">Penyelenggara</p>
+            <p className="text-overline text-muted-foreground uppercase">
+              Penyelenggara
+            </p>
             <div className="flex items-center gap-3">
               <OrgLogo name={event.organization.name} src={logoUrl} />
               <div className="min-w-0">

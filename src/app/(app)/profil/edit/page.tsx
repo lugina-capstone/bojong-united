@@ -18,7 +18,12 @@ export default async function EditParticipantProfilePage() {
         / Edit informasi
       </nav>
       <ProfileForm
-        initial={{ name: profile.name, phone: profile.phone }}
+        initial={{
+          name: profile.name,
+          phone: profile.phone,
+          avatarFileId: profile.avatarFileId,
+          avatarUrl: profile.avatarUrl,
+        }}
         email={profile.email}
         emailNote={profile.emailNote}
       />

@@ -28,6 +28,8 @@ async function ResubmitContent() {
         organizationName: organization.name,
         organizationType: organization.type,
       }}
+      applicantName={user.name}
+      applicantEmail={user.email}
       rejectionReason={organization.rejectionReason}
     />
   );

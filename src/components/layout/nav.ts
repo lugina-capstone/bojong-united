@@ -132,12 +132,31 @@ function navFor({ role, isOrganizationAdmin }: Access): NavSection[] {
   ];
 }
 
-/** Item aktif = href terpanjang yang menjadi awalan pathname. */
+/** Item aktif = href terpanjang yang menjadi awalan pathname (termasuk sub-rute peserta). */
 function activeHref(sections: NavSection[], pathname: string) {
-  return sections
-    .flatMap((section) => section.items.map((item) => item.href))
+  const hrefs = sections.flatMap((section) =>
+    section.items.map((item) => item.href),
+  );
+  const direct = hrefs
     .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
     .sort((a, b) => b.length - a.length)[0];
+  if (direct) return direct;
+  if (
+    (pathname === "/acara" || pathname.startsWith("/acara/")) &&
+    hrefs.includes("/beranda")
+  ) {
+    return "/beranda";
+  }
+  if (
+    (pathname === "/sertifikat" ||
+      pathname.startsWith("/sertifikat/") ||
+      pathname === "/materi" ||
+      pathname.startsWith("/materi/")) &&
+    hrefs.includes("/portofolio")
+  ) {
+    return "/portofolio";
+  }
+  return undefined;
 }
 
 export { navFor, activeHref, type NavItem, type NavSection };

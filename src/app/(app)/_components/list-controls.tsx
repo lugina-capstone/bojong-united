@@ -43,8 +43,22 @@ function SearchParamInput({
 }) {
   const searchParams = useSearchParams();
   const update = useUpdateParam();
-  const [value, setValue] = React.useState(searchParams.get(name) ?? "");
+  const urlValue = searchParams.get(name) ?? "";
+  const [prevUrl, setPrevUrl] = React.useState(urlValue);
+  const [value, setValue] = React.useState(urlValue);
   const timer = React.useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  if (urlValue !== prevUrl) {
+    setPrevUrl(urlValue);
+    if (value.trim() !== urlValue) {
+      setValue(urlValue);
+    }
+  }
+
+  React.useEffect(() => {
+    clearTimeout(timer.current);
+    return () => clearTimeout(timer.current);
+  }, [urlValue]);
 
   return (
     <SearchInput

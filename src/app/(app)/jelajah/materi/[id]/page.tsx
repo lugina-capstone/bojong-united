@@ -1,5 +1,6 @@
 import {
   ArrowRightIcon,
+  AwardIcon,
   BookOpenIcon,
   CalendarIcon,
   CircleCheckIcon,
@@ -14,6 +15,7 @@ import { notFound } from "next/navigation";
 import { EnrollButton } from "@/app/(app)/materi/_components/enroll-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { IconBox } from "@/components/ui/icon-box";
 import { OrgLogo } from "@/components/ui/org-logo";
 import { db } from "@/lib/db";
 import { COVER_CLASS } from "@/lib/event-cover";
@@ -108,7 +110,7 @@ export default async function MaterialDetailPage({
           COVER_CLASS[materialCover(material.coverColor)],
         )}
       >
-        <p className="text-overline">{material.category.name}</p>
+        <p className="text-overline uppercase">{material.category.name}</p>
         <h1 className="text-display break-words">{material.title}</h1>
         <div className="flex flex-wrap items-center gap-2 text-small">
           <OrgLogo name={material.organization.name} src={logoUrl} size="sm" />
@@ -118,27 +120,26 @@ export default async function MaterialDetailPage({
           <span>· Trainer: {material.trainer.name}</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge size="sm" tone="primary">
+          <Badge size="sm" tone="primary" className="bg-card">
             {materialLevelLabels[material.level]}
           </Badge>
-          <Badge size="sm" tone="neutral">
+          <Badge size="sm" tone="neutral" className="bg-card">
+            <BookOpenIcon aria-hidden="true" />
             Tanpa tugas
           </Badge>
-          <Badge size="sm" tone="neutral">
+          <Badge size="sm" tone="neutral" className="bg-card">
+            <AwardIcon aria-hidden="true" />
             Tanpa sertifikat
           </Badge>
         </div>
       </section>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex min-w-0 flex-col gap-6">
-          <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 sm:p-6">
-            <h2 className="flex items-center gap-2 text-h2 text-foreground">
-              <InfoIcon
-                aria-hidden="true"
-                className="size-5 text-primary-500"
-              />
-              Tentang materi
-            </h2>
+          <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <IconBox icon={InfoIcon} tone="primary" size="sm" />
+              <h2 className="text-h2 text-foreground">Tentang materi</h2>
+            </div>
             <p className="text-body whitespace-pre-line text-label">
               {material.description}
             </p>
@@ -164,21 +165,18 @@ export default async function MaterialDetailPage({
               </div>
             )}
           </section>
-          <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 sm:p-6">
-            <div className="flex flex-col gap-0.5">
-              <h2 className="flex items-center gap-2 text-h2 text-foreground">
-                <LockIcon
-                  aria-hidden="true"
-                  className="size-5 text-primary-500"
-                />
-                Isi materi
-              </h2>
-              <p className="text-caption text-muted-foreground">
-                {material.sections.length} bagian ·{" "}
-                {enrolled
-                  ? "sudah terbuka untuk Anda"
-                  : "terbuka setelah Anda mengikuti materi"}
-              </p>
+          <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+              <IconBox icon={LockIcon} tone="primary" size="sm" />
+              <div className="flex flex-col gap-0.5">
+                <h2 className="text-h2 text-foreground">Isi materi</h2>
+                <p className="text-caption text-muted-foreground">
+                  {material.sections.length} bagian ·{" "}
+                  {enrolled
+                    ? "sudah terbuka untuk Anda"
+                    : "terbuka setelah Anda mengikuti materi"}
+                </p>
+              </div>
             </div>
             <ol className="flex flex-col gap-2">
               {material.sections.map((s) => {
@@ -246,7 +244,9 @@ export default async function MaterialDetailPage({
               {[
                 [
                   "Bagian",
-                  `${material.sections.length} bagian · ${formatDuration(minutes)}`,
+                  minutes > 0
+                    ? `${material.sections.length} bagian · ${formatDuration(minutes)}`
+                    : `${material.sections.length} bagian`,
                 ],
                 ["Peserta", `${material._count.enrollments} mengikuti`],
                 ["Tugas & nilai", "Tidak ada"],
@@ -263,28 +263,33 @@ export default async function MaterialDetailPage({
             </dl>
           </section>
           {material.events.length > 0 && (
-            <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
-              <h2 className="flex items-center gap-2 text-h3 text-foreground">
-                <PaperclipIcon
-                  aria-hidden="true"
-                  className="size-4 text-primary-500"
-                />
-                Juga materi pendukung di
-              </h2>
-              {material.events.map(({ event }) => (
+            <section className="flex flex-col gap-3.5 rounded-2xl border border-border bg-card p-5">
+              <div className="flex items-start gap-3">
+                <IconBox icon={PaperclipIcon} tone="primary" size="sm" />
+                <div className="flex flex-col gap-0.5">
+                  <h2 className="text-h3 text-foreground">
+                    Juga materi pendukung di
+                  </h2>
+                  <p className="text-caption text-muted-foreground">
+                    {material.events.length} acara
+                  </p>
+                </div>
+              </div>
+              {material.events.map(({ event }, idx) => (
                 <div
                   key={event.id}
-                  className="flex items-start gap-2 text-small"
+                  className="flex items-center gap-3 text-small"
                 >
-                  <CalendarIcon
-                    aria-hidden="true"
-                    className="mt-0.5 size-4 shrink-0 text-primary-500"
+                  <IconBox
+                    icon={CalendarIcon}
+                    tone={idx % 2 === 0 ? "blue" : "sage"}
+                    size="sm"
                   />
-                  <span className="flex flex-col">
-                    <span className="text-small-strong text-foreground">
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate text-small-strong text-foreground">
                       {event.title}
                     </span>
-                    <span className="text-caption text-muted-foreground">
+                    <span className="truncate text-caption text-muted-foreground">
                       {event.creator.name}
                       {event.creator.membership
                         ? ` (${roleLabels[event.creator.membership.role]})`

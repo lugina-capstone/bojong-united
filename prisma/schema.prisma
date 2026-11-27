@@ -48,6 +48,8 @@ model User {
   name               String
   emailVerified      Boolean     @default(false)
   image              String?
+  /// Foto profil PNG/JPG, maks. 2 MB, rasio 1:1. Tanpa foto, UI menampilkan inisial.
+  avatarFileId       String?     @unique
   /// Nomor HP Indonesia tanpa pemisah, mis. "085711220074" (CHECK users_phone_format).
   phone              String?
   /// Diisi saat akun Google baru menyelesaikan "Lengkapi Data Google". Akun Google yang masih
@@ -67,6 +69,7 @@ model User {
   sessions           Session[]
   accounts           Account[]
   files              File[]
+  avatar             File?       @relation("UserAvatar", fields: [avatarFileId], references: [id], onDelete: SetNull)
 
   reviewedOrganizations   Organization[]       @relation("OrganizationReviewer")
   trainerRequests         TrainerRequest[]     @relation("TrainerRequestUser")
@@ -79,6 +82,7 @@ model User {
   teamInvitesReceived     TeamInvite[]         @relation("TeamInviteInvitee")
   teamInvitesSent         TeamInvite[]         @relation("TeamInviteInviter")
   submissions             Submission[]
+  submissionDrafts        SubmissionDraft[]
   revisionRequests        RevisionRequest[]
   grades                  Grade[]
   surveyResponses         SurveyResponse[]
@@ -267,8 +271,9 @@ model Milestone {
   event        Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
   rubric       Rubric?               @relation(fields: [rubricId], references: [id], onDelete: Restrict)
   attachments  MilestoneAttachment[]
-  survey       Survey?
-  submissions  Submission[]
+  survey           Survey?
+  submissions      Submission[]
+  submissionDrafts SubmissionDraft[]
 
   @@unique([eventId, order])
   @@index([rubricId])
@@ -423,12 +428,15 @@ model Submission {
   fileId          String?          @unique
   link            String?
   text            String?
+  /// Catatan perubahan yang ditulis peserta saat mengirim revisi (versi > 1).
+  revisionNote    String?
   status          SubmissionStatus @default(SUBMITTED)
   submittedAt     DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   milestone       Milestone        @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   file            File?            @relation("SubmissionFile", fields: [fileId], references: [id], onDelete: SetNull)
+  files           SubmissionFile[]
   revisionRequest RevisionRequest?
   grade           Grade?
 
@@ -438,11 +446,60 @@ model Submission {
   @@map("submissions")
 }
 
+/// Berkas lampiran pengumpulan (maks. 5 berkas per versi).
+model SubmissionFile {
+  submissionId String
+  fileId       String     @unique
+  position     Int        @default(0)
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  file         File       @relation("SubmissionAttachment", fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@id([submissionId, fileId])
+  @@index([submissionId, position])
+  @@map("submission_files")
+}
+
+/// Draf tugas atau draf revisi peserta sebelum dikumpulkan; tidak dihitung sebagai pengumpulan.
+model SubmissionDraft {
+  id           String                @id @default(cuid())
+  milestoneId  String
+  userId       String
+  link         String?
+  text         String?
+  revisionNote String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  milestone    Milestone             @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files        SubmissionDraftFile[]
+
+  @@unique([milestoneId, userId])
+  @@index([userId])
+  @@map("submission_drafts")
+}
+
+/// Berkas dalam draf pengumpulan (maks. 5 berkas).
+model SubmissionDraftFile {
+  draftId  String
+  fileId   String          @unique
+  position Int             @default(0)
+  draft    SubmissionDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  file     File            @relation("SubmissionDraftAttachment", fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@id([draftId, fileId])
+  @@index([draftId, position])
+  @@map("submission_draft_files")
+}
+
 model RevisionRequest {
   id            String     @id @default(cuid())
   submissionId  String     @unique
   requestedById String
   note          String
+  /// Daftar fokus perbaikan dari guru (0–3 butir: `{ title, detail? }`).
+  focusPoints   Json       @default("[]")
+  /// Batas waktu kirim ulang revisi (opsional).
+  dueAt         DateTime?
   createdAt     DateTime   @default(now())
   submission    Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   requestedBy   User       @relation(fields: [requestedById], references: [id], onDelete: Restrict)
@@ -816,10 +873,13 @@ model File {
   updatedAt   DateTime   @updatedAt
   owner       User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  organizationLogo    Organization?        @relation("OrganizationLogo")
-  milestoneAttachment MilestoneAttachment?
-  submission          Submission?          @relation("SubmissionFile")
-  materialSection     MaterialSection?     @relation("MaterialSectionFile")
+  userAvatar           User?                @relation("UserAvatar")
+  organizationLogo     Organization?        @relation("OrganizationLogo")
+  milestoneAttachment  MilestoneAttachment?
+  submission           Submission?          @relation("SubmissionFile")
+  submissionAttachment SubmissionFile?      @relation("SubmissionAttachment")
+  submissionDraftFile  SubmissionDraftFile? @relation("SubmissionDraftAttachment")
+  materialSection      MaterialSection?     @relation("MaterialSectionFile")
 
   @@index([ownerId])
   @@map("files")

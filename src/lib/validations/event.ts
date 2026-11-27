@@ -1,3 +1,4 @@
+import { MAX_SUBMISSION_FILES } from "@/lib/submission-helpers";
 import { isWebUrl, WEB_URL_ERROR } from "@/lib/web-url";
 import { z } from "zod";
 
@@ -156,12 +157,32 @@ export const gradeSchema = z.object({
   feedback: optionalText(2000, "Umpan balik"),
 });
 
+export const revisionFocusPointSchema = z.object({
+  title: text(2, 140, "Fokus perbaikan"),
+  detail: optionalText(300, "Rincian perbaikan"),
+});
+
 export const revisionSchema = z.object({
   note: text(10, 2000, "Catatan revisi"),
+  focusPoints: z
+    .array(revisionFocusPointSchema)
+    .max(3, { error: "Maksimal 3 fokus perbaikan" })
+    .optional()
+    .default([]),
+  dueAt: z
+    .union([date("Batas revisi"), z.literal(""), z.null()])
+    .optional()
+    .transform((value) => (value instanceof Date ? value : null)),
 });
 
 export const submissionSchema = z.object({
   fileId: z.string().nullable().optional(),
+  fileIds: z
+    .array(z.string().min(1))
+    .max(MAX_SUBMISSION_FILES, {
+      error: `Maksimal ${MAX_SUBMISSION_FILES} berkas per pengumpulan`,
+    })
+    .optional(),
   link: z
     .string()
     .trim()
@@ -172,6 +193,9 @@ export const submissionSchema = z.object({
     .optional()
     .or(z.literal("").transform(() => null)),
   text: optionalText(5000, "Teks jawaban"),
+  revisionNote: optionalText(2000, "Catatan revisi"),
 });
+
+export const submissionDraftSchema = submissionSchema;
 
 export const fieldNameSchema = text(2, 40, "Nama bidang");

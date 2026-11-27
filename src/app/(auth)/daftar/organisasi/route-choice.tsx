@@ -4,6 +4,7 @@ import {
   ArrowRightIcon,
   Building2Icon,
   CircleCheckIcon,
+  CircleIcon,
   ClockIcon,
   KeyRoundIcon,
   type LucideIcon,
@@ -76,27 +77,35 @@ function RouteChoice() {
           {ROUTES.map(({ value, title, description, icon: Icon, badge }) => (
             <label
               key={value}
-              className="flex cursor-pointer gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted has-checked:border-primary-500 has-checked:bg-primary-50 has-focus-visible:shadow-focus-ring"
+              className="group flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted has-checked:border-primary-500 has-checked:bg-primary-50 has-focus-visible:shadow-focus-ring"
             >
-              <span className="grid size-8 shrink-0 place-items-center rounded-md bg-muted text-label">
-                <Icon aria-hidden="true" className="size-4" />
-              </span>
-              <span className="flex min-w-0 flex-1 flex-col items-start gap-2">
-                <span className="text-body-strong text-foreground">
-                  {title}
-                </span>
-                <span className="text-small text-muted-foreground">
-                  {description}
-                </span>
-                {badge}
-              </span>
               <input
                 type="radio"
                 name="route"
                 value={value}
                 checked={route === value}
                 onChange={() => setRoute(value)}
-                className="mt-1 size-4 shrink-0 accent-primary-500"
+                className="sr-only"
+              />
+              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-muted text-label transition-colors group-has-checked:bg-primary-100 group-has-checked:text-primary-500">
+                <Icon aria-hidden="true" className="size-5" />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
+                <span className="text-h3 text-foreground transition-colors group-has-checked:text-primary-500">
+                  {title}
+                </span>
+                <span className="text-small text-muted-foreground group-has-checked:text-tone-slate-fg">
+                  {description}
+                </span>
+                {badge}
+              </span>
+              <CircleCheckIcon
+                aria-hidden="true"
+                className="mt-0.5 hidden size-5 shrink-0 text-primary-500 group-has-checked:block"
+              />
+              <CircleIcon
+                aria-hidden="true"
+                className="mt-0.5 size-5 shrink-0 text-border group-has-checked:hidden"
               />
             </label>
           ))}

@@ -65,7 +65,7 @@ function DeleteAccountDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="sm:max-w-md">
+      <DialogContent showCloseButton={false} className="sm:max-w-120">
         <form
           className="flex flex-col gap-4"
           onSubmit={(event) => {
@@ -79,7 +79,9 @@ function DeleteAccountDialog({
         >
           <DialogHeader>
             <IconBox icon={Trash2Icon} tone="danger" size="md" />
-            <DialogTitle>Hapus akun secara permanen?</DialogTitle>
+            <DialogTitle className="text-h2">
+              Hapus akun secara permanen?
+            </DialogTitle>
             <DialogDescription>
               Akun {email} akan dihapus dari Becraft dan tidak dapat dipulihkan.
             </DialogDescription>
@@ -108,6 +110,7 @@ function DeleteAccountDialog({
               id="confirm-email"
               type="email"
               autoComplete="off"
+              placeholder="nama@email.com"
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
               aria-invalid={Boolean(error)}
@@ -128,6 +131,7 @@ function DeleteAccountDialog({
             <Button
               type="button"
               variant="secondary"
+              size="lg"
               onClick={() => onOpenChange(false)}
             >
               Batal
@@ -135,6 +139,7 @@ function DeleteAccountDialog({
             <Button
               type="submit"
               variant="danger"
+              size="lg"
               disabled={!matches || !confirmed || pending}
             >
               <Trash2Icon aria-hidden="true" />

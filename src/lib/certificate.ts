@@ -15,6 +15,7 @@ export async function loadCertificate(number: string, user: CurrentUser) {
             include: {
               field: { select: { name: true } },
               creator: { select: { name: true } },
+              _count: { select: { milestones: true } },
               organization: {
                 select: {
                   id: true,
@@ -48,6 +49,7 @@ export async function loadCertificate(number: string, user: CurrentUser) {
     eventId: event.id,
     eventTitle: event.title,
     kkm: event.kkm,
+    milestoneCount: event._count.milestones,
     title:
       event.certificateTitle ??
       `Kompetensi ${event.field?.name ?? "Pembelajaran Berbasis Proyek"}`,

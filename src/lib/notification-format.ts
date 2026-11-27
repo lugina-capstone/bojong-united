@@ -54,12 +54,25 @@ export type NotificationIcon =
 
 export type NotificationTone = "primary" | "success" | "warning" | "danger";
 
+export type NotificationTeamInvite = {
+  inviteId: string;
+  eventId: string;
+  eventTitle: string;
+  teamName: string;
+  inviterName: string;
+  memberCount: number;
+  maxTeamMembers: number;
+  startsAt: string | null;
+};
+
 export type NotificationView = {
   title: string;
   body: string;
   href: string;
   icon: NotificationIcon;
   tone: NotificationTone;
+  /** Label tautan aksi singkat pada item notifikasi (sesuai Figma). */
+  actionLabel?: string;
 };
 
 export function describeNotification(
@@ -249,27 +262,36 @@ export function describeNotification(
       };
     case "revision.requested":
       return {
-        title: "Revisi diminta",
+        title:
+          `Tugas milestone ${payload.milestoneOrder ?? ""} perlu direvisi`.replace(
+            /\s+/g,
+            " ",
+          ),
         body: `${payload.milestoneTitle ?? "Tugas"} · ${payload.eventTitle ?? ""} perlu diperbaiki.`,
         href: `/acara/${payload.eventId}?m=${payload.milestoneOrder ?? 1}`,
         icon: "refresh",
         tone: "warning",
+        actionLabel: "Lihat revisi",
       };
     case "grade.published":
       return {
-        title: "Nilai terbit",
-        body: `${payload.milestoneTitle ?? "Milestone"} · ${payload.eventTitle ?? ""}: ${payload.score ?? ""}`,
+        title: "Nilai milestone telah diterbitkan",
+        body: `${payload.eventTitle ?? ""} · Nilai ${payload.milestoneTitle ?? "milestone"}: ${payload.score ?? ""}`.trim(),
         href: `/acara/${payload.eventId}?m=${payload.milestoneOrder ?? 1}`,
         icon: "check",
         tone: "success",
+        actionLabel: "Lihat penilaian",
       };
     case "certificate.issued":
       return {
-        title: "Sertifikat terbit",
-        body: `Selamat! Sertifikat ${payload.eventTitle ?? "acara"} sudah tersedia.`,
-        href: `/sertifikat/${payload.certificateNumber}`,
+        title: "Sertifikat Anda telah terbit",
+        body: `${payload.eventTitle ?? "Acara"} · Sertifikat tersimpan otomatis di portofolio acara.`,
+        href: payload.certificateNumber
+          ? `/sertifikat/${encodeURIComponent(payload.certificateNumber)}/terbit`
+          : "/portofolio?tab=sertifikat",
         icon: "award",
         tone: "success",
+        actionLabel: "Lihat sertifikat",
       };
     case "event.updated":
       return {
@@ -278,6 +300,7 @@ export function describeNotification(
         href: `/acara/${payload.eventId}`,
         icon: "calendar",
         tone: "warning",
+        actionLabel: "Lihat acara",
       };
     case "milestone.unlocked":
       return {
@@ -286,15 +309,18 @@ export function describeNotification(
         href: `/acara/${payload.eventId}?m=${payload.milestoneOrder ?? 1}`,
         icon: "calendar",
         tone: "primary",
+        actionLabel: "Lihat acara",
       };
     case "team.invited":
+    case "team_invite" as NotificationType:
       return {
-        title: "Undangan tim",
+        title: "Undangan bergabung ke tim",
         body: `${name} mengundang Anda ke ${payload.teamName ?? "tim"} · ${payload.eventTitle ?? ""}`,
         // Terima/Tolak ada di detail acara; notifikasi lama tanpa eventId jatuh ke Jelajah.
         href: payload.eventId ? `/jelajah/${payload.eventId}` : "/jelajah",
         icon: "users",
         tone: "primary",
+        actionLabel: "Lihat undangan",
       };
     case "team.invite-accepted":
       return {

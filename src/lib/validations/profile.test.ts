@@ -29,6 +29,24 @@ describe("profileSchema", () => {
       false,
     );
   });
+
+  it("menerima avatarFileId berupa id berkas atau null dan menolak string kosong", () => {
+    expect(
+      profileSchema.parse({
+        name: "Dimas",
+        phone: "",
+        avatarFileId: "file_123",
+      }).avatarFileId,
+    ).toBe("file_123");
+    expect(
+      profileSchema.parse({ name: "Dimas", phone: "", avatarFileId: null })
+        .avatarFileId,
+    ).toBeNull();
+    expect(
+      profileSchema.safeParse({ name: "Dimas", phone: "", avatarFileId: "" })
+        .success,
+    ).toBe(false);
+  });
 });
 
 describe("formatPhone", () => {

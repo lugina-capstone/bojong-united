@@ -3,23 +3,24 @@ import {
   MailIcon,
   PencilIcon,
   ShieldCheckIcon,
+  SparklesIcon,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Alert } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { GoogleLogo } from "@/components/ui/google-button";
 import { initialsOf } from "@/components/ui/org-logo";
-import { PageHeader } from "@/components/ui/page-header";
 import { formatDate } from "@/lib/format";
 import { formatPhone } from "@/lib/validations/profile";
 
 import { CertificatePreview } from "./_components/certificate-preview";
-import { DeleteAccountButton } from "./_components/delete-account-button";
 import { ChangePasswordDialog } from "./_components/change-password-dialog";
+import { DeleteAccountButton } from "./_components/delete-account-button";
 import { loadParticipantProfile } from "./_components/load-profile";
+import { SavedProfileBanner } from "./_components/saved-banner";
 
 export const metadata: Metadata = { title: "Profil" };
 
@@ -58,48 +59,54 @@ export default async function ParticipantProfilePage({
 
   return (
     <div className="flex flex-col gap-6">
-      {saved && (
-        <Alert tone="success" title="Profil berhasil diperbarui!">
-          Perubahan Anda telah tersimpan dan tampil di header aplikasi,
-          portofolio, serta e-sertifikat acara mendatang.
-        </Alert>
-      )}
-      <div className="flex flex-col gap-4">
+      {saved && <SavedProfileBanner />}
+      <div className="flex flex-col gap-3">
         <nav
           className="text-small text-muted-foreground"
           aria-label="Breadcrumb"
         >
           Akun / Profil peserta
+          {profile.hasPassword && !saved ? " / Akun manual" : ""}
         </nav>
-        <PageHeader
-          title="Profil"
-          description={
-            profile.hasPassword
-              ? "Kelola informasi umum, keamanan kata sandi, dan tampilan nama e-sertifikat."
-              : "Kelola informasi umum dan tampilan nama e-sertifikat."
-          }
-          actions={
-            <>
-              {profile.hasPassword && (
-                <ChangePasswordDialog placement="header" />
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-display text-foreground">Profil</h1>
+              {saved && (
+                <Badge tone="success">
+                  <SparklesIcon aria-hidden="true" />
+                  Baru diperbarui
+                </Badge>
               )}
-              <Link href="/profil/edit" className={buttonVariants()}>
-                <PencilIcon aria-hidden="true" />
-                Edit informasi
-              </Link>
-            </>
-          }
-        />
+            </div>
+            <p className="text-body text-muted-foreground">
+              {saved
+                ? "Informasi ini tampil di header aplikasi, portofolio pribadi, dan e-sertifikat kelulusan acara."
+                : profile.hasPassword
+                  ? "Kelola informasi umum, keamanan kata sandi akun manual, dan tampilan nama e-sertifikat."
+                  : "Kelola informasi umum dan tampilan nama e-sertifikat."}
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {profile.hasPassword && <ChangePasswordDialog placement="header" />}
+            <Link href="/profil/edit" className={buttonVariants()}>
+              <PencilIcon aria-hidden="true" />
+              Edit informasi
+            </Link>
+          </div>
+        </header>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex flex-col gap-6">
           <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:p-6">
-            <span
-              aria-hidden="true"
-              className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary-500 text-h2 text-inverse"
-            >
-              {initialsOf(profile.name)}
-            </span>
+            <Avatar className="size-16 shrink-0">
+              {profile.avatarUrl && (
+                <AvatarImage src={profile.avatarUrl} alt={profile.name} />
+              )}
+              <AvatarFallback className="bg-primary-500 text-h2 text-inverse">
+                {initialsOf(profile.name)}
+              </AvatarFallback>
+            </Avatar>
             <div className="flex min-w-0 flex-col gap-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-display break-words text-foreground">
@@ -109,7 +116,6 @@ export default async function ParticipantProfilePage({
                 <Badge tone="neutral">
                   {profile.hasPassword ? "Akun manual" : "Akun Google"}
                 </Badge>
-                {saved && <Badge tone="success">Baru diperbarui</Badge>}
               </div>
               <span className="text-small break-all text-muted-foreground">
                 {[profile.email, phone].filter(Boolean).join(" · ")}
@@ -204,8 +210,14 @@ export default async function ParticipantProfilePage({
               </div>
               <div className="flex justify-between gap-2">
                 <dt className="text-label">Terakhir diperbarui</dt>
-                <dd className="text-small-strong">
-                  {formatDate(profile.updatedAt)}
+                <dd
+                  className={
+                    saved
+                      ? "text-small-strong text-success-600"
+                      : "text-small-strong"
+                  }
+                >
+                  {saved ? "Baru saja" : formatDate(profile.updatedAt)}
                 </dd>
               </div>
             </dl>
